@@ -1,0 +1,266 @@
+metadata:
+  title: "Dan — Medial Chain Reset + Upper Body"
+  date: "2026-09-11"
+  target_duration_minutes: 52
+  shoes: "Xero zero-drop if comfortable"
+  no_running_workout: true
+
+audio:
+  style:
+    - progressive house
+    - deep house
+    - melodic house
+  instrumental_only: true
+  narration_duck_db: -11
+  final_lufs: -15
+  true_peak_db: -1
+  duck_in_ms: 300
+  duck_recovery_ms: 700
+
+safety:
+  acceptable:
+    - "mild muscular stretch or tightness up to approximately 3/10"
+  stop_if:
+    - "increasing focal navicular pain"
+    - "sharp pain"
+    - "limping"
+    - "numbness"
+    - "tingling"
+    - "electrical sensations"
+    - "progressively worsening pain"
+
+# Every section covers a contiguous time range with no gaps or overlaps.
+# Each block within a section covers a contiguous sub-range of that section.
+# "lines" are spoken in order, auto-spaced across the block's duration by the
+# timeline scheduler once real narration durations are known.
+sections:
+  - id: warmup
+    start: "00:00"
+    end: "08:00"
+    title: "Warm-up and repattern"
+    music_bpm: "118-122"
+    music_energy: warmup
+    blocks:
+      - start: "00:00"
+        end: "03:00"
+        exercise: "Brisk forward treadmill walk"
+        lines:
+          - "Let's begin. Brisk forward walk to start. Settle into your breathing."
+          - "Let the lower ribs expand three-sixty as you inhale. Long exhale out."
+          - "Relax the jaw. Drop the shoulders away from the ears."
+          - "Find your foot tripod. Heel, base of the big toe, base of the little toe. Don't force the arch flat."
+          - "If you're in the Xero shoes today, let the foot move naturally underneath you."
+          - "Ten seconds. In a moment we turn around and walk backward."
+      - start: "03:00"
+        end: "05:00"
+        exercise: "Backward treadmill walk"
+        lines:
+          - "Backward walk. Short, controlled steps."
+          - "Stay tall, soft bend in the knees."
+          - "Feel the quads and the front of the shin doing the work here."
+          - "Controlled beats fast. No rush."
+          - "Ten seconds, then we go lateral. One minute each direction."
+      - start: "05:00"
+        end: "07:00"
+        exercise: "Lateral walking"
+        lines:
+          - "Lateral walk. One minute this direction, then switch."
+          - "Keep the hips level, knees tracking over the toes."
+          - "Quiet feet. No collapsing in at the ankle."
+          - "Switch directions now."
+          - "Same cues the other way. Hips level, quiet landing."
+          - "Ten seconds, then ankle rocks."
+      - start: "07:00"
+        end: "08:00"
+        exercise: "Knee-over-toe ankle rocks"
+        lines:
+          - "Knee-over-toe ankle rocks. Ten slow reps each side."
+          - "Heel stays planted the whole time."
+          - "Move through the ankle without letting the arch collapse."
+          - "Other side."
+
+  - id: release
+    start: "08:00"
+    end: "13:00"
+    title: "DaVinci medial-chain release"
+    music_bpm: "118-122"
+    music_energy: release
+    blocks:
+      - start: "08:00"
+        end: "08:45"
+        exercise: "Medial arch release"
+        lines:
+          - "Grab the DaVinci tool. Medial arch first, avoiding direct pressure right on the navicular bump."
+          - "Sustained pressure, not scraping. Let the tissue relax around the tool."
+          - "Pain should ease as you settle in. Don't chase maximum discomfort."
+      - start: "08:45"
+        end: "09:30"
+        exercise: "Lower medial calf release"
+        lines:
+          - "Move to the lower medial calf."
+          - "Stay off the shin bone entirely."
+          - "If you feel tingling, numbness, or anything electrical, back off immediately."
+      - start: "09:30"
+        end: "10:15"
+        exercise: "Mid medial calf release"
+        lines:
+          - "Mid medial calf now."
+          - "Same sustained pressure. No digging behind the knee. Stay clear of that area."
+      - start: "10:15"
+        end: "11:00"
+        exercise: "Ankle rocks and walk"
+        lines:
+          - "Set the tool down. Eight ankle rocks, nice and slow."
+          - "Then thirty seconds of easy walking to reset."
+      - start: "11:00"
+        end: "13:00"
+        exercise: "Settle and transition"
+        lines:
+          - "Take the last minute or two easy. Light walking, let the tissue settle."
+          - "Ten seconds. Next up, three rounds of heavy lower body and a row."
+
+  - id: lower_pull
+    start: "13:00"
+    end: "25:00"
+    title: "Heavy lower body and pull"
+    music_bpm: "122-126"
+    music_energy: strength
+    blocks:
+      - start: "13:00"
+        end: "17:00"
+        exercise: "Round 1 — RDL, split squat, row"
+        lines:
+          - "Round one. Romanian deadlift, eight to ten reps."
+          - "Hinge, don't squat. Long spine, push the floor away."
+          - "Three second lowering phase. Control the descent."
+          - "Supported split squat next, eight each side."
+          - "Front foot tripod. Knee tracks toward the second and third toe."
+          - "Keep the pelvis square. Don't force through pain at the arch."
+          - "One-arm dumbbell row, eight to twelve each side."
+          - "Elbow drives toward the hip. Avoid shrugging. Keep the neck long."
+          - "Forty-five seconds. Rest if you need it."
+      - start: "17:00"
+        end: "21:00"
+        exercise: "Round 2 — RDL, split squat, row"
+        lines:
+          - "Round two. Same sequence, Romanian deadlift first."
+          - "Hinge pattern, three second lower."
+          - "Split squat. Knee tracking, pelvis square."
+          - "One-arm row. Elbow to the hip, long neck."
+          - "Forty-five seconds, then the last round."
+      - start: "21:00"
+        end: "25:00"
+        exercise: "Round 3 — RDL, split squat, row"
+        lines:
+          - "Last round. Make these count."
+          - "Deadlift. Hinge and control the eccentric."
+          - "Split squat, then the row."
+          - "Nice work. Ten seconds, we're moving to shoulders and arms."
+
+  - id: shoulders_arms
+    start: "25:00"
+    end: "39:00"
+    title: "Shoulders and arms"
+    music_bpm: "124-128"
+    music_energy: peak
+    blocks:
+      - start: "25:00"
+        end: "29:40"
+        exercise: "Round 1 — press, lateral raise, hammer curl, triceps"
+        lines:
+          - "Shoulders and arms. Three rounds. Dumbbell overhead press, eight to ten reps."
+          - "Ribs stacked over the pelvis, glutes lightly on. Exhale through the press."
+          - "Lateral raise, ten to fifteen reps."
+          - "Stop before the traps take over. Shoulders stay away from the ears."
+          - "Hammer curl, ten to twelve. Elbows stay mostly fixed."
+          - "Triceps extension to finish the round, ten to twelve reps."
+          - "Shoulder stays packed the whole time."
+      - start: "29:40"
+        end: "34:20"
+        exercise: "Round 2 — press, lateral raise, hammer curl, triceps"
+        lines:
+          - "Round two. Press first. Exhale through the hard part."
+          - "Lateral raise. Control the tempo, no swinging."
+          - "Hammer curl, then triceps."
+          - "Keep the ribs stacked. This is where posture tends to slip."
+      - start: "34:20"
+        end: "39:00"
+        exercise: "Round 3 — press, lateral raise, hammer curl, triceps"
+        lines:
+          - "Final round of arms. Press."
+          - "Lateral raise."
+          - "Hammer curl into triceps. Finish strong."
+          - "Ten seconds. Upper back and traps are next."
+
+  - id: upper_back
+    start: "39:00"
+    end: "46:00"
+    title: "Upper back and trap reset"
+    music_bpm: "122-126"
+    music_energy: strength
+    blocks:
+      - start: "39:00"
+        end: "42:30"
+        exercise: "Chest-supported row, face pull, farmer carry, wall slide"
+        lines:
+          - "Chest-supported row, ten to twelve reps. Pull toward the lower ribs."
+          - "Let the shoulder blade move around the rib cage. No shrugging."
+          - "Face pull, twelve to fifteen reps. Rotate the thumbs slightly behind you."
+          - "Farmer carry, thirty to forty-five seconds. Tall spine, heavy arms, shoulders down."
+          - "Wall slide or prone Y, eight to ten reps. Low load, clean motion."
+      - start: "42:30"
+        end: "46:00"
+        exercise: "Second pass — row, face pull, farmer carry, wall slide"
+        lines:
+          - "Second pass. Chest-supported row, long neck."
+          - "Face pull, then farmer carry."
+          - "Wall slide to close it out. Don't aggressively stretch the neck here."
+          - "Ten seconds, into the ankle work to finish."
+
+  - id: ankle_finish
+    start: "46:00"
+    end: "52:00"
+    title: "Ankle rebuild and conditioning finish"
+    music_bpm: "124-128"
+    music_energy: finish
+    blocks:
+      - start: "46:00"
+        end: "47:30"
+        exercise: "Slow calf raise"
+        lines:
+          - "Ankle rebuild. Slow calf raise, ten to twelve reps."
+          - "Rise smoothly, lower for three seconds. Keep the big toe base connected."
+          - "Stop calf work if focal navicular pain rises set to set."
+      - start: "47:30"
+        end: "49:00"
+        exercise: "Tibialis-posterior-biased heel raise"
+        lines:
+          - "Small ball or towel between the heels. Tibialis-posterior-biased heel raise, eight to ten reps."
+          - "Don't roll excessively inward or outward. Smooth and controlled."
+      - start: "49:00"
+        end: "50:30"
+        exercise: "Wall tibialis raise"
+        lines:
+          - "Wall tibialis raise, ten to fifteen reps."
+          - "Big toe base stays connected. No forcing the arch."
+          - "If you're completely pain-free right now, an optional thirty to sixty second easy jog is a diagnostic test only, not conditioning. Skip it if there's any meaningful foot pain."
+      - start: "50:30"
+        end: "51:15"
+        exercise: "Incline treadmill walk"
+        lines:
+          - "Incline treadmill, three to five percent, fast walking pace for the rest of our time."
+          - "Smooth rhythm, relaxed shoulders, even stride both sides."
+      - start: "51:15"
+        end: "52:00"
+        exercise: "Cool-down and close"
+        lines:
+          - "Good. The goal today wasn't to baby the foot. It was to train hard without reinforcing the pattern that's been irritating it."
+          - "Notice how the inside of the foot, the calf, the hip, the shoulders, and the traps feel now compared to when you started."
+          - "If the foot feels better or unchanged, that's useful information. If the navicular area is more irritated, we adjust the next session. Nice work today."
+
+optional_test:
+  enabled: true
+  duration: "30-60 sec"
+  exercise: "Extremely easy jog"
+  condition: "Only if the foot is completely comfortable"
+  coaching: "This is a diagnostic test, not conditioning."

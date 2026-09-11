@@ -1,0 +1,16 @@
+voice:
+  engine: auto            # auto | elevenlabs | openai | macos | espeak
+  gender: male
+  espeak_voice: mb-us3     # mbrola US male diphone voice (deeper, less nasal than default)
+  espeak_fallback_voice: en-us
+  espeak_speed_wpm: 158
+  espeak_pitch: 40
+  espeak_amplitude: 160
+
+paths:
+  voice_generated_dir: audio/voice/generated
+  music_dir: audio/music
+  output_dir: output
+
+output:
+  base_name: dan_workout_2026-09-11

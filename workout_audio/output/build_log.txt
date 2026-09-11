@@ -1,0 +1,21 @@
+[PASS] ffmpeg_available: ffmpeg found on PATH
+[PASS] workout_yaml_parses: parsed /home/user/activepax/workout_audio/workout.yaml
+[PASS] monotonic_nonoverlapping_structure: sections/blocks are contiguous and monotonic
+TTS engine selected: espeak
+[PASS] narration_within_duration: all cues end within total duration
+[PASS] no_malformed_overlaps: no overlapping cues
+[PASS] narration_files_valid: 88 narration files present, consistent sample rate {44100}
+[PASS] required_cues_present: all required safety/coaching phrases present
+Music source: procedural
+[PASS] no_clipping: peak amplitude 0.7380, samples >= 0.995: 0
+[PASS] music_bed_covers_workout: mixed program is 3120.0s for a 3120.0s workout
+Measured loudness (pre-normalization): {'input_i': '-13.41', 'input_tp': '-2.64', 'input_lra': '3.50', 'input_thresh': '-23.43', 'output_i': '-14.30', 'output_tp': '-2.42', 'output_lra': '3.00', 'output_thresh': '-24.32', 'normalization_type': 'dynamic', 'target_offset': '-0.70'}
+[PASS] output_file_exists: output/dan_workout_2026-09-11.mp3
+[PASS] output_file_exists: output/dan_workout_2026-09-11.m4a
+[PASS] output_duration_plausible: expected 3120.0s, got 3120.0s (diff 0.0s, tolerance 90s)
+Total build time: 381.8s
+Total workout duration: 3120.0s (52.0 min)
+Narration cues: 88
+Output MP3: output/dan_workout_2026-09-11.mp3
+Output M4A: output/dan_workout_2026-09-11.m4a
+ALL CHECKS PASSED.

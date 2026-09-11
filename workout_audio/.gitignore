@@ -1,0 +1,10 @@
+# Regenerable TTS cache — safe to delete, will resynthesize on next build.
+audio/voice/generated/*.wav
+
+# Rendered output is large binary media; regenerate with `python build.py workout.yaml`.
+# Keep the human-readable artifacts (timeline/log) tracked, exclude the audio itself.
+output/*.mp3
+output/*.m4a
+
+__pycache__/
+*.pyc
