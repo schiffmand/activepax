@@ -5,6 +5,7 @@ audio/voice/generated/*.wav
 # Keep the human-readable artifacts (timeline/log) tracked, exclude the audio itself.
 output/*.mp3
 output/*.m4a
+output/parts/
 
 __pycache__/
 *.pyc
