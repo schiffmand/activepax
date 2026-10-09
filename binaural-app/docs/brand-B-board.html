@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tealight style tile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --room:#2E2320; --room-raised:#3A2D29; --line:#4E3F39;
+    --wax:#F1E7DE; --wax-dim:#BCA79C; --flame:#F5B941; --wick:#93A8E8;
+    --glow:rgba(245,185,65,.16);
+    --d-room:#E9E7EE; --d-raised:#F7F6F9; --d-line:#CFCBD6; --d-wax:#2E2320; --d-dim:#5F5059; --d-flame:#A86A00; --d-wick:#4659A8;
+    --n-room:#1F1715; --n-wax:#B9998A; --n-flame:#C9893A;
+    --serif:"Young Serif", Georgia, serif;
+    --sans:"Lexend", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--room);color:var(--wax);font:300 16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--wick)}
+  :focus-visible{outline:2px solid var(--wick);outline-offset:3px;border-radius:6px}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:56px 16px 72px}
+  @media (min-width:720px){.wrap{padding:72px 40px 96px}}
+
+  /* ---------- Masthead ---------- */
+  .mast{display:grid;gap:40px;align-items:center}
+  @media (min-width:1100px){.mast{grid-template-columns:minmax(0,1fr) auto;gap:56px}.mast .phones{flex-wrap:nowrap}}
+  .lockup{display:flex;align-items:center;gap:18px}
+  .lockup svg{width:84px;height:84px;flex:none}
+  .word{font:400 clamp(48px,9vw,84px)/1 var(--serif);letter-spacing:-.01em;margin:0}
+  .tag{font:400 clamp(22px,3.2vw,30px)/1.3 var(--serif);color:var(--wax);margin:28px 0 14px;max-width:20ch}
+  .lede{color:var(--wax-dim);max-width:52ch;margin:0}
+  .promise{margin:28px 0 0;padding-left:18px;border-left:2px solid var(--flame);max-width:46ch;color:var(--wax)}
+
+  /* ---------- Phones ---------- */
+  .phones{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
+  .phone{width:min(290px,100%);aspect-ratio:300/620;border-radius:44px;padding:10px;background:#140F0D;box-shadow:0 30px 60px -30px rgba(0,0,0,.6), inset 0 0 0 1px #4a3a33;flex:none}
+  .screen{position:relative;height:100%;border-radius:35px;overflow:hidden;display:flex;flex-direction:column;padding:22px 22px 20px;font-size:13px}
+  .s-eve{background:var(--room);color:var(--wax)}
+  .s-day{background:var(--d-room);color:var(--d-wax)}
+  .s-night{background:var(--n-room);color:var(--n-wax)}
+  .status{display:flex;justify-content:space-between;font-weight:500;font-size:12px;opacity:.75}
+  .above{margin-top:22px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(241,231,222,.06)}
+  .s-day .above{background:rgba(46,35,32,.06)}
+  .above .art{width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(135deg,#6b5a8e,#3a6f6a)}
+  .above small{display:block;opacity:.7;font-size:11px;line-height:1.3}
+  .above b{font-weight:500;font-size:12.5px;line-height:1.3}
+  .intent{margin-top:auto;text-align:center}
+  .intent h3{font:400 44px/1 var(--serif);margin:0}
+  .intent .others{margin-top:10px;display:flex;justify-content:center;gap:16px;opacity:.5;font-size:13px}
+  .stage{position:relative;height:210px;display:grid;place-items:center;margin:8px 0 0}
+  .stage .halo{position:absolute;inset:0;background:radial-gradient(closest-side,var(--glow),transparent 75%)}
+  .stage svg{position:relative;width:180px;height:180px;overflow:visible}
+  .hint{text-align:center;font-size:13px;opacity:.85;margin:4px 0 0}
+  .total{text-align:center;font-size:12px;opacity:.6;margin-top:auto;padding-top:14px}
+  .spec{margin:10px auto 0;font-size:11.5px;opacity:.65;font-variant-numeric:tabular-nums;text-align:center}
+  .cap{font-size:13px;color:var(--wax-dim);text-align:center;margin:12px 0 0;max-width:300px}
+  .phonecol{display:flex;flex-direction:column;align-items:center}
+
+  .flame-anim{transform-origin:75px 112px;animation:sway 10s ease-in-out infinite}
+  @keyframes sway{0%,100%{transform:rotate(-2deg) scaleY(.98)}50%{transform:rotate(2deg) scaleY(1.03)}}
+  @media (prefers-reduced-motion:reduce){.flame-anim{animation:none}}
+
+  /* ---------- Sections ---------- */
+  section{margin-top:88px}
+  h2{font:400 clamp(28px,4vw,36px)/1.15 var(--serif);margin:0 0 8px}
+  .sub{color:var(--wax-dim);margin:0 0 32px;max-width:60ch}
+
+  .palettes{display:grid;gap:28px}
+  @media (min-width:960px){.palettes{grid-template-columns:1.4fr 1fr 1fr}}
+  .pal{border-radius:22px;padding:22px;border:1px solid var(--line)}
+  .pal h4{font:500 15px/1.3 var(--sans);margin:0 0 4px}
+  .pal p{font-size:13px;margin:0 0 18px;opacity:.75}
+  .sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px}
+  .chip{display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.3}
+  .chip i{display:block;height:58px;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(128,110,100,.35)}
+  .chip span{opacity:.7;font-variant-numeric:tabular-nums}
+  .pal.day{background:var(--d-room);color:var(--d-wax);border-color:var(--d-line)}
+  .pal.night{background:var(--n-room);color:var(--n-wax);border-color:#352825}
+
+  .type{display:grid;gap:28px}
+  @media (min-width:860px){.type{grid-template-columns:1fr 1fr}}
+  .spec-card{border-top:1px solid var(--line);padding-top:22px}
+  .spec-card .big{font:400 clamp(56px,8vw,88px)/1 var(--serif);margin:6px 0 14px}
+  .spec-card .bigsans{font:400 clamp(44px,6vw,64px)/1.05 var(--sans);margin:6px 0 14px;letter-spacing:-.01em}
+  .spec-card .who{font-weight:500}
+  .spec-card p{color:var(--wax-dim);margin:0;max-width:46ch}
+  .scale{margin-top:28px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 22px;color:var(--wax-dim)}
+
+  .grid2{display:grid;gap:28px}
+  @media (min-width:860px){.grid2{grid-template-columns:1fr 1fr}}
+  .voice{border-radius:22px;background:var(--room-raised);padding:24px}
+  .voice h4{font:500 15px/1.3 var(--sans);margin:0 0 14px}
+  .pair{display:grid;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
+  .pair:first-of-type{border-top:0;padding-top:0}
+  .pair .ctx{font-size:12px;color:var(--wax-dim)}
+  .yes{font:400 18px/1.4 var(--serif);color:var(--wax)}
+  .no{font-size:13.5px;color:var(--wax-dim);text-decoration:line-through;text-decoration-color:rgba(188,167,156,.5)}
+
+  .icons{display:flex;flex-wrap:wrap;gap:22px 28px;margin-top:6px}
+  .icon{display:flex;flex-direction:column;align-items:center;gap:8px;width:72px;font-size:12px;color:var(--wax-dim);text-align:center;line-height:1.3}
+  .icon svg{width:30px;height:30px;stroke:var(--wax-dim);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+  .icon.on svg{stroke:var(--flame)}
+  .icon.on{color:var(--flame)}
+
+  .motion{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+  .motion li{display:grid;grid-template-columns:76px 1fr;gap:14px;align-items:baseline}
+  .motion b{font:400 22px/1 var(--serif);color:var(--flame);font-variant-numeric:tabular-nums}
+  .motion span{color:var(--wax-dim)}
+
+  footer{margin-top:96px;color:var(--wax-dim);font-size:13px;max-width:62ch}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Split flame: left = wick blue (left ear), right = saffron (right ear) -->
+    <symbol id="mark" viewBox="0 0 100 100">
+      <path d="M50 6 C43 21 30 33 30 46 C30 56 39 62 50 62 Z" fill="#93A8E8"/>
+      <path d="M50 6 C57 21 70 33 70 46 C70 56 61 62 50 62 Z" fill="#F5B941"/>
+      <path d="M50 44 C47 49 45 52 45 55 C45 58 47.5 60 50 60 C52.5 60 55 58 55 55 C55 52 53 49 50 44 Z" fill="#FFF3D6" opacity=".85"/>
+      <path d="M17 70 L23 86 Q25 90 30 90 L70 90 Q75 90 77 86 L83 70 Z" fill="#6E5A50"/>
+      <ellipse cx="50" cy="70" rx="33" ry="6.5" fill="#E4D6CB"/>
+      <ellipse cx="50" cy="70" rx="26" ry="4.2" fill="#F1E7DE"/>
+      <line x1="50" y1="62" x2="50" y2="69" stroke="#2E2320" stroke-width="2.4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="lockup">
+        <svg role="img" aria-label="Tealight mark: a small candle in a cup, its flame split blue and saffron"><use href="#mark"/></svg>
+        <h1 class="word">Tealight</h1>
+      </div>
+      <p class="tag">A little light under whatever you're listening to.</p>
+      <p class="lede">Binaural tones and soft noise that play beneath your podcast, playlist or lecture. You hold to light it, leave it, and let it go out gently. Brand direction B, the warm companion.</p>
+      <p class="promise">We'll keep you company, and we'll never make you feel bad for coming back.</p>
+    </div>
+
+    <div class="phones">
+      <div class="phonecol">
+        <div class="phone"><div class="screen s-eve">
+          <div class="status"><span>10:41</span><span>Evening</span></div>
+          <div class="above"><div class="art"></div><div><small>Playing above</small><b>Hidden Brain, episode 212</b></div></div>
+          <div class="intent">
+            <h3>Focus</h3>
+            <div class="others"><span>Calm</span><span>Unwind</span><span>Sleep</span><span>Steady</span></div>
+          </div>
+          <div class="stage">
+            <div class="halo"></div>
+            <svg viewBox="0 0 150 150" aria-hidden="true">
+              <!-- wax pool timer: full ring = 50 min, arc = remaining -->
+              <ellipse cx="75" cy="128" rx="58" ry="11" fill="none" stroke="#4E3F39" stroke-width="2"/>
+              <path d="M17 128 A58 11 0 0 1 120 119" fill="none" stroke="#F5B941" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+              <path d="M44 110 L48 124 Q49 127 53 127 L97 127 Q101 127 102 124 L106 110 Z" fill="#6E5A50"/>
+              <ellipse cx="75" cy="110" rx="31" ry="6" fill="#E4D6CB"/>
+              <ellipse cx="75" cy="110" rx="25" ry="4" fill="#F1E7DE"/>
+              <g class="flame-anim">
+                <path d="M75 22 C69 40 57 54 57 74 C57 88 65 98 75 98 Z" fill="#93A8E8"/>
+                <path d="M75 22 C81 40 93 54 93 74 C93 88 85 98 75 98 Z" fill="#F5B941"/>
+                <path d="M75 70 C71 77 69 81 69 86 C69 91 72 94 75 94 C78 94 81 91 81 86 C81 81 79 77 75 70 Z" fill="#FFF3D6" opacity=".9"/>
+              </g>
+              <line x1="75" y1="98" x2="75" y2="109" stroke="#2E2320" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="hint">Lit for 14 min. Tap to soften.</p>
+          <p class="spec">L 200 / R 214 Hz, 14 Hz beat, brown noise</p>
+          <p class="total">Kept you company 3 h 40 m this week</p>
+        </div></div>
+        <p class="cap">Lit, in Flicker mode. Your audio sits above. The wax pool shows the time left.</p>
+      </div>
+
+      <div class="phonecol">
+        <div class="phone"><div class="screen s-day">
+          <div class="status"><span>08:12</span><span>Daylight</span></div>
+          <div class="above"><div class="art" style="background:linear-gradient(135deg,#c48a5a,#7b8fbf)"></div><div><small>Playing above</small><b>Spotify, Deep Work mix</b></div></div>
+          <div class="intent">
+            <h3 style="font-size:36px">Hello again.</h3>
+            <div class="others" style="opacity:.7"><span>Your light is where you left it.</span></div>
+          </div>
+          <div class="stage">
+            <svg viewBox="0 0 150 150" aria-hidden="true">
+              <ellipse cx="75" cy="128" rx="58" ry="11" fill="none" stroke="#CFCBD6" stroke-width="2"/>
+              <path d="M44 110 L48 124 Q49 127 53 127 L97 127 Q101 127 102 124 L106 110 Z" fill="#B7A79F"/>
+              <ellipse cx="75" cy="110" rx="31" ry="6" fill="#DCD3CE"/>
+              <ellipse cx="75" cy="110" rx="25" ry="4" fill="#F7F6F9"/>
+              <line x1="75" y1="99" x2="75" y2="109" stroke="#2E2320" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="75" cy="118" r="44" fill="none" stroke="#4659A8" stroke-width="1.5" stroke-dasharray="2 6" opacity=".5"/>
+            </svg>
+          </div>
+          <p class="hint" style="font-weight:500">Hold to light</p>
+          <p class="spec">Focus, 50 minutes, fades in over 8 s</p>
+          <p class="total">No streaks. Just totals: 41 hours.</p>
+        </div></div>
+        <p class="cap">Unlit, after three weeks away. Nothing about what you missed.</p>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>Colour, from one scene</h2>
+    <p class="sub">A tealight in a dim room at dusk: cocoa walls, a saffron flame, and the small blue at the root of every real candle flame. Saffron only ever means the sound is on.</p>
+    <div class="palettes">
+      <div class="pal">
+        <h4>Evening, the default</h4>
+        <p>Warm, dim, quiet contrast where it can be.</p>
+        <div class="sw">
+          <div class="chip"><i style="background:#2E2320"></i>Room<span>#2E2320</span></div>
+          <div class="chip"><i style="background:#3A2D29"></i>Raised<span>#3A2D29</span></div>
+          <div class="chip"><i style="background:#4E3F39"></i>Line<span>#4E3F39</span></div>
+          <div class="chip"><i style="background:#F1E7DE"></i>Wax<span>#F1E7DE</span></div>
+          <div class="chip"><i style="background:#BCA79C"></i>Wax dim<span>#BCA79C</span></div>
+          <div class="chip"><i style="background:#F5B941"></i>Flame, right ear<span>#F5B941</span></div>
+          <div class="chip"><i style="background:#93A8E8"></i>Wick, left ear<span>#93A8E8</span></div>
+        </div>
+      </div>
+      <div class="pal day">
+        <h4>Daylight</h4>
+        <p>Cool window light, never cream.</p>
+        <div class="sw">
+          <div class="chip"><i style="background:#E9E7EE"></i>Room<span>#E9E7EE</span></div>
+          <div class="chip"><i style="background:#F7F6F9"></i>Raised<span>#F7F6F9</span></div>
+          <div class="chip"><i style="background:#2E2320"></i>Wax<span>#2E2320</span></div>
+          <div class="chip"><i style="background:#A86A00"></i>Flame<span>#A86A00</span></div>
+          <div class="chip"><i style="background:#4659A8"></i>Wick<span>#4659A8</span></div>
+        </div>
+      </div>
+      <div class="pal night">
+        <h4>Low glow</h4>
+        <p>Sleep and Unwind after sunset. No blue at all.</p>
+        <div class="sw">
+          <div class="chip"><i style="background:#1F1715"></i>Room<span>#1F1715</span></div>
+          <div class="chip"><i style="background:#B9998A"></i>Wax<span>#B9998A</span></div>
+          <div class="chip"><i style="background:#C9893A"></i>Ember<span>#C9893A</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two voices in the type</h2>
+    <p class="sub">A warm book serif speaks the few words that matter. A calm, wide sans, designed to reduce visual stress, does all the work.</p>
+    <div class="type">
+      <div class="spec-card">
+        <span class="who">Young Serif</span>
+        <div class="big">It went out after 52 minutes.</div>
+        <p>Display only, 22 px and up. Intent names, session endings, the wordmark. Legible mode swaps it for Lexend.</p>
+      </div>
+      <div class="spec-card">
+        <span class="who">Lexend, 300 to 600</span>
+        <div class="bigsans">Hold to light</div>
+        <p>Every control, label and sentence. Tabular figures for readouts like 200 Hz and 214 Hz so the numbers never jitter.</p>
+      </div>
+    </div>
+    <div class="scale" aria-label="Type scale">
+      <span style="font-size:13px">13</span><span style="font-size:16px">16</span><span style="font-size:20px">20</span><span style="font-size:25px">25</span><span style="font-size:31px;font-family:var(--serif)">31</span><span style="font-size:39px;font-family:var(--serif)">39</span><span style="font-size:56px;font-family:var(--serif)">56</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>How Tealight talks</h2>
+    <p class="sub">Like a friend who quietly puts a cup of tea next to you and goes back to their book. One candle metaphor per screen, plain words for everything else.</p>
+    <div class="grid2">
+      <div class="voice">
+        <h4>Starting and stopping</h4>
+        <div class="pair"><span class="ctx">Onboarding</span><span class="yes">Keep listening to whatever you like. Tealight plays a soft layer underneath it.</span><span class="no">Welcome to your journey to a better brain!</span></div>
+        <div class="pair"><span class="ctx">Session end</span><span class="yes">It went out after 52 minutes. Nice to have the company.</span><span class="no">Session complete! 3-day streak!</span></div>
+        <div class="pair"><span class="ctx">Coming back</span><span class="yes">Hello again. Your light's where you left it.</span><span class="no">We missed you! You lost your 12-day streak.</span></div>
+      </div>
+      <div class="voice">
+        <h4>Ears and evidence</h4>
+        <div class="pair"><span class="ctx">Headphone check</span><span class="yes">Tealight works best with both ears. We'll play a soft tone on the left, then on the right.</span><span class="no">HEADPHONES REQUIRED for brainwave entrainment!</span></div>
+        <div class="pair"><span class="ctx">Only one side heard</span><span class="yes">Only one side came through. The noise layer still works fine. Use it on its own for now?</span><span class="no">Error: binaural effect unavailable.</span></div>
+        <div class="pair"><span class="ctx">The science</span><span class="yes">Whether the beat changes your focus is genuinely unsettled. So we made it easy to find out what works for you.</span><span class="no">Clinically proven to unlock deep focus.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div>
+      <h2>Icons, drawn by hand</h2>
+      <p class="sub">Rounded 1.75 px strokes. Only the flame ever turns saffron, and only while sound is on.</p>
+      <div class="icons">
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 12h16l-2 6.5a2 2 0 0 1-2 1.5H8a2 2 0 0 1-2-1.5Z"/><path d="M12 12V9"/></svg>Cup</div>
+        <div class="icon on"><svg viewBox="0 0 24 24"><path d="M12 3c-2 4-5 6-5 10a5 5 0 0 0 10 0c0-4-3-6-5-10Z"/><path d="M12 3v15"/></svg>Lit</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 10c0 6 3 9 7 9s7-3 7-9"/><path d="M12 6c-1 2-2 3-2 4.5a2 2 0 0 0 4 0C14 9 13 8 12 6Z"/></svg>Soften</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="8" ry="3"/><path d="M4 15a8 3 0 0 0 9 3"/></svg>Wax pool</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 14v-2a7 7 0 0 1 14 0v2"/><circle cx="5.5" cy="16" r="2.5"/><circle cx="18.5" cy="16" r="2.5"/></svg>Both ears</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 20c-2-2 2-4 0-6s2-4 0-6"/><path d="M8 20h8"/></svg>Went out</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 7c-2-1.5-5-2-8-1.5v12c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-12c-3-.5-6 0-8 1.5Z"/><path d="M12 7v12"/></svg>Science</div>
+        <div class="icon"><svg viewBox="0 0 24 24"><path d="M8 4h8M9 4v3l-2 3v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-8l-2-3V4"/></svg>Saved</div>
+      </div>
+    </div>
+    <div>
+      <h2>Motion follows sound</h2>
+      <p class="sub">Visual fades last exactly as long as audio fades. Nothing moves on launch, and Still mode is the same as Reduce Motion.</p>
+      <ul class="motion">
+        <li><b>1.2 s</b><span>Hold to light. One slow out-breath, so it never starts by accident.</span></li>
+        <li><b>8 s</b><span>The wick catches and the sound rises together. Steady users can stretch it to 20 s.</span></li>
+        <li><b>10 s</b><span>One sway of the flame in Flicker mode, about six breaths a minute.</span></li>
+        <li><b>30 s</b><span>Going out: the flame lowers, the sound fades, one still curl of smoke.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="phones" style="justify-content:flex-start">
+      <div class="phonecol">
+        <div class="phone"><div class="screen s-night">
+          <div class="status"><span>23:04</span><span>Low glow</span></div>
+          <div class="above" style="background:rgba(185,153,138,.06)"><div class="art" style="background:#3a2a24"></div><div><small>Playing above</small><b>Audiobook, chapter 9</b></div></div>
+          <div class="intent"><h3 style="font-size:38px">Sleep</h3></div>
+          <div class="stage">
+            <div class="halo" style="background:radial-gradient(closest-side,rgba(201,137,58,.10),transparent 75%)"></div>
+            <svg viewBox="0 0 150 150" aria-hidden="true">
+              <path d="M44 110 L48 124 Q49 127 53 127 L97 127 Q101 127 102 124 L106 110 Z" fill="#3b2c27"/>
+              <ellipse cx="75" cy="110" rx="31" ry="6" fill="#5a463d"/>
+              <ellipse cx="75" cy="110" rx="25" ry="4" fill="#6d5549"/>
+              <path d="M75 80 C70 88 66 94 66 100 C66 106 70 109 75 109 C80 109 84 106 84 100 C84 94 80 88 75 80 Z" fill="#C9893A" opacity=".85"/>
+            </svg>
+          </div>
+          <p class="hint">Settling for 30 minutes, then silence.</p>
+          <p class="total">Ember only. No blue light after dark.</p>
+        </div></div>
+        <p class="cap">Sleep, in Low glow: a single still ember.</p>
+      </div>
+      <div style="flex:1 1 320px;max-width:520px;align-self:center">
+        <h2>The idea in one line</h2>
+        <p class="sub" style="margin-bottom:18px">Your audio on top, the light underneath. The flame is split blue and saffron because binaural beats need two ears with two different tones. When the headphone check hears both sides, the halves meet into one flame.</p>
+        <p class="sub">The flame's shape tells you the mode: tall for Focus, round for Calm, leaning for Unwind, a low ember for Sleep, perfectly still for Steady.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>Tealight is a working name for brand direction B. It isn't a medical device or a treatment for any condition. The evidence for binaural beats is mixed, and the brand says so.</footer>
+</div>
+</body>
+</html>

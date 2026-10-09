@@ -1,0 +1,291 @@
+import type {
+  AudioBufferLike,
+  AudioBufferSourceNodeLike,
+  AudioContextLike,
+  AudioNodeLike,
+  AudioParamLike,
+  DynamicsCompressorNodeLike,
+  GainNodeLike,
+  OscillatorNodeLike,
+} from '../src/audio/webaudio';
+
+type Ev =
+  | { kind: 'set'; time: number; value: number }
+  | { kind: 'linear'; time: number; value: number }
+  | { kind: 'exp'; time: number; value: number }
+  | { kind: 'target'; time: number; value: number; tc: number };
+
+/** AudioParam mock that actually evaluates its automation timeline, so tests can assert real values. */
+export class MockParam implements AudioParamLike {
+  events: Ev[] = [];
+  calls: string[] = [];
+  constructor(
+    private readonly ctx: MockAudioContext,
+    private defaultValue: number,
+  ) {}
+
+  get value(): number {
+    return this.valueAt(this.ctx.currentTime);
+  }
+  set value(v: number) {
+    this.defaultValue = v;
+  }
+
+  valueAt(t: number): number {
+    let prevTime = 0;
+    let prevValue = this.defaultValue;
+    for (const e of this.events) {
+      if (e.kind === 'set' || e.kind === 'target') {
+        if (e.time > t) break;
+        if (e.kind === 'set') {
+          prevTime = e.time;
+          prevValue = e.value;
+        } else {
+          const v = e.value + (prevValue - e.value) * Math.exp(-(t - e.time) / e.tc);
+          prevValue = v;
+          prevTime = t;
+        }
+        continue;
+      }
+      // ramps run from previous event to e.time
+      if (e.time <= t) {
+        prevTime = e.time;
+        prevValue = e.value;
+        continue;
+      }
+      const frac = (t - prevTime) / (e.time - prevTime);
+      if (e.kind === 'linear') return prevValue + (e.value - prevValue) * frac;
+      return prevValue * Math.pow(e.value / prevValue, frac);
+    }
+    return prevValue;
+  }
+
+  private insert(e: Ev) {
+    this.events.push(e);
+    this.events.sort((a, b) => a.time - b.time);
+  }
+  setValueAtTime(value: number, time: number) {
+    this.calls.push(`set(${value},${time})`);
+    this.insert({ kind: 'set', time, value });
+  }
+  linearRampToValueAtTime(value: number, time: number) {
+    this.calls.push(`linear(${value},${time})`);
+    this.insert({ kind: 'linear', time, value });
+  }
+  exponentialRampToValueAtTime(value: number, time: number) {
+    if (value <= 0) throw new RangeError('exponential ramp to non-positive value');
+    this.calls.push(`exp(${value},${time})`);
+    this.insert({ kind: 'exp', time, value });
+  }
+  setTargetAtTime(value: number, time: number, tc: number) {
+    this.calls.push(`target(${value},${time},${tc})`);
+    this.insert({ kind: 'target', time, value, tc });
+  }
+  cancelScheduledValues(time: number) {
+    this.calls.push(`cancel(${time})`);
+    this.events = this.events.filter((e) => e.time < time);
+  }
+  cancelAndHoldAtTime(time: number) {
+    this.calls.push(`hold(${time})`);
+    const v = this.valueAt(time);
+    this.events = this.events.filter((e) => e.time < time);
+    this.insert({ kind: 'set', time, value: v });
+  }
+}
+
+export class MockNode implements AudioNodeLike {
+  connections: { dest: AudioNodeLike; output?: number | undefined; input?: number | undefined }[] = [];
+  disconnected = false;
+  constructor(
+    public readonly ctx: MockAudioContext,
+    public readonly kind: string,
+  ) {
+    ctx.nodes.push(this);
+  }
+  connect(dest: AudioNodeLike, output?: number, input?: number) {
+    this.connections.push({ dest, output, input });
+    return dest;
+  }
+  disconnect() {
+    this.disconnected = true;
+    this.connections = [];
+  }
+}
+
+export class MockOscillator extends MockNode implements OscillatorNodeLike {
+  type = 'sine';
+  frequency: MockParam;
+  startedAt: number | null = null;
+  stoppedAt: number | null = null;
+  constructor(ctx: MockAudioContext) {
+    super(ctx, 'oscillator');
+    this.frequency = new MockParam(ctx, 440);
+  }
+  start(when = 0) {
+    if (this.startedAt !== null) throw new Error('InvalidStateError: start called twice');
+    this.startedAt = when;
+  }
+  stop(when = 0) {
+    this.stoppedAt = when;
+  }
+}
+
+export class MockGain extends MockNode implements GainNodeLike {
+  gain: MockParam;
+  constructor(ctx: MockAudioContext) {
+    super(ctx, 'gain');
+    this.gain = new MockParam(ctx, 1);
+  }
+}
+
+export class MockCompressor extends MockNode implements DynamicsCompressorNodeLike {
+  threshold: MockParam;
+  knee: MockParam;
+  ratio: MockParam;
+  attack: MockParam;
+  release: MockParam;
+  constructor(ctx: MockAudioContext) {
+    super(ctx, 'compressor');
+    this.threshold = new MockParam(ctx, -24);
+    this.knee = new MockParam(ctx, 30);
+    this.ratio = new MockParam(ctx, 12);
+    this.attack = new MockParam(ctx, 0.003);
+    this.release = new MockParam(ctx, 0.25);
+  }
+}
+
+export class MockBuffer implements AudioBufferLike {
+  private data: Float32Array[];
+  constructor(
+    public readonly numberOfChannels: number,
+    public readonly length: number,
+    public readonly sampleRate: number,
+  ) {
+    this.data = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
+  }
+  getChannelData(c: number) {
+    return this.data[c]!;
+  }
+}
+
+export class MockBufferSource extends MockNode implements AudioBufferSourceNodeLike {
+  buffer: AudioBufferLike | null = null;
+  loop = false;
+  startedAt: number | null = null;
+  stoppedAt: number | null = null;
+  constructor(ctx: MockAudioContext) {
+    super(ctx, 'bufferSource');
+  }
+  start(when = 0) {
+    this.startedAt = when;
+  }
+  stop(when = 0) {
+    this.stoppedAt = when;
+  }
+}
+
+export interface MockContextOptions {
+  /** Hold suspend() promises until settleSuspend() (state changes when it settles, like real browsers). */
+  deferSuspend?: boolean;
+  /** Hold resume() promises until settleResume(). */
+  deferResume?: boolean;
+  /** resume() resolves but leaves the context in this state (autoplay block / iOS 'interrupted'). */
+  resumeBlockedState?: 'suspended' | 'interrupted' | null;
+}
+
+export class MockAudioContext implements AudioContextLike {
+  currentTime = 0;
+  sampleRate = 8000; // small buffers keep tests fast
+  private _state: 'suspended' | 'running' | 'closed' | 'interrupted' = 'suspended';
+  nodes: MockNode[] = [];
+  destination: MockNode;
+  resumeCalls = 0;
+  suspendCalls = 0;
+  buffersCreated = 0;
+  listeners = new Set<() => void>();
+  private pendingSuspends: (() => void)[] = [];
+  private pendingResumes: (() => void)[] = [];
+
+  constructor(public opts: MockContextOptions = {}) {
+    this.destination = new MockNode(this, 'destination');
+  }
+  get state() {
+    return this._state;
+  }
+  /** Change state and fire 'statechange' (simulate OS interruptions with this). */
+  setState(s: 'suspended' | 'running' | 'closed' | 'interrupted') {
+    if (s === this._state) return;
+    this._state = s;
+    for (const fn of [...this.listeners]) fn();
+  }
+  addEventListener(type: 'statechange', fn: () => void) {
+    if (type === 'statechange') this.listeners.add(fn);
+  }
+  removeEventListener(type: 'statechange', fn: () => void) {
+    if (type === 'statechange') this.listeners.delete(fn);
+  }
+  createOscillator() {
+    return new MockOscillator(this);
+  }
+  createGain() {
+    return new MockGain(this);
+  }
+  createChannelMerger(_n = 6) {
+    return new MockNode(this, 'merger');
+  }
+  createDynamicsCompressor() {
+    return new MockCompressor(this);
+  }
+  createBufferSource() {
+    return new MockBufferSource(this);
+  }
+  createBuffer(ch: number, len: number, sr: number) {
+    this.buffersCreated++;
+    return new MockBuffer(ch, len, sr);
+  }
+  resume(): Promise<void> {
+    this.resumeCalls++;
+    const apply = () => this.setState(this.opts.resumeBlockedState ?? 'running');
+    if (!this.opts.deferResume) {
+      apply();
+      return Promise.resolve();
+    }
+    return new Promise<void>((r) => this.pendingResumes.push(() => (apply(), r())));
+  }
+  suspend(): Promise<void> {
+    this.suspendCalls++;
+    const apply = () => this.setState('suspended');
+    if (!this.opts.deferSuspend) {
+      apply();
+      return Promise.resolve();
+    }
+    return new Promise<void>((r) => this.pendingSuspends.push(() => (apply(), r())));
+  }
+  settleSuspend() {
+    const q = this.pendingSuspends.splice(0);
+    q.forEach((f) => f());
+    return q.length;
+  }
+  settleResume() {
+    const q = this.pendingResumes.splice(0);
+    q.forEach((f) => f());
+    return q.length;
+  }
+  async close() {
+    this.setState('closed');
+  }
+
+  /** Advance audio time (seconds). */
+  tick(sec: number) {
+    this.currentTime += sec;
+  }
+
+  of<T extends MockNode>(kind: string): T[] {
+    return this.nodes.filter((n) => n.kind === kind) as T[];
+  }
+}
+
+/** Await queued microtasks (promise chains inside the engine). */
+export async function flushMicrotasks(times = 5): Promise<void> {
+  for (let i = 0; i < times; i++) await Promise.resolve();
+}

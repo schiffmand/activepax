@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keel Style Tile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@200;300;400;500;600&family=Atkinson+Hyperlegible+Next:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Day deck (light) */
+    --d-deep:#E4E7E3; --d-hull:#F2F3F0; --d-rule:#C3CAC7; --d-ink:#17242A; --d-ink2:#56666A; --d-sea:#2F7A70; --d-brass:#9A6A1C;
+    /* Night watch (dark) */
+    --n-deep:#141C21; --n-hull:#1C262C; --n-rule:#2C3940; --n-ink:#D9E1DE; --n-ink2:#8C9C9C; --n-sea:#7DB5AC; --n-brass:#D5A55A;
+
+    --bg:var(--d-deep); --surface:var(--d-hull); --rule:var(--d-rule); --ink:var(--d-ink); --ink2:var(--d-ink2); --sea:var(--d-sea); --brass:var(--d-brass);
+    --ease: cubic-bezier(.2,0,0,1);
+    --font: "Geologica", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:var(--n-deep); --surface:var(--n-hull); --rule:var(--n-rule); --ink:var(--n-ink); --ink2:var(--n-ink2); --sea:var(--n-sea); --brass:var(--n-brass); }
+  }
+  :root[data-theme="dark"] { --bg:var(--n-deep); --surface:var(--n-hull); --rule:var(--n-rule); --ink:var(--n-ink); --ink2:var(--n-ink2); --sea:var(--n-sea); --brass:var(--n-brass); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { -webkit-text-size-adjust:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:var(--font); font-weight:400; font-size:16px; line-height:1.5; font-feature-settings:"tnum" 1; }
+  .wrap { max-width:1200px; margin:0 auto; padding:40px 16px 64px; }
+  @media (min-width:760px){ .wrap { padding:64px 40px 96px; } }
+
+  /* Masthead */
+  .mast { display:grid; gap:28px; align-items:end; padding-bottom:40px; border-bottom:1px solid var(--rule); }
+  @media (min-width:900px){ .mast { grid-template-columns: 1fr auto; } }
+  .lockup { display:flex; align-items:center; gap:18px; }
+  .lockup svg { width:64px; height:64px; flex:none; }
+  .word { font-weight:500; font-size:64px; letter-spacing:.01em; line-height:1; }
+  .tag { margin-top:20px; font-size:25px; font-weight:300; line-height:1.3; max-width:22ch; }
+  .mast p.lede { color:var(--ink2); max-width:46ch; font-size:16px; }
+
+  /* Layout */
+  .grid { display:grid; gap:56px; margin-top:48px; }
+  @media (min-width:980px){ .grid { grid-template-columns: 420px 1fr; gap:72px; } }
+  h2 { font-size:20px; font-weight:500; letter-spacing:-.005em; margin-bottom:6px; }
+  .note { color:var(--ink2); font-size:15px; max-width:60ch; }
+  section + section { margin-top:56px; }
+
+  /* Phone */
+  .phone-col { align-self:start; display:flex; flex-direction:column; align-items:center; gap:20px; }
+  .phone {
+    width:100%; max-width:358px; aspect-ratio: 390/800; border-radius:44px; padding:10px;
+    background:#0C1215; box-shadow: 0 0 0 1px #2C3940, 0 30px 60px -30px rgba(10,20,25,.55);
+  }
+  .screen {
+    position:relative; height:100%; border-radius:35px; overflow:hidden;
+    background:var(--n-deep); color:var(--n-ink); display:flex; flex-direction:column;
+  }
+  .sb { display:flex; justify-content:space-between; padding:14px 26px 0; font-size:14px; font-weight:500; }
+  .above { padding:22px 22px 14px; display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--n-ink2); }
+  .above .src { display:flex; align-items:center; gap:8px; }
+  .bars { display:inline-flex; gap:2px; align-items:flex-end; height:12px; }
+  .bars i { width:2px; background:var(--n-ink2); border-radius:1px; }
+  .stereo { display:flex; align-items:center; gap:6px; }
+  .stereo b { font-weight:500; }
+  .stereo .l { color:var(--n-sea); } .stereo .r { color:var(--n-brass); }
+  .waterline { position:relative; height:1px; background:var(--n-rule); margin:0 0 0; }
+  .waterline span { position:absolute; right:22px; top:-9px; font-size:11px; color:#5E6E70; background:var(--n-deep); padding:0 6px; }
+  .below { flex:1; display:flex; flex-direction:column; align-items:center; padding:18px 22px 22px; }
+  .dial { width:100%; max-width:286px; }
+  .intent { margin-top:2px; font-size:25px; font-weight:400; }
+  .intent-sub { font-size:13px; color:var(--n-ink2); margin-top:2px; }
+  .depth { width:100%; margin-top:20px; }
+  .depth-row { display:flex; justify-content:space-between; font-size:12px; color:var(--n-ink2); margin-bottom:8px; }
+  .depth-row .on { color:var(--n-ink); }
+  .track { position:relative; height:2px; background:var(--n-rule); border-radius:1px; }
+  .track .fill { position:absolute; left:0; top:0; height:2px; width:52%; background:var(--n-sea); }
+  .track .thumb { position:absolute; left:52%; top:-9px; width:20px; height:20px; margin-left:-10px; border-radius:50%; background:var(--n-hull); box-shadow:0 0 0 1.5px var(--n-sea); }
+  .controls { width:100%; display:flex; gap:10px; margin-top:auto; padding-top:20px; align-items:stretch; }
+  .seg { display:flex; border:1px solid var(--n-rule); border-radius:12px; padding:3px; font-size:13px; }
+  .seg span { padding:9px 10px; border-radius:9px; color:var(--n-ink2); }
+  .seg span.on { background:var(--n-hull); color:var(--n-ink); box-shadow:0 0 0 1px var(--n-rule); }
+  .timer { display:flex; flex-direction:column; justify-content:center; padding:0 12px; border:1px solid var(--n-rule); border-radius:12px; font-size:13px; color:var(--n-ink2); line-height:1.2; }
+  .timer b { color:var(--n-ink); font-weight:500; font-size:15px; }
+  .start { flex:1; border:none; border-radius:12px; background:var(--n-brass); color:#1A1508; font:500 15px/1 var(--font); display:flex; align-items:center; justify-content:center; gap:8px; }
+
+  .activity { width:100%; max-width:358px; background:#0C1215; color:var(--n-ink); border-radius:24px; padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 0 0 1px #2C3940; }
+  .activity .mini { width:30px; height:30px; flex:none; }
+  .activity .t { flex:1; font-size:13px; line-height:1.3; }
+  .activity .t b { display:block; font-weight:500; font-size:15px; }
+  .activity .t span { color:var(--n-ink2); }
+  .activity .stop { width:34px; height:34px; border-radius:50%; background:var(--n-hull); display:grid; place-items:center; box-shadow:0 0 0 1px var(--n-rule); }
+  @media (min-width:980px){ .phone-col { position:sticky; top:32px; } }
+  .rows { width:100%; margin-top:18px; border-top:1px solid var(--n-rule); }
+  .rows div { display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--n-rule); font-size:13px; color:var(--n-ink2); }
+  .rows div b { color:var(--n-ink); font-weight:400; }
+  .rows div a { color:var(--n-sea); text-decoration:none; }
+  .caption { font-size:13px; color:var(--ink2); text-align:center; max-width:36ch; }
+
+  /* Palette */
+  .pal { display:grid; gap:18px; margin-top:18px; }
+  @media (min-width:640px){ .pal { grid-template-columns:1fr 1fr; } }
+  .scheme { border-radius:16px; overflow:hidden; box-shadow:0 0 0 1px var(--rule); }
+  .scheme h3 { font-size:13px; font-weight:500; padding:12px 14px; }
+  .chips { display:grid; grid-template-columns: repeat(7, 1fr); }
+  .chip { aspect-ratio: 1/1.35; position:relative; }
+  .chip small { position:absolute; left:6px; bottom:6px; font-size:10px; line-height:1.2; writing-mode:vertical-rl; transform:rotate(180deg); }
+  .channel { display:flex; align-items:center; gap:14px; margin-top:18px; font-size:15px; }
+  .channel svg { flex:none; }
+
+  /* Type */
+  .spec { margin-top:18px; display:grid; gap:20px; }
+  .readout { display:flex; align-items:baseline; gap:10px; }
+  .readout .n { font-size:clamp(84px, 16vw, 120px); font-weight:200; line-height:.9; letter-spacing:-.03em; }
+  .readout .u { font-size:20px; color:var(--ink2); font-weight:400; }
+  .readout .lr { margin-left:20px; font-size:15px; color:var(--ink2); text-align:right; line-height:1.6; }
+  .readout .lr b { font-weight:500; }
+  .lr .l { color:var(--sea); } .lr .r { color:var(--brass); }
+  .h1s { font-size:31px; font-weight:500; letter-spacing:-.01em; line-height:1.15; }
+  .bodys { max-width:52ch; }
+  .legible { font-family:"Atkinson Hyperlegible Next", var(--font); font-size:16px; max-width:52ch; padding:14px 16px; border-left:2px solid var(--sea); background:var(--surface); border-radius:0 10px 10px 0; }
+  .legible em { font-style:normal; color:var(--ink2); display:block; font-size:13px; margin-bottom:4px; font-family:var(--font); }
+  .scale { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:baseline; color:var(--ink2); }
+  .scale span { color:var(--ink); }
+
+  /* Icons */
+  .icons { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; margin-top:18px; max-width:520px; }
+  .ic { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:13px; color:var(--ink2); padding:14px 0 12px; background:var(--surface); border-radius:12px; }
+  .ic svg { width:32px; height:32px; color:var(--ink); }
+
+  /* Voice */
+  .voice { margin-top:18px; display:grid; gap:0; max-width:680px; }
+  .vrow { display:grid; grid-template-columns: 1fr; gap:6px; padding:14px 0; border-top:1px solid var(--rule); }
+  @media (min-width:640px){ .vrow { grid-template-columns: 1fr 1fr; gap:24px; } }
+  .vrow .do::before { content:"Say"; display:block; font-size:12px; color:var(--sea); font-weight:500; }
+  .vrow .dont::before { content:"Not"; display:block; font-size:12px; color:var(--ink2); font-weight:500; }
+  .vrow .dont { color:var(--ink2); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ink2) 50%, transparent); }
+
+  .principles { margin-top:18px; display:grid; gap:14px; max-width:680px; }
+  .principles p { padding-left:16px; border-left:1px solid var(--rule); }
+  .principles b { font-weight:500; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hold { stroke-dasharray: 0 1000; animation: hold 1.2s var(--ease) .6s forwards; }
+    @keyframes hold { to { stroke-dasharray: 762 1000; } }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <div class="lockup">
+        <svg viewBox="0 0 48 48" aria-label="Keel mark" role="img">
+          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+          <line x1="6.6" y1="20" x2="41.4" y2="20" stroke="var(--sea)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21 20 H27 L25 43.9 H23 Z" fill="var(--brass)"/>
+        </svg>
+        <span class="word">keel</span>
+      </div>
+      <p class="tag">Steady sound, under everything.</p>
+    </div>
+    <p class="lede">A precise layer of binaural tones and soft noise that plays underneath your music, podcast or video, and never pauses them. Brand direction A: the calm instrument.</p>
+  </header>
+
+  <div class="grid">
+    <!-- Hero mock -->
+    <div class="phone-col">
+      <div class="phone" role="img" aria-label="Keel main screen mock">
+        <div class="screen">
+          <div class="sb"><span>10:40</span><span>●●● 82%</span></div>
+          <div class="above">
+            <span class="src"><span class="bars"><i style="height:5px"></i><i style="height:11px"></i><i style="height:8px"></i><i style="height:12px"></i></span>Other audio playing</span>
+            <span class="stereo"><b class="l">L</b><b class="r">R</b> Stereo confirmed</span>
+          </div>
+          <div class="waterline"><span>your audio above, Keel below</span></div>
+          <div class="below">
+            <svg class="dial" viewBox="0 0 300 300" id="dial" aria-hidden="true"></svg>
+            <div class="intent">Focus</div>
+            <div class="intent-sub">Drifts between 13 and 15 Hz, with brown noise</div>
+            <div class="depth">
+              <div class="depth-row"><span>Surface</span><span class="on">Under</span><span>Deep</span></div>
+              <div class="track"><div class="fill"></div><div class="thumb"></div></div>
+            </div>
+            <div class="rows">
+              <div><span>Noise bed</span><b>Brown, 40% of layer</b></div>
+              <div><span>Fade in / out</span><b>10 s / 20 s</b></div>
+              <div><span>Does this work?</span><a href="#">What we know</a></div>
+            </div>
+            <div class="controls">
+              <div class="seg"><span class="on">Drift</span><span>Steady</span></div>
+              <div class="timer"><b>45</b>min</div>
+              <button class="start" type="button">Hold to start</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="activity" role="img" aria-label="Live Activity mock">
+        <svg class="mini" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#D9E1DE" stroke-width="3"/><line x1="6.6" y1="20" x2="41.4" y2="20" stroke="#7DB5AC" stroke-width="3" stroke-linecap="round"/><path d="M21 20 H27 L25 43.9 H23 Z" fill="#D5A55A"/></svg>
+        <div class="t"><b>Focus, under your audio</b><span>14 Hz with brown noise. 31 min left</span></div>
+        <div class="stop" aria-label="Stop"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="2" fill="#D9E1DE"/></svg></div>
+      </div>
+      <p class="caption">Main screen and Lock Screen Live Activity. Mixing with other apps means Keel can't own the Now Playing controls, so the Live Activity carries them.</p>
+    </div>
+
+    <!-- System -->
+    <div>
+      <section>
+        <h2>Color</h2>
+        <p class="note">Blued steel, aluminium, brass and indicator-lamp green, taken from marine and studio instruments. The two channel colors carry meaning: left ear is sea-glass, right ear is brass. There is no red; warnings stay calm.</p>
+        <div class="pal">
+          <div class="scheme" style="background:#141C21;color:#D9E1DE">
+            <h3>Night watch, default</h3>
+            <div class="chips">
+              <div class="chip" style="background:#141C21"><small>#141C21 deep</small></div>
+              <div class="chip" style="background:#1C262C"><small>#1C262C hull</small></div>
+              <div class="chip" style="background:#2C3940"><small>#2C3940 rule</small></div>
+              <div class="chip" style="background:#8C9C9C;color:#141C21"><small>#8C9C9C ink 2</small></div>
+              <div class="chip" style="background:#D9E1DE;color:#141C21"><small>#D9E1DE ink</small></div>
+              <div class="chip" style="background:#7DB5AC;color:#141C21"><small>#7DB5AC left</small></div>
+              <div class="chip" style="background:#D5A55A;color:#141C21"><small>#D5A55A right</small></div>
+            </div>
+          </div>
+          <div class="scheme" style="background:#E4E7E3;color:#17242A">
+            <h3>Day deck</h3>
+            <div class="chips">
+              <div class="chip" style="background:#E4E7E3"><small>#E4E7E3 deep</small></div>
+              <div class="chip" style="background:#F2F3F0"><small>#F2F3F0 hull</small></div>
+              <div class="chip" style="background:#C3CAC7"><small>#C3CAC7 rule</small></div>
+              <div class="chip" style="background:#56666A;color:#F2F3F0"><small>#56666A ink 2</small></div>
+              <div class="chip" style="background:#17242A;color:#F2F3F0"><small>#17242A ink</small></div>
+              <div class="chip" style="background:#2F7A70;color:#F2F3F0"><small>#2F7A70 left</small></div>
+              <div class="chip" style="background:#9A6A1C;color:#F2F3F0"><small>#9A6A1C right</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="channel">
+          <svg width="150" height="40" viewBox="0 0 150 40" aria-hidden="true">
+            <path id="wl" d="" fill="none" stroke="var(--sea)" stroke-width="1.5"/>
+            <path id="wr" d="" fill="none" stroke="var(--brass)" stroke-width="1.5"/>
+          </svg>
+          <span>196 Hz left, 210 Hz right. You hear the 14 Hz difference.</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Type</h2>
+        <p class="note">Geologica for everything: engineered, warm, with clear tabular figures. The Hz readout is the hero. Atkinson Hyperlegible Next is one switch away in Legible mode.</p>
+        <div class="spec">
+          <div class="readout">
+            <span class="n">14</span><span class="u">Hz</span>
+            <span class="lr"><b class="l">L</b> 196 Hz<br><b class="r">R</b> 210 Hz</span>
+          </div>
+          <div class="h1s">Keep what you're listening to.</div>
+          <p class="bodys">Keel plays a quiet layer of tones and noise under your music, podcast or video. It never pauses them. Put on headphones and we'll check both ears.</p>
+          <div class="legible"><em>Legible mode, Atkinson Hyperlegible Next</em>Stopped after 52 minutes. Faded out over 20 seconds.</div>
+          <div class="scale">Scale <span>13</span><span>16</span><span>20</span><span>25</span><span>31</span><span>39</span><span>61</span><span>96</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Intent glyphs</h2>
+        <p class="note">Engraved, 1.5 px strokes on a 24 grid, built only from the dial, the waterline and the tick. No moons, brains or lotuses.</p>
+        <div class="icons">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="5" x2="12" y2="12"/></svg>Focus</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="15" x2="21" y2="15"/><path d="M6 11 Q12 6 18 11"/></svg>Calm</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="15" x2="21" y2="15"/><path d="M5 6 Q12 9 19 6"/><path d="M7 10.5 Q12 12.5 17 10.5"/></svg>Unwind</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="11" x2="21" y2="11"/><circle cx="12" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg>Sleep</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="15" x2="21" y2="15"/><line x1="6" y1="9" x2="18" y2="9"/></svg>Steady</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Voice</h2>
+        <p class="note">Precise, calm, candid, a little dry. Describe the design, never the outcome.</p>
+        <div class="voice">
+          <div class="vrow"><span class="do">A steady layer under whatever you're listening to.</span><span class="dont">Unlock your brain's hidden potential</span></div>
+          <div class="vrow"><span class="do">4 sessions this week, 3 h 10 min in total.</span><span class="dont">You broke your 6-day streak</span></div>
+          <div class="vrow"><span class="do">Mono Audio is on, so the beat can't form. Use noise only?</span><span class="dont">Error: binaural playback failed</span></div>
+          <div class="vrow"><span class="do">The research is mixed. Here's what's known, including the null results.</span><span class="dont">Clinically proven to boost focus</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Motion</h2>
+        <div class="principles">
+          <p><b>Motion follows sound.</b> Nothing moves unless the audio is changing.</p>
+          <p><b>Breath tempo.</b> The slowest-moving thing sets the pace: one cycle per six seconds at most. The beat itself is never drawn as flicker.</p>
+          <p><b>One moment.</b> Holding Start sweeps a single ring as the tone fades in. Reduce Motion and Still mode show it instantly.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Dial: ticks, detents, labels, pointer
+  (function () {
+    const svg = document.getElementById('dial');
+    const NS = 'http://www.w3.org/2000/svg';
+    const C = 150;
+    const P = (r, deg) => { const a = deg * Math.PI / 180; return [C + r * Math.sin(a), C - r * Math.cos(a)]; };
+    const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; };
+    el('circle', { cx: C, cy: C, r: 128, fill: '#1C262C' });
+    el('circle', { cx: C, cy: C, r: 128, fill: 'none', stroke: '#2C3940', 'stroke-width': 1 });
+    // hold ring: arc of the full circle, sweeps on load
+    el('circle', { class: 'hold', cx: C, cy: C, r: 140, fill: 'none', stroke: '#7DB5AC', 'stroke-width': 1.5, 'stroke-linecap': 'round', transform: `rotate(-90 ${C} ${C})`, 'stroke-dasharray': '0 1000', opacity: .9 });
+    el('circle', { cx: C, cy: C, r: 140, fill: 'none', stroke: '#2C3940', 'stroke-width': 1, opacity: .6 });
+    for (let d = -130; d <= 130; d += 5) {
+      const major = d % 65 === 0;
+      const [x1, y1] = P(major ? 112 : 118, d), [x2, y2] = P(124, d);
+      el('line', { x1, y1, x2, y2, stroke: major ? '#8C9C9C' : '#2C3940', 'stroke-width': major ? 1.5 : 1, 'stroke-linecap': 'round' });
+    }
+    const intents = ['Focus', 'Calm', 'Unwind', 'Sleep', 'Steady'];
+    intents.forEach((t, i) => {
+      const d = -130 + i * 65; const [x, y] = P(90, d);
+      const tx = el('text', { x, y: y + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-family': 'Geologica, sans-serif', fill: i === 0 ? '#D9E1DE' : '#8C9C9C', 'font-weight': i === 0 ? 500 : 400 });
+      tx.textContent = t;
+    });
+    // pointer at Focus
+    const [px1, py1] = P(110, -130), [px2, py2] = P(127, -130);
+    el('line', { x1: px1, y1: py1, x2: px2, y2: py2, stroke: '#D5A55A', 'stroke-width': 3, 'stroke-linecap': 'round' });
+    // readout
+    const n = el('text', { x: C - 6, y: C + 18, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 200, 'font-family': 'Geologica, sans-serif', fill: '#D9E1DE', 'letter-spacing': '-2' }); n.textContent = '14';
+    const u = el('text', { x: C + 42, y: C + 18, 'font-size': 14, 'font-family': 'Geologica, sans-serif', fill: '#8C9C9C' }); u.textContent = 'Hz';
+    const l = el('text', { x: C - 8, y: C + 46, 'text-anchor': 'end', 'font-size': 12, 'font-family': 'Geologica, sans-serif', fill: '#8C9C9C' });
+    l.innerHTML = '<tspan fill="#7DB5AC" font-weight="500">L</tspan> 196';
+    const r = el('text', { x: C + 8, y: C + 46, 'text-anchor': 'start', 'font-size': 12, 'font-family': 'Geologica, sans-serif', fill: '#8C9C9C' });
+    r.innerHTML = '<tspan fill="#D5A55A" font-weight="500">R</tspan> 210';
+  })();
+
+  // Channel waves: two sines, slightly different frequencies
+  (function () {
+    const mk = (f, ph) => { let d = ''; for (let x = 0; x <= 150; x += 2) { const y = 20 + 13 * Math.sin(x / 150 * Math.PI * 2 * f + ph); d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1) + ' '; } return d; };
+    document.getElementById('wl').setAttribute('d', mk(5, 0));
+    document.getElementById('wr').setAttribute('d', mk(5.5, 0));
+  })();
+</script>
+</body>
+</html>

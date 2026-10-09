@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t d">
+  <title id="t">Tealight</title>
+  <desc id="d">Tealight mark: a round-bellied flame split down the middle, periwinkle on the left and saffron on the right (the two ears), standing on a short wick in a shallow tealight cup seen slightly from above.</desc>
+  <defs>
+    <clipPath id="left"><rect x="0" y="0" width="126.75" height="256"/></clipPath>
+    <clipPath id="right"><rect x="129.25" y="0" width="126.75" height="256"/></clipPath>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F5B941" stop-opacity="0.22"/><stop offset="1" stop-color="#F5B941" stop-opacity="0"/></radialGradient>
+    <path id="flame" d="M128 50 C138 82 170 106 170 136 C170 160 151 172 128 172 C105 172 86 160 86 136 C86 106 118 82 128 50 Z"/>
+  </defs>
+  <!-- App-icon room (cocoa). Delete this rect for the transparent mark. -->
+  <rect width="256" height="256" rx="58" fill="#2E2320"/>
+  <!-- Soft glow: the only gradient in the system -->
+  <circle cx="128" cy="132" r="92" fill="url(#glow)"/>
+  <!-- Flame: left ear (wick-blue) | right ear (saffron) -->
+  <use href="#flame" clip-path="url(#left)" fill="#93A8E8"/>
+  <use href="#flame" clip-path="url(#right)" fill="#F5B941"/>
+  <!-- Tealight cup: body, then the wax pool rim on top -->
+  <path d="M60 186 V200 C60 214 72 222 88 222 H168 C184 222 196 214 196 200 V186 Z" fill="#F1E7DE"/>
+  <ellipse cx="128" cy="186" rx="68" ry="13" fill="#BCA79C"/>
+  <ellipse cx="128" cy="186" rx="56" ry="8" fill="#3A2D29"/>
+  <!-- Wick -->
+  <rect x="126" y="170" width="4" height="16" rx="2" fill="#F1E7DE"/>
+</svg>
