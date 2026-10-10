@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tealight Android — manifest (REFERENCE, NOT YET COMPILED).
+  Only what the layer engine needs. Note what is NOT here: no READ_PHONE_STATE (calls are detected
+  from AudioManager mode changes), no MODIFY_AUDIO_SETTINGS, no MediaBrowserService / MediaSession.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Keep playing with the screen off / while the user is in another app. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 14+: required for foregroundServiceType="mediaPlayback". -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Android 13+: the ongoing "playing" notification with Stop. Ask in context (first play), never on launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:label="Tealight"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="true">
+
+        <service
+            android:name=".service.LayerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+    </application>
+</manifest>
