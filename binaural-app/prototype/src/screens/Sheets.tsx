@@ -10,7 +10,7 @@ import { FORCES_NOISE, ui, type Headphone } from '../ui/state';
 import { Button, Sheet, Stitch, cx } from '../ui/kit';
 import { IconAB, IconBolt, IconCheck, IconMix, IconPage, IconPlus, IconSettings, IconWeek, IconHeadphones, IconLayer } from '../ui/icons';
 import { DemoControls } from '../demo/DemoControls';
-import { shareLink, shareText } from '../tuck/share';
+import { SHARE_LINK_LABEL, shareLink, shareText } from '../tuck/share';
 
 export function Sheets() {
   const t = useTuck();
@@ -61,9 +61,9 @@ function LayerRow({ l, on, sub, onPick, extra }: { l: Layer; on: boolean; sub?: 
         className="flex-1 flex items-center gap-3 py-3 min-h-[64px] text-left"
       >
         <span className="flex-1 min-w-0">
-          <span className="block text-[20px] leading-7 text-ink">{l.name}</span>
-          <span className="block tnum text-[16px] leading-[22px] text-ink2">{engravedLine(l)}</span>
-          {sub && <span className="block text-[16px] leading-[22px] text-ink2">{sub}</span>}
+          <span className="block text-[1.25rem] leading-7 text-ink">{l.name}</span>
+          <span className="block tnum text-[1rem] leading-[1.375rem] text-ink2">{engravedLine(l)}</span>
+          {sub && <span className="block text-[1rem] leading-[1.375rem] text-ink2">{sub}</span>}
         </span>
         <span className={cx('h-7 w-7 rounded-full inline-flex items-center justify-center', on ? 'bg-ink text-onink' : 'border-[1.5px] border-line')}>{on && <IconCheck size={18} />}</span>
       </button>
@@ -91,9 +91,9 @@ function Picker() {
         {/* Long focus sits with the five, with its honest line: students search for 40 Hz by name. */}
         <LayerRow l={builtInLayer('long-focus')!} on={current === 'long-focus'} sub={builtInLayer('long-focus')!.note} onPick={() => pick('long-focus')} />
       </div>
-      <h3 className="text-[16px] font-bold text-ink2 mt-6 mb-1">Your layers</h3>
+      <h3 className="text-[1rem] font-bold text-ink2 mt-6 mb-1">Your layers</h3>
       {saved.length === 0 ? (
-        <p className="text-[16px] leading-6 text-ink2 py-2">Nothing saved yet. When a layer feels right, tap Save and it stays exactly as it is.</p>
+        <p className="text-[1rem] leading-6 text-ink2 py-2">Nothing saved yet. When a layer feels right, tap Save and it stays exactly as it is.</p>
       ) : (
         <div className="divide-y divide-line">
           {saved.map((l) => (
@@ -107,8 +107,8 @@ function Picker() {
           ))}
         </div>
       )}
-      {saved.length > 0 && <p className="text-[16px] leading-[22px] text-ink2 mt-1">To edit, delete or share a saved layer, tap its numbers on the layer.</p>}
-      <h3 className="text-[16px] font-bold text-ink2 mt-6 mb-1">Noise only</h3>
+      {saved.length > 0 && <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">To edit, delete or share a saved layer, tap its numbers on the layer.</p>}
+      <h3 className="text-[1rem] font-bold text-ink2 mt-6 mb-1">Noise only</h3>
       <div className="divide-y divide-line">
         {BUILT_IN_LAYERS.filter((l) => INTENT_ORDER.includes(l.id as never)).map((l) => {
           const n = noiseOnlyOf(l);
@@ -134,8 +134,8 @@ function TimerSheet() {
   if (t.layer.journey) {
     return (
       <div data-testid="timer-journey">
-        <p className="text-[20px] leading-7 text-ink tnum">Ends after 45 min</p>
-        <p className="text-[16px] leading-6 text-ink2 mt-2">
+        <p className="text-[1.25rem] leading-7 text-ink tnum">Ends after 45 min</p>
+        <p className="text-[1rem] leading-6 text-ink2 mt-2">
           Evening descent has its own arc: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes, then a 60 second fade to silence. It doesn’t need a timer.
         </p>
       </div>
@@ -154,8 +154,8 @@ function TimerSheet() {
             data-testid={`timer-${m ?? 'none'}`}
             className="w-full min-h-14 flex items-center justify-between text-left"
           >
-            <span className="tnum text-[20px] leading-7 text-ink">{m === null ? 'Until I stop' : `${m} min`}</span>
-            {current === m && <IconCheck className="text-ink" />}
+            <span className="tnum text-[1.25rem] leading-7 text-ink">{m === null ? 'Until I stop' : `${m} min`}</span>
+            <RadioMark on={current === m} />
           </button>
         ))}
         <button
@@ -167,18 +167,18 @@ function TimerSheet() {
           className="w-full min-h-14 py-2 flex items-center justify-between text-left"
         >
           <span>
-            <span className="block tnum text-[20px] leading-7 text-ink">
-              Cycles: {CYCLE.workMin} on, {CYCLE.breakMin} off
+            <span className="block tnum text-[1.25rem] leading-7 text-ink">
+              Cycles: {CYCLE.workMin} min, then {CYCLE.breakMin} at Quiet
             </span>
-            <span className="block text-[16px] leading-[22px] text-ink2">
-              {CYCLE.rounds} rounds. Breaks drop to Quiet, one soft chime brings you back.
+            <span className="block text-[1rem] leading-[1.375rem] text-ink2">
+              {CYCLE.rounds} rounds. During each break the layer plays at Quiet, and one soft chime brings it back.
             </span>
           </span>
-          {current === 'cycles' && <IconCheck className="text-ink shrink-0" />}
+          <RadioMark on={current === 'cycles'} />
         </button>
       </div>
       <div className="mt-5">
-        <label htmlFor="custom-timer" className="text-[16px] font-medium text-ink">
+        <label htmlFor="custom-timer" className="text-[1rem] font-medium text-ink">
           Custom: <span className="tnum">{custom} min</span>
         </label>
         <input
@@ -196,10 +196,19 @@ function TimerSheet() {
           Use {custom} min
         </Button>
       </div>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-4">
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-4">
         The layer fades out at the time you pick, over {t.prefs.fadeOutSec} seconds. There’s no countdown. Tuck remembers your choice for {t.layer.name}.
       </p>
     </div>
+  );
+}
+
+/** The same selected / unselected mark as the layer picker, so every row shows its state. */
+function RadioMark({ on }: { on: boolean }) {
+  return (
+    <span className={cx('h-7 w-7 shrink-0 rounded-full inline-flex items-center justify-center', on ? 'bg-ink text-onink' : 'border-[1.5px] border-edge')} aria-hidden>
+      {on && <IconCheck size={18} />}
+    </span>
   );
 }
 
@@ -223,13 +232,13 @@ function Menu() {
           <li key={i.label}>
             <button type="button" onClick={i.onClick} data-testid={i.testid} className="w-full min-h-14 flex items-center gap-4 text-left text-ink">
               <span className="text-ink2">{i.icon}</span>
-              <span className="text-[17px] font-medium">{i.label}</span>
+              <span className="text-[1.0625rem] font-medium">{i.label}</span>
             </button>
           </li>
         ))}
       </ul>
       <div className="mt-4 rounded-[18px] border border-dashed border-line px-4 py-3">
-        <p className="text-[16px] leading-[22px] text-ink2">This is a prototype. Simulate another app playing, headphone states and time from here.</p>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2">This is a prototype. Simulate another app playing, headphone states and time from here.</p>
         <Button variant="text" className="-ml-1" onClick={() => ui.set({ sheet: 'demo' })} data-testid="menu-demo">
           Prototype controls
         </Button>
@@ -243,7 +252,7 @@ function SaveSheet() {
   const from = store.findLayer(t.u.draftFrom) ?? t.layer;
   const src: Layer = t.u.draft ?? from;
   const tooMuchNow = store.findLayer(t.prefs.tooMuchLayerId)?.name ?? 'Steady';
-  const [name, setName] = useState(src.kind === 'builtin' ? (src.id === 'focus' ? 'Desk' : `My ${src.name.toLowerCase()}`) : src.name);
+  const [name, setName] = useState(src.kind === 'builtin' ? (src.id === 'focus' ? 'Desk' : `My ${src.name.toLowerCase()}`) : src.name.replace(/, noise only$/, ''));
   // Off by default: saving never changes what Too much plays unless you tick this.
   const [tooMuch, setTooMuch] = useState(false);
   const [err, setErr] = useState<string[]>([]);
@@ -270,6 +279,7 @@ function SaveSheet() {
     } satisfies TuckPresetExtras & typeof r.value;
     store.core.dispatch({ type: 'preset/add', preset });
     if (tooMuch) store.setPrefs({ tooMuchLayerId: preset.id });
+    if (src.id === 'shared') store.setTransient(null);
     ui.set({ sheet: null, page: 'home', spec: false, draft: null, shared: null, selectedId: preset.id, chip: null, chipLine: null, chipFirst: null });
     ui.toast(`Saved as “${preset.name}”. It won’t change unless you change it.`, 5000);
   };
@@ -280,7 +290,7 @@ function SaveSheet() {
         save();
       }}
     >
-      <label htmlFor="save-name" className="text-[16px] font-medium text-ink">
+      <label htmlFor="save-name" className="text-[1rem] font-medium text-ink">
         Name
       </label>
       <input
@@ -289,26 +299,26 @@ function SaveSheet() {
         maxLength={40}
         onChange={(e) => setName(e.target.value)}
         data-testid="save-name"
-        className="mt-1 w-full h-14 rounded-[14px] bg-bg px-4 text-[17px] text-ink border-[1.5px] border-line focus:border-[var(--c-focus)] outline-none"
+        className="mt-1 w-full h-14 rounded-[14px] bg-bg px-4 text-[1.0625rem] text-ink border-[1.5px] border-line focus:border-[var(--c-focus)] outline-none"
         autoComplete="off"
       />
-      <p className="tnum text-[16px] text-ink2 mt-2">{engravedLine(src)}</p>
+      <p className="tnum text-[1rem] text-ink2 mt-2">{engravedLine(src)}</p>
       <label className="mt-4 flex items-start gap-3 min-h-12 cursor-pointer">
         <input type="checkbox" checked={tooMuch} onChange={(e) => setTooMuch(e.target.checked)} className="mt-[3px] h-6 w-6 accent-[var(--c-ink)]" data-testid="save-toomuch" />
-        <span className="text-[16px] leading-6 text-ink">
+        <span className="text-[1rem] leading-6 text-ink">
           Play this when I pick Too much
           <span className="block text-ink2">Too much plays {tooMuchNow} now.</span>
         </span>
       </label>
       {err.length > 0 && (
-        <p className="mt-2 rounded-[14px] bg-surface2 px-4 py-3 text-[16px] text-ink" role="alert">
+        <p className="mt-2 rounded-[14px] bg-surface2 px-4 py-3 text-[1rem] text-ink" role="alert">
           {err[0]}
         </p>
       )}
       <Button full type="submit" className="mt-4" data-testid="save-confirm">
         Save
       </Button>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-3">Saved layers are frozen. They won’t change unless you change them, including across updates.</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">Saved layers are frozen. They won’t change unless you change them, including across updates.</p>
     </form>
   );
 }
@@ -319,7 +329,7 @@ function DeleteSheet() {
   if (!l) return null;
   return (
     <div>
-      <p className="text-[16px] leading-6 text-ink">Delete “{l.name}”? This removes it from this phone. Built-in layers aren’t affected.</p>
+      <p className="text-[1rem] leading-6 text-ink">Delete “{l.name}”? This removes it from this phone. Built-in layers aren’t affected.</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Button variant="quiet" onClick={() => ui.set({ sheet: null })}>
           Keep it
@@ -359,7 +369,7 @@ const HP_FULL: Partial<Record<Headphone, { text: string; actions: ('noise' | 'ch
     actions: ['how', 'noise'],
     how: 'In Control Center, press and hold the volume slider, then turn Spatial Audio off.',
   },
-  swapped: { text: 'Your left and right seem swapped. Tuck swaps them for you, so L 200 still reaches your left ear.', actions: ['ok', 'check'] },
+  swapped: { text: 'Your left and right seem swapped. Tuck swaps them back for you, so L 200 still reaches your left ear. The beat is the same either way.', actions: ['ok', 'check'] },
   disconnected: { text: 'Headphones disconnected, so Tuck faded out.', actions: [] },
 };
 
@@ -367,7 +377,7 @@ function HeadphonesSheet() {
   const { u, prefs } = useTuck();
   const [showHow, setShowHow] = useState(false);
   const c = HP_FULL[u.headphone];
-  if (!c) return <p className="text-[16px] leading-6 text-ink">Stereo headphones are connected. Each ear gets its own tone.</p>;
+  if (!c) return <p className="text-[1rem] leading-6 text-ink">Stereo headphones are connected. Each ear gets its own tone.</p>;
   const forced = FORCES_NOISE.includes(u.headphone);
   const act = {
     noise: (
@@ -406,10 +416,10 @@ function HeadphonesSheet() {
   };
   return (
     <div data-testid={`hp-${u.headphone}`}>
-      <p className="text-[16px] leading-6 text-ink">{c.text}</p>
-      {showHow && c.how && <p className="text-[16px] leading-6 text-ink2 mt-3 rounded-[14px] bg-surface2 px-4 py-3">{c.how}</p>}
+      <p className="text-[1rem] leading-6 text-ink">{c.text}</p>
+      {showHow && c.how && <p className="text-[1rem] leading-6 text-ink2 mt-3 rounded-[14px] bg-surface2 px-4 py-3">{c.how}</p>}
       {c.actions.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">{c.actions.map((a) => act[a])}</div>}
-      {prefs.swapChannels && u.headphone !== 'swapped' && <p className="text-[16px] leading-[22px] text-ink2 mt-4">Left and right are swapped for your headphones. Change it in Settings, Sound.</p>}
+      {prefs.swapChannels && u.headphone !== 'swapped' && <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-4">Left and right are swapped for your headphones. Change it in Settings, Sound.</p>}
     </div>
   );
 }
@@ -429,28 +439,30 @@ function ShareSheet() {
       <figure className="rounded-[22px] bg-bg border border-line overflow-hidden" aria-label={`Layer card: ${text}`}>
         <div className="h-[8px] bg-lining" style={{ opacity: 0.85 }} />
         <div className="px-5 pt-4 pb-5">
-          <p className="text-[16px] text-ink2">{l.name}</p>
+          <p className="text-[1rem] text-ink2">{l.name}</p>
           {l.binaural ? (
             <>
-              <p className="tnum text-[39px] leading-[44px] text-ink mt-1">{l.journey ? '8 → 2 Hz' : `${hz(l.beatHz)} Hz`}</p>
-              <p className="tnum text-[16px] mt-1">
+              <p className="tnum text-[2.4375rem] leading-[2.75rem] text-ink mt-1">{l.journey ? '8 → 2 Hz' : `${hz(l.beatHz)} Hz`}</p>
+              <p className="tnum text-[1rem] mt-1">
                 <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)}</span> <span className="text-ink2">/</span> <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)}</span>
                 <span className="text-ink2"> · over {l.noise.type === 'off' ? 'no noise' : `${l.noise.type} noise`}</span>
               </p>
             </>
           ) : (
-            <p className="tnum text-[39px] leading-[44px] text-ink mt-1">{l.noise.type} noise</p>
+            <p className="tnum text-[2.4375rem] leading-[2.75rem] text-ink mt-1">{l.noise.type} noise</p>
           )}
           <div className="mt-4 flex items-center justify-between">
             <Stitch width={120} stroke={2} mono={!l.binaural} />
-            <span className="text-[16px] text-ink2">Tuck</span>
+            <span className="text-[1rem] text-ink2">Tuck</span>
           </div>
         </div>
       </figure>
-      <p className="tnum text-[16px] leading-6 text-ink mt-4" data-testid="share-text">
+      <p className="tnum text-[1rem] leading-6 text-ink mt-4" data-testid="share-text">
         {text}
       </p>
-      <p className="tnum text-[16px] leading-6 text-ink2 break-all">{link}</p>
+      <p className="text-[1rem] leading-6 text-ink2" data-testid="share-link">
+        With a {SHARE_LINK_LABEL} that opens it in Tuck.
+      </p>
       <Button
         full
         className="mt-4"
@@ -462,7 +474,7 @@ function ShareSheet() {
       >
         {copied ? 'Copied' : 'Copy text and link'}
       </Button>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-3">The link opens this exact layer in Tuck. It carries the numbers only: no name of yours, no account, nothing about how you use it.</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">The link opens this exact layer in Tuck. It carries the numbers only: no name of yours, no account, nothing about how you use it.</p>
     </div>
   );
 }
@@ -480,16 +492,16 @@ function AnywhereSheet() {
   ];
   return (
     <div data-testid="anywhere-sheet">
-      <p className="text-[16px] leading-6 text-ink">Starting is the hard part, so Tuck can start itself. Each of these plays your layer under your audio, with your level and timer.</p>
+      <p className="text-[1rem] leading-6 text-ink">Starting is the hard part, so Tuck can start itself. Each of these plays your layer under your audio, with your level and timer.</p>
       <dl className="mt-3 divide-y divide-line">
         {rows.map(([k, v]) => (
           <div key={k} className="py-3">
-            <dt className="text-[16px] font-bold text-ink">{k}</dt>
-            <dd className="text-[16px] leading-6 text-ink mt-1">{v}</dd>
+            <dt className="text-[1rem] font-bold text-ink">{k}</dt>
+            <dd className="text-[1rem] leading-6 text-ink mt-1">{v}</dd>
           </div>
         ))}
       </dl>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-2">In this prototype these are described, not wired: phones add them from Settings and the Shortcuts app.</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">In this prototype these are described, not wired: phones add them from Settings and the Shortcuts app.</p>
     </div>
   );
 }

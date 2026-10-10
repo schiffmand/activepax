@@ -3,12 +3,12 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { summarizeWeek } from '@core';
 import { CYCLE, localDate, session, fadesFor } from '../audio/session';
-import { CHIPS, chipForLayer, copy, durationWords, greetingFor, playsLine, type ChipId } from '../tuck/copy';
+import { CHIPS, chipForLayer, copy, durationWords, elapsedWords, greetingFor, playsLine, type ChipId } from '../tuck/copy';
 import { ears, hz, INTENT_ORDER, LAYER_HEIGHT, LEVEL_LABEL, LEVELS, builtInLayer, wanders, type Layer, type LevelName } from '../tuck/layers';
 import { store, type TimerChoice } from '../tuck/store';
-import { pickChip, selectLayer, startSound, stopSound, useTuck } from '../ui/derived';
+import { binauralFor, pickChip, selectLayer, startSound, stopSound, useTuck } from '../ui/derived';
 import { ui, type Headphone } from '../ui/state';
-import { Banner, Button, EASE, Segmented, Stitch, cx } from '../ui/kit';
+import { Banner, Button, EASE, Segmented, Stitch, cx, useOverflowFade } from '../ui/kit';
 import {
   IconAudioAbove,
   IconCall,
@@ -39,6 +39,24 @@ const PULL_TO_START = 36;
 /** The idle layer's height: shorter when the top content would otherwise be cut off. */
 const IDLE_COMPACT = 244;
 const idleHeight = (compact: boolean) => (compact ? IDLE_COMPACT : LAYER_HEIGHT.idle);
+const PHONE_H = 844;
+
+/** The root text size relative to 16 px (Dynamic Type / browser text zoom). */
+function textScale(): number {
+  if (typeof document === 'undefined') return 1;
+  const fs = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(fs) && fs > 0 ? fs / 16 : 1;
+}
+
+/**
+ * The layer's real height (including the bottom safe area). It rests at its level's height, but never shorter
+ * than its own controls (they grow with large text), and never taller than leaves room for the status line:
+ * past that, the layer's middle scrolls and Start sound / Stop stay pinned above the safe area.
+ */
+export function layerTotalH(restH: number, minH: number, idle = false): number {
+  const cap = textScale() > 1.2 ? Math.round(PHONE_H * (idle ? 0.5 : 0.64)) : PHONE_H - SAFE_TOP - 140;
+  return Math.min(cap, Math.max(restH + SAFE_BOTTOM, minH));
+}
 
 export function Home() {
   const t = useTuck();
@@ -56,14 +74,15 @@ export function Home() {
   }, [u.headphone]);
 
   const idle = s.phase === 'idle' || (s.phase === 'fadingOut' && !!s.ended);
-  const noteVisible = !prefs.audioNoteDismissed && !u.spec && !t.sensory && idle && !s.ended;
+  // After the first session (not above the first-run question), once, until the next start.
+  const noteVisible = prefs.firstSessionDone && !prefs.audioNoteDismissed && !u.spec && !t.sensory && idle && !s.ended && !u.shared;
 
   return (
     <div className="absolute inset-0 overflow-hidden" data-testid="screen-home">
-      <HomeTop top={<TopBar otherPlaying={other.playing} noteVisible={noteVisible} />} />
+      <HomeTop top={<TopBar otherPlaying={other.playing} noteVisible={noteVisible} activated={s.activatedNow && other.playing} />} />
       <LayerPanel key="layer" />
       <span className="sr-only" aria-live="polite">
-        {s.phase === 'fadingIn' ? copy.statusFadingIn(labels, s.fadeSec) : s.phase === 'playing' ? copy.statusPlaying(labels) : ''}
+        {s.takeFive || s.cycles?.phase === 'break' ? copy.statusBreak(labels) : s.phase === 'fadingIn' ? copy.statusFadingIn(labels, s.fadeSec) : s.phase === 'playing' ? copy.statusPlaying(labels) : ''}
       </span>
       <span className="sr-only">{reduced ? 'Still screen on' : ''}</span>
       <span className="hidden">{layer.id}</span>
@@ -71,19 +90,23 @@ export function Home() {
   );
 }
 
-function TopBar({ otherPlaying, noteVisible }: { otherPlaying: boolean; noteVisible: boolean }) {
+function TopBar({ otherPlaying, noteVisible, activated }: { otherPlaying: boolean; noteVisible: boolean; activated: boolean }) {
+  // The activation moment, marked once and quietly: the first time Tuck stays under another app for 10 minutes.
+  const label = activated ? 'Stayed under your audio for 10 min' : otherPlaying ? 'Your audio keeps playing above' : 'Nothing else playing';
   return (
     <div className="relative z-20 shrink-0">
-      <div className="h-14 flex items-center justify-between pl-3 pr-2">
+      <div className="min-h-14 py-1 flex items-center justify-between pl-3 pr-2">
         <button
           type="button"
           data-testid="audio-indicator"
           onClick={() => ui.set({ page: 'mixing' })}
           className="h-12 inline-flex items-center gap-2 rounded-full pl-2 pr-3 text-ink2 hover:text-ink transition-colors"
-          aria-label={`${otherPlaying ? 'Your audio keeps playing above' : 'Nothing else playing'}. How Tuck plays under your audio`}
+          aria-label={`${label}. How Tuck plays under your audio`}
         >
           {otherPlaying ? <IconAudioAbove /> : <IconQuiet />}
-          <span className="text-[16px]">{otherPlaying ? 'Your audio keeps playing above' : 'Nothing else playing'}</span>
+          <span className={cx('text-[1rem]', activated && 'text-ink')} data-testid={activated ? 'activation' : undefined}>
+            {label}
+          </span>
         </button>
         <button
           type="button"
@@ -97,7 +120,7 @@ function TopBar({ otherPlaying, noteVisible }: { otherPlaying: boolean; noteVisi
       </div>
       {noteVisible && (
         <div className="mx-5 mb-3 flex items-start gap-2 text-ink2" data-testid="audio-note">
-          <p className="flex-1 text-[16px] leading-[22px]">Your phone doesn’t tell apps what you’re listening to, so we only say whether something is playing.</p>
+          <p className="flex-1 text-[1rem] leading-[1.375rem]">Your phone doesn’t tell apps what you’re listening to, so we only say whether something is playing.</p>
           <button
             type="button"
             onClick={() => store.setPrefs({ audioNoteDismissed: true })}
@@ -120,8 +143,8 @@ export const HP_PILL: Partial<Record<Headphone, { icon: React.ReactElement; text
   callMode: { icon: <IconCall size={20} />, text: 'Call mode is mono, so noise only' },
   mono: { icon: <IconHeadphones size={20} />, text: 'Mono Audio is on, so noise only' },
   spatial: { icon: <IconHeadphones size={20} />, text: 'Spatial Audio may hide the beat' },
-  swapped: { icon: <IconSwap size={20} />, text: 'Left and right swapped back for you' },
-  disconnected: { icon: <IconHeadphones size={20} />, text: 'Headphones disconnected' },
+  // Swapped has no pill: the swap is silent (the beat forms either way). The readout carries a swap mark.
+  disconnected: { icon: <IconHeadphones size={20} />, text: 'No headphones, so noise only' },
 };
 
 function HeadphonePill({ state }: { state: Headphone }) {
@@ -135,7 +158,7 @@ function HeadphonePill({ state }: { state: Headphone }) {
       className="self-start max-w-full min-h-11 rounded-full bg-surface2 pl-3 pr-2 inline-flex items-center gap-2 text-left text-ink"
     >
       <span className="text-ink2 shrink-0">{c.icon}</span>
-      <span className="text-[16px] leading-[20px] truncate">{c.text}</span>
+      <span className="text-[1rem] leading-[1.25rem]">{c.text}</span>
       <IconChevron size={18} className="text-ink2 shrink-0" />
     </button>
   );
@@ -168,7 +191,8 @@ function NoticeBanner() {
   );
 }
 
-export function timerText(choice: TimerChoice, l: Layer): string {
+export function timerText(choice: TimerChoice, l: Layer, takeFive = false): string {
+  if (takeFive) return 'Break, 5 min';
   if (l.journey) return 'Ends after 45 min';
   if (choice === 'cycles') return `Cycles ${CYCLE.workMin} + ${CYCLE.breakMin}`;
   return choice === null ? 'No timer' : `${choice} min`;
@@ -183,88 +207,117 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   const week = useMemo(() => summarizeWeek(st.core.history, Date.now()), [st.core.history]);
   const showWeek = prefs.showWeeklyTotal && week.sessions > 0;
   const greet = greetingFor(t.hour);
-  const greeting = prefs.greeting && labels === 'warm' && greet ? greet : 'Tuck';
+  // No greeting (Plain labels, Sensory mode, the setting off, or 00:00 to 04:00): no stray heading line either.
+  const greeting = prefs.greeting && labels === 'warm' && greet ? greet : null;
   const pinned = prefs.pinnedLayerId ? store.findLayer(prefs.pinnedLayerId) : undefined;
   const sleepAsk = useSleepAsk();
+  // A blind comparison is running on this layer: say so, and never say "beat" (it may play as noise only).
+  const blindOn = !!prefs.blind && !prefs.blind.revealed && layer.id.replace(/~noise$/, '') === prefs.blind.layerId;
+  const blindLine = labels === 'plain' ? `${layer.name}: blind comparison, A or B.` : `That’s ${layer.name}, in your blind comparison: A or B, chosen at random.`;
 
   const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: reduced ? 0.6 : 0.2 } };
   const plainStatus = labels === 'plain';
 
   let body: React.ReactElement;
   if (playing || (s.phase === 'fadingOut' && !s.ended)) {
+    const onBreak = !!s.takeFive || s.cycles?.phase === 'break';
     const status =
-      s.phase === 'fadingOut' ? copy.statusFadingOut(labels, Math.round(s.fadeSec)) : s.phase === 'playing' ? copy.statusPlaying(labels) : copy.statusFadingIn(labels, Math.round(s.fadeSec));
+      s.phase === 'fadingOut'
+        ? copy.statusFadingOut(labels, Math.round(s.fadeSec))
+        : onBreak
+          ? copy.statusBreak(labels)
+          : s.phase === 'playing'
+            ? copy.statusPlaying(labels)
+            : copy.statusFadingIn(labels, Math.round(s.fadeSec));
+    const sharedNow = !!u.shared && layer.id === u.shared.id && !s.blind;
     body = (
       <motion.div key="playing" {...fade} data-testid="home-playing">
-        <p className={plainStatus ? 'text-[20px] leading-7 font-medium text-ink' : 'voice text-[25px] leading-8 text-ink'} data-testid="status-line">
+        <p className={plainStatus ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[1.5625rem] leading-8 text-ink'} data-testid="status-line">
           {status}
         </p>
-        <button type="button" onClick={() => ui.set({ sheet: 'picker' })} className="mt-2 min-h-12 -ml-1 px-1 inline-flex items-center gap-2 text-left" data-testid="layer-name">
-          <span className="text-[20px] leading-7 text-ink">{s.blind ? `Blind comparison · layer ${s.blind}` : layer.name}</span>
-          {!s.blind && <span className="tnum text-[16px] text-ink2">{layerHzLabel(layer, s.beatNow, binaural)}</span>}
-          {s.stepLabel && !s.blind && <span className="text-[16px] text-ink2">· {s.stepLabel}</span>}
+        {/* The name only: the numbers live once, on the readout. */}
+        <button type="button" onClick={() => ui.set({ sheet: 'picker' })} className="mt-2 min-h-12 -ml-1 px-1 inline-flex flex-wrap items-center gap-x-2 text-left" data-testid="layer-name">
+          <span className="text-[1.25rem] leading-7 text-ink">{s.blind ? `Blind comparison · layer ${s.blind}` : layer.name}</span>
+          {s.stepLabel && !s.blind && <span className="text-[1rem] text-ink2">· {s.stepLabel}</span>}
           <IconChevron size={18} className="text-ink2" />
         </button>
-        {!s.blind && (layer.variant || layer.note) && <p className="text-[16px] leading-[22px] text-ink2 max-w-[34ch]">{layer.variant ? `Vary: ${layer.variant}.` : layer.note}</p>}
+        {!s.blind && (layer.variant || layer.note) && <p className="text-[1rem] leading-[1.375rem] text-ink2 max-w-[34ch]">{layer.variant ? `Vary: ${layer.variant}.` : layer.note}</p>}
+        {sharedNow && (
+          <div className="-ml-1">
+            <Button variant="text" onClick={() => ui.set({ sheet: 'save', draft: u.shared, draftFrom: u.shared!.id })} data-testid="shared-save-playing">
+              Save {u.shared!.name}
+            </Button>
+          </div>
+        )}
       </motion.div>
     );
   } else if (s.ended) {
     body = <SessionEnd key="ended" fade={fade} />;
-  } else if (u.shared) {
+  } else if (u.shared && layer.id === u.shared.id) {
+    // The shared layer is the layer: the readout, the spec card and Play it below all use it. Save comes after.
     const sh = u.shared;
     body = (
       <motion.div key="shared" {...fade} data-testid="home-shared">
-        <p className="voice text-[25px] leading-8 text-ink2">Someone shared a layer.</p>
-        <h1 className="voice text-[31px] leading-[38px] text-ink mt-1">{sh.name}</h1>
-        <p className="tnum text-[16px] leading-6 text-ink mt-2">{playsLine(sh, sh.binaural, labels)}</p>
-        <div className="mt-3 flex flex-wrap gap-x-5 -ml-1">
+        <p className="voice text-[1.5625rem] leading-8 text-ink2">Someone shared a layer.</p>
+        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{sh.name}</h1>
+        <p className="tnum text-[1rem] leading-6 text-ink mt-2">{playsLine(sh, binaural, labels)}</p>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">Play it below. Nothing is saved until you choose to.</p>
+        <div className="mt-2 flex flex-wrap gap-x-5 -ml-1">
           <Button variant="text" onClick={() => ui.set({ sheet: 'save', draft: sh, draftFrom: sh.id })} data-testid="shared-save">
             Save it
           </Button>
-          <Button variant="text" onClick={() => ui.set({ shared: null })} data-testid="shared-dismiss">
+          <Button
+            variant="text"
+            onClick={() => {
+              store.setTransient(null);
+              const last = st.core.lastPlayed?.id;
+              ui.set({ shared: null, selectedId: last && store.findLayer(last) ? last : 'focus' });
+            }}
+            data-testid="shared-dismiss"
+          >
             Not now
           </Button>
         </div>
       </motion.div>
     );
   } else if (sleepAsk) {
-    body = <SleepNoteAsk key="sleep" fade={fade} night={sleepAsk.night} layerName={sleepAsk.layerName} />;
+    body = <SleepNoteAsk key="sleep" fade={fade} night={sleepAsk.night} layerName={sleepAsk.layerName} time={sleepAsk.time} minutes={sleepAsk.minutes} />;
   } else if (pinned) {
     body = (
       <motion.div key="pinned" {...fade} data-testid="home-pinned">
-        <p className={plainStatus ? 'text-[20px] leading-7 font-medium text-ink2' : 'voice text-[25px] leading-8 text-ink2'}>{greeting}</p>
-        <h1 className="voice text-[31px] leading-[38px] text-ink mt-1">{labels === 'plain' ? 'Your layer:' : 'Your layer is ready.'}</h1>
-        <p className="mt-2 text-[20px] leading-7 text-ink">
-          {pinned.name} <span className="tnum text-[16px] text-ink2">· {layerHzLabel(pinned, null, binaural)}</span>
+        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
+        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{labels === 'plain' ? 'Your layer:' : 'Your layer is ready.'}</h1>
+        <p className="mt-2 text-[1.25rem] leading-7 text-ink">
+          {pinned.name} <span className="tnum text-[1rem] text-ink2">· {layerHzLabel(pinned, null, binaural)}</span>
         </p>
-        <p className="text-[16px] leading-[22px] text-ink2 mt-1">Pinned. It plays exactly as saved. Change it in Settings.</p>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">Pinned. It plays exactly as saved. Change it in Settings.</p>
       </motion.div>
     );
   } else if (prefs.askArrival && (firstRun || u.chipsOpen)) {
     const selChip: ChipId | null = u.chip ?? chipForLayer(layer.id);
     body = (
       <motion.div key="arrive" {...fade} data-testid="home-arrive">
-        {(!firstRun || (prefs.greeting && labels === 'warm')) && <p className="voice text-[25px] leading-8 text-ink2">{greeting}</p>}
-        <h1 className="voice text-[31px] leading-[38px] text-ink mt-1">{copy.homeFirst(labels)}</h1>
+        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
+        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{copy.homeFirst(labels)}</h1>
         <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="How are you arriving?">
           {CHIPS.map((c) => (
             <Chip key={c.id} label={c.label} on={selChip === c.id} onClick={() => pickChip(c.id)} testid={`chip-${c.id}`} />
           ))}
         </div>
-        <ChipLines line={u.chip && u.chipLine && binaural ? u.chipLine : playsLine(layer, binaural, labels)} first={u.chipFirst} />
+        <ChipLines line={blindOn ? blindLine : u.chip && u.chipLine && binaural ? u.chipLine : playsLine(layer, binaural, labels)} first={u.chipFirst} />
       </motion.div>
     );
   } else if (prefs.askArrival) {
     body = (
       <motion.div key="same" {...fade} data-testid="home-same">
-        <p className="voice text-[25px] leading-8 text-ink2">{greeting}</p>
-        <h1 className="voice text-[31px] leading-[38px] text-ink mt-1">{u.chip ? (labels === 'plain' ? 'Layer ready.' : 'Start when you’re ready.') : copy.homeSame(labels)}</h1>
+        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
+        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{u.chip ? (labels === 'plain' ? 'Layer ready.' : 'Start when you’re ready.') : copy.homeSame(labels)}</h1>
         <button type="button" onClick={() => ui.set({ sheet: 'picker' })} className="mt-2 min-h-12 -ml-1 px-1 inline-flex items-center gap-2" data-testid="layer-name">
-          <span className="text-[20px] leading-7 text-ink">{layer.name}</span>
-          <span className="tnum text-[16px] text-ink2">{layerHzLabel(layer, null, binaural)}</span>
+          <span className="text-[1.25rem] leading-7 text-ink">{layer.name}</span>
+          <span className="tnum text-[1rem] text-ink2">{blindOn ? 'blind comparison' : layerHzLabel(layer, null, binaural)}</span>
           <IconChevron size={18} className="text-ink2" />
         </button>
-        {u.chipLine && <ChipLines line={binaural ? u.chipLine : playsLine(layer, binaural, labels)} first={u.chipFirst} />}
+        {u.chipLine && <ChipLines line={blindOn ? blindLine : binaural ? u.chipLine : playsLine(layer, binaural, labels)} first={u.chipFirst} />}
         <div className="-ml-1">
           <Button variant="text" onClick={() => ui.set({ chipsOpen: true })} data-testid="arriving-differently">
             Arriving differently?
@@ -275,15 +328,16 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   } else {
     body = (
       <motion.div key="intents" {...fade} data-testid="home-intents">
-        <p className={plainStatus ? 'text-[20px] leading-7 font-medium text-ink2' : 'voice text-[25px] leading-8 text-ink2'}>{greeting}</p>
-        <p className="mt-2 text-[20px] leading-7 text-ink">
+        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2 mb-2">{greeting}</p>}
+        <p className="text-[1.25rem] leading-7 text-ink">
           <span className="font-bold">{lastId ? 'Last layer:' : 'Layer:'}</span> {layer.name}{' '}
-          <span className="tnum text-[16px] text-ink2">· {layerHzLabel(layer, null, binaural)}</span>
+          <span className="tnum text-[1rem] text-ink2">· {layerHzLabel(layer, null, binaural)}</span>
         </p>
         <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="Layers">
           {INTENT_ORDER.map((id) => {
             const l = builtInLayer(id)!;
-            return <Chip key={id} label={id === 'sleep' ? 'Sleep' : l.name} on={layer.id.replace(/~noise$/, '') === id} onClick={() => selectLayer(id)} testid={`intent-${id}`} />;
+            // One name per thing: the chip says what the picker says (Evening descent, not Sleep).
+            return <Chip key={id} label={l.name} on={layer.id.replace(/~noise$/, '') === id} onClick={() => selectLayer(id)} testid={`intent-${id}`} />;
           })}
         </div>
         <div className="-ml-1 mt-1">
@@ -295,13 +349,15 @@ function HomeTop({ top }: { top: React.ReactNode }) {
     );
   }
 
-  const pill = u.headphone !== 'stereoOk' && u.headphone !== 'unknown' && !(u.headphone === 'disconnected' && !s.notice && !playing);
+  // Disconnected shows while idle too: Start then plays noise only on the speaker, and the pill says so.
+  const pill = !!HP_PILL[u.headphone];
   const notice = !!s.notice && s.notice !== 'disconnected';
 
   // Nothing on Home is ever cut off under the layer: if the idle content needs more room, the idle layer
   // sits lower (it keeps the pull affordance, the readout and Start sound).
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  useOverflowFade(scrollRef);
   const playingRef = useRef(playing);
   playingRef.current = playing;
   useLayoutEffect(() => {
@@ -325,10 +381,10 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   return (
     <div
       className="absolute left-0 right-0 flex flex-col"
-      style={{ top: SAFE_TOP, bottom: SAFE_BOTTOM + (playing ? LAYER_HEIGHT[s.level] : idleHeight(u.compactIdle)) + 12, transition: reduced ? 'none' : 'bottom 1.4s cubic-bezier(.22,.8,.3,1)' }}
+      style={{ top: SAFE_TOP, bottom: layerTotalH(playing ? LAYER_HEIGHT[s.level] : idleHeight(u.compactIdle), u.layerMinH, !playing) + 12, transition: reduced ? 'none' : 'bottom 1.4s cubic-bezier(.22,.8,.3,1)' }}
     >
       {top}
-      <div ref={scrollRef} className="px-5 flex-1 min-h-0 flex flex-col overflow-y-auto scrollbar-none pb-2" data-testid="home-top">
+      <div ref={scrollRef} className="fade-overflow px-5 flex-1 min-h-0 flex flex-col overflow-y-auto scrollbar-none pb-2" data-testid="home-top">
         {(pill || notice) && (
           <div className="flex flex-col gap-2 mt-1 mb-3">
             {pill && <HeadphonePill state={u.headphone} />}
@@ -340,8 +396,14 @@ function HomeTop({ top }: { top: React.ReactNode }) {
             {body}
           </AnimatePresence>
         </div>
-        {showWeek && !playing && !u.chipsOpen && !s.ended && !u.chipFirst && (
-          <button type="button" className="mt-auto pt-2 text-left text-[16px] leading-[22px] text-ink2 min-h-11 hover:text-ink" onClick={() => ui.set({ page: 'week' })} data-testid="weekly-total">
+        {/* While playing, the top half has one quiet job: when you started, and this week's plain total. */}
+        {playing && s.startedAt > 0 && (
+          <p className="mt-auto pt-2 tnum text-[1rem] leading-[1.375rem] text-ink2" data-testid="playing-glance">
+            {[`Started at ${clock(s.startedAt)}`, showWeek && !s.blind ? `${durationWords(week.totalSec + s.elapsedSec)} this week` : null].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        {showWeek && !playing && !u.chipsOpen && !s.ended && !u.chipFirst && !u.shared && (
+          <button type="button" className="mt-auto pt-2 text-left text-[1rem] leading-[1.375rem] text-ink2 min-h-11 hover:text-ink" onClick={() => ui.set({ page: 'week' })} data-testid="weekly-total">
             {copy.weekly(labels, durationWords(week.totalSec), week.sessions)}
             {prefs.sampleWeek && <span className="text-ink"> Sample data.</span>}
           </button>
@@ -351,8 +413,14 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   );
 }
 
+/** A wall-clock time on the prototype's clock (?hour= shifts the hour): "10:02". */
+function clock(ms: number): string {
+  const d = new Date(ms + (ui.now().getTime() - Date.now()));
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 /** The morning after an evening session, if the private log is on: one tap, kept on this phone. */
-function useSleepAsk(): { night: string; layerName: string } | null {
+function useSleepAsk(): { night: string; layerName: string; time?: string; minutes?: number } | null {
   const { prefs, hour, u } = useTuck();
   if (!prefs.logOn || !prefs.lastNight) return null;
   if (hour < 4 || hour >= 12) return null;
@@ -362,14 +430,18 @@ function useSleepAsk(): { night: string; layerName: string } | null {
   return prefs.lastNight;
 }
 
-function SleepNoteAsk({ fade, night, layerName }: { fade: object; night: string; layerName: string }) {
+function SleepNoteAsk({ fade, night, layerName, time, minutes }: { fade: object; night: string; layerName: string; time?: string; minutes?: number }) {
   const { prefs, labels } = useTuck();
   const save = (rating: 0 | 1 | 2 | 3) => store.setPrefs({ sleepNotes: [...prefs.sleepNotes, { night, layerName, rating, at: Date.now() }] });
   return (
     <motion.div {...fade} data-testid="sleep-ask">
-      <p className="voice text-[25px] leading-8 text-ink2">{labels === 'plain' ? 'Sleep note' : 'Morning.'}</p>
-      <h1 className="voice text-[31px] leading-[38px] text-ink mt-1">How did you sleep?</h1>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-1">Last night: {layerName}. One tap, kept on this phone.</p>
+      <p className="voice text-[1.5625rem] leading-8 text-ink2">{labels === 'plain' ? 'Sleep note' : 'Morning.'}</p>
+      <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">How did you sleep?</h1>
+      <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="sleep-last">
+        Last night: {layerName}
+        {time ? `, ${time}` : ''}
+        {minutes != null ? `, ${minutes < 1 ? 'under a minute' : `${minutes} min`}` : ''}. One tap, kept on this phone.
+      </p>
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="How did you sleep?">
         <Chip label="Well" on={false} onClick={() => save(3)} testid="sleep-3" />
         <Chip label="OK" on={false} onClick={() => save(2)} testid="sleep-2" />
@@ -404,14 +476,14 @@ function SessionEnd({ fade }: { fade: object }) {
   };
   return (
     <motion.div {...fade} data-testid="session-end">
-      <p className={labels === 'plain' ? 'text-[20px] leading-7 font-medium text-ink' : 'voice text-[25px] leading-8 text-ink'}>{copy.sessionEnd(labels, e.elapsedSec, e.fadeSec).split('. ')[0]}.</p>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-1">
+      <p className={labels === 'plain' ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[1.5625rem] leading-8 text-ink'}>{e.afterBreak ? (labels === 'plain' ? 'Break ended.' : 'Break over.') : `${copy.sessionEnd(labels, e.elapsedSec, e.fadeSec).split('. ')[0]}.`}</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">
         {s.phase === 'fadingOut' ? `Fading out over ${e.fadeSec} seconds.` : `Faded out over ${e.fadeSec} seconds.`}
         {e.noted && ' Noted.'}
       </p>
       {asks && (
         <div className="mt-3">
-          <p className="text-[16px] leading-[22px] text-ink">{e.blind ? `How was layer ${e.blind}?` : 'How was that?'}</p>
+          <p className="text-[1rem] leading-[1.375rem] text-ink">{e.blind ? `How was layer ${e.blind}?` : 'How was that?'}</p>
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="How was that?">
             <Chip label="Good" on={false} onClick={() => rate(3)} testid="rate-3" />
             <Chip label="Same as usual" on={false} onClick={() => rate(2)} testid="rate-2" />
@@ -420,6 +492,18 @@ function SessionEnd({ fade }: { fade: object }) {
         </div>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+        {e.afterBreak && (
+          <Button
+            variant="quiet"
+            onClick={() => {
+              session.dismissEnded();
+              startSound(e.layerId);
+            }}
+            data-testid="another-round"
+          >
+            {e.afterBreak.timerMin ? `Another ${e.afterBreak.timerMin} min` : 'Start again'}
+          </Button>
+        )}
         {e.byTimer && (
           <Button variant="quiet" onClick={() => void session.takeFive(layer)} data-testid="take-five">
             Take 5
@@ -455,8 +539,8 @@ function layerHzLabel(l: Layer, beatNow: number | null, binaural: boolean) {
 function ChipLines({ line, first }: { line: string | null; first: string | null }) {
   return (
     <div className="mt-3 min-h-[22px]" aria-live="polite">
-      {line && <p className="text-[16px] leading-[22px] text-ink">{line}</p>}
-      {first && <p className="text-[16px] leading-[22px] text-ink2 mt-1">{first}</p>}
+      {line && <p className="text-[1rem] leading-[1.375rem] text-ink">{line}</p>}
+      {first && <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">{first}</p>}
     </div>
   );
 }
@@ -470,7 +554,7 @@ function Chip({ label, on, onClick, testid }: { label: string; on: boolean; onCl
       onClick={onClick}
       data-testid={testid}
       className={cx(
-        'h-11 px-4 rounded-full text-[16px] font-medium border-[1.5px] transition-colors duration-200',
+        'h-11 px-4 rounded-full text-[1rem] font-medium border-[1.5px] transition-colors duration-200',
         on ? 'bg-ink text-onink border-ink' : 'border-edge text-ink hover:bg-surface',
       )}
     >
@@ -509,7 +593,25 @@ function LayerPanel() {
     animRef.current = ms;
   };
 
-  const height = drag ? drag.h : restH;
+  // Large text: measure what the controls need, so the layer grows instead of clipping Stop.
+  const handleRef = useRef<HTMLDivElement>(null);
+  const upperRef = useRef<HTMLDivElement>(null);
+  const middleRef = useRef<HTMLDivElement>(null);
+  useOverflowFade(middleRef);
+  const lowerRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (!handleRef.current || !upperRef.current || !lowerRef.current) return;
+      const need = handleRef.current.offsetHeight + upperRef.current.offsetHeight + lowerRef.current.offsetHeight + Math.round(56 * textScale());
+      if (Math.abs(need - ui.get().layerMinH) > 2) ui.set({ layerMinH: need });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    for (const r of [handleRef, upperRef, lowerRef]) if (r.current) ro.observe(r.current);
+    return () => ro.disconnect();
+  });
+
+  const total = drag ? drag.h + SAFE_BOTTOM : layerTotalH(restH, u.layerMinH, !active);
   const transition = drag || reduced ? 'none' : `height ${u.spec ? 360 : anim}ms cubic-bezier(.22,.8,.3,1)`;
 
   // How far the idle layer has been pulled towards starting (0..1): the ritual's progress.
@@ -522,12 +624,15 @@ function LayerPanel() {
   const liningEase = s.phase === 'fadingIn' || s.phase === 'starting' ? 'cubic-bezier(.55,0,.85,.55)' : s.phase === 'fadingOut' ? 'cubic-bezier(.15,.45,.45,1)' : 'linear';
 
   const ceilingIdx = LEVELS.indexOf(prefs.levelCeiling);
-  const locked = LEVELS.filter((_, i) => i > ceilingIdx);
+  // A blind comparison holds its level and motion for the whole session (the arms stay matched).
+  const blindLock = active && !!s.blind;
+  const locked = blindLock ? LEVELS.filter((l) => l !== s.level) : LEVELS.filter((_, i) => i > ceilingIdx);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (u.spec) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    setDrag({ startY: e.clientY, startH: restH, h: restH });
+    const h = total - SAFE_BOTTOM;
+    setDrag({ startY: e.clientY, startH: h, h });
   };
   const scale = () => {
     const frame = document.querySelector('[data-phone]') as HTMLElement | null;
@@ -536,19 +641,20 @@ function LayerPanel() {
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag) return;
     const dy = (drag.startY - e.clientY) / scale();
-    const maxH = active ? LAYER_HEIGHT[prefs.levelCeiling] + 24 : idleH + PULL_TO_START + 40;
+    const maxH = active ? Math.max(drag.startH, LAYER_HEIGHT[prefs.levelCeiling]) + 24 : drag.startH + PULL_TO_START + 40;
     setDrag({ ...drag, h: Math.max(220, Math.min(maxH, drag.startH + dy)) });
   };
   const onPointerUp = () => {
     if (!drag) return;
     const h = drag.h;
     const moved = Math.abs(h - drag.startH) > 6;
+    const pulled = h - drag.startH;
     setDrag(null);
     setAnim(140);
     snapRef.current = true;
     if (!moved) return;
     if (!active) {
-      if (h > idleH + PULL_TO_START) {
+      if (pulled > PULL_TO_START) {
         setAnim(1400);
         startSound();
       }
@@ -559,6 +665,7 @@ function LayerPanel() {
       stopSound();
       return;
     }
+    if (blindLock) return;
     let best: LevelName = 'quiet';
     for (const l of LEVELS) if (Math.abs(LAYER_HEIGHT[l] - h) < Math.abs(LAYER_HEIGHT[best] - h)) best = l;
     if (LEVELS.indexOf(best) > ceilingIdx) best = prefs.levelCeiling;
@@ -586,9 +693,12 @@ function LayerPanel() {
   };
 
   const e = ears(layer);
-  const blindNow = active ? s.blind : null;
-  const showEars = binaural && !blindNow;
+  const blindView = useBlindView();
+  const showEars = binaural && !blindView;
+  // The swap mark follows the route too, not only the ear-check setting (the Headphones sheet promises the swap).
+  const swappedNow = prefs.swapChannels || u.headphone === 'swapped';
   const timerChoice: TimerChoice = active ? (s.cycles ? 'cycles' : s.timerMin) : prefs.timerByLayer[layer.id] ?? null;
+  const sharedIdle = !active && !!u.shared && layer.id === u.shared.id;
 
   return (
     <div className="absolute left-0 right-0 bottom-0 top-0 z-10 flex flex-col justify-end pointer-events-none [&>*]:pointer-events-auto" style={{ perspective: 1400 }}>
@@ -597,7 +707,7 @@ function LayerPanel() {
           'relative rounded-t-[28px] bg-surface twill text-ink shadow-[0_-10px_40px_rgba(0,0,0,.18)]',
           prefs.breathingLayer && !reduced && t.theme !== 'dim' && s.phase === 'playing' && !u.spec && !drag && ['calm', 'unwind', 'sleep'].includes(layer.intent) && 'breathing',
         )}
-        style={{ height: u.spec ? `calc(100% - ${SPEC_TOP}px)` : height + SAFE_BOTTOM, transition, transformStyle: 'preserve-3d' }}
+        style={{ height: u.spec ? `calc(100% - ${SPEC_TOP}px)` : total, transition, transformStyle: 'preserve-3d' }}
         animate={reduced ? { rotateY: 0 } : { rotateY: u.spec ? [90, 0] : 0 }}
         transition={{ duration: reduced ? 0 : 0.18, ease: EASE }}
         data-testid="layer"
@@ -623,11 +733,23 @@ function LayerPanel() {
                 motion={t.motion}
                 timer={timerChoice}
                 binaural={binaural}
-                blind={blindNow}
+                blind={blindView}
+                swapped={swappedNow}
+                forced={t.forced ? 'route' : prefs.noiseOnly ? 'setting' : null}
                 onDone={() => ui.set({ spec: false })}
                 onEditCopy={() => ui.set({ spec: false, page: 'editor', draftFrom: layer.id })}
-                onSave={() => ui.set({ sheet: 'save', draftFrom: layer.id, draft: null })}
-                onNoiseOnly={() => selectLayer(layer.binaural ? `${layer.id}~noise` : layer.id.replace(/~noise$/, ''))}
+                onBeat={(on: boolean) => {
+                  const base = layer.id.replace(/~noise$/, '');
+                  if (on === layer.binaural) return;
+                  if (layer.id === u.shared?.id) {
+                    const next = { ...layer, binaural: on };
+                    store.setTransient(next);
+                    ui.set({ shared: next });
+                    if (session.isActive()) session.setBinaural(binauralFor(next));
+                    return;
+                  }
+                  selectLayer(on ? base : `${base}~noise`);
+                }}
                 onScience={(anchor) => ui.set({ spec: false, page: 'science', anchor })}
                 onShare={() => ui.set({ sheet: 'share', draftFrom: layer.id })}
                 onDelete={() => ui.set({ sheet: 'delete', deleteId: layer.id })}
@@ -637,6 +759,7 @@ function LayerPanel() {
             <motion.div key="front" className="absolute inset-x-0 top-[11px] bottom-0 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0.6 : 0.12 }}>
               {/* Grab handle: the layer's top edge. Hit area: full width × 48. */}
               <div
+                ref={handleRef}
                 role={active ? 'slider' : 'button'}
                 tabIndex={0}
                 aria-label={active ? 'Level' : 'Start sound. Or pull the top edge up.'}
@@ -655,90 +778,106 @@ function LayerPanel() {
                 <span className="block h-[5px] w-10 rounded-full bg-ink2" aria-hidden />
               </div>
 
-              <Felt active={active} pull={pull} releasing={releasing} pulling={!!drag && !active} />
+              {/* The middle scrolls only when large text needs more room than the screen has. */}
+              <div ref={middleRef} className="fade-overflow flex-1 min-h-0 flex flex-col overflow-y-auto scrollbar-none" data-testid="layer-middle">
+                <Felt active={active} pull={pull} releasing={releasing} pulling={!!drag && !active} blindView={blindView} />
 
-              <div className="px-5 flex flex-col gap-2" style={{ paddingBottom: SAFE_BOTTOM + 12 }}>
-                <div className="flex items-center justify-between gap-2 -mx-1">
-                  <button
-                    type="button"
-                    onClick={() => ui.set({ spec: true })}
-                    className="min-h-12 px-1 inline-flex items-center gap-1 tnum text-[16px] text-ink2 hover:text-ink rounded-[10px] min-w-0"
-                    data-testid="readout"
-                    aria-label={
-                      blindNow
-                        ? `Blind comparison, layer ${blindNow}. The numbers stay hidden until the end. Show the spec card.`
-                        : showEars
-                          ? `${hz(layer.beatHz)} hertz beat, left ${hz(e.left)}, right ${hz(e.right)}${prefs.swapChannels ? ', channels swapped for your headphones' : ''}. Show the spec card.`
-                          : `Noise only, ${layer.noise.type}. Show the spec card.`
-                    }
-                  >
-                    {blindNow ? (
-                      <span>Layer {blindNow} · numbers hidden</span>
-                    ) : showEars ? (
-                      <>
-                        <span>{layer.journey && s.beatNow ? hz(s.beatNow) : hz(layer.beatHz)} Hz</span>
-                        <span aria-hidden className="mx-1">
-                          ·
+                <div ref={upperRef} className="px-5 pt-1 flex flex-col gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 -mx-1">
+                    <button
+                      type="button"
+                      onClick={() => ui.set({ spec: true })}
+                      className="min-h-12 px-1 inline-flex flex-wrap items-center gap-x-1 tnum text-[1rem] text-ink2 hover:text-ink rounded-[10px] min-w-0 text-left"
+                      data-testid="readout"
+                      aria-label={
+                        blindView
+                          ? `Blind comparison${blindView === 'A' || blindView === 'B' ? `, layer ${blindView}` : ''}. The numbers stay hidden until you reveal the result. Show the spec card.`
+                          : showEars
+                            ? `${hz(layer.beatHz)} hertz beat, left ${hz(e.left)}, right ${hz(e.right)}${swappedNow ? ', channels swapped for your headphones' : ''}. Show the spec card.`
+                            : `Noise only, ${layer.noise.type}. Show the spec card.`
+                      }
+                    >
+                      {blindView ? (
+                        <span className="whitespace-nowrap" data-testid="readout-blind">
+                          {blindView === 'A' || blindView === 'B' ? `Layer ${blindView} · numbers hidden` : `Blind comparison · ${store.findLayer(prefs.blind?.layerId)?.name ?? 'Focus'}`}
                         </span>
-                        <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)}</span>
-                        <span aria-hidden className="mx-[2px]">
-                          /
-                        </span>
-                        <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)}</span>
-                        {prefs.swapChannels && <IconSwap size={18} className="ml-1 text-ink2" data-testid="readout-swapped" />}
-                      </>
-                    ) : (
-                      <span className="truncate">
-                        Noise only · {layer.noise.type} {Math.round(layer.noise.volume * 100)}%
-                      </span>
-                    )}
-                    <IconChevron size={18} className="shrink-0" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => ui.set({ sheet: 'timer' })}
-                    className="min-h-12 px-1 inline-flex items-center gap-1 tnum text-[16px] text-ink2 hover:text-ink rounded-[10px] shrink-0"
-                    data-testid="timer-chip"
-                  >
-                    {timerText(timerChoice, layer)}
-                    <IconChevron size={18} />
-                  </button>
+                      ) : showEars ? (
+                        <>
+                          <span className="whitespace-nowrap">{layer.journey && s.beatNow ? hz(s.beatNow) : hz(layer.beatHz)}&nbsp;Hz</span>
+                          <span aria-hidden className="mx-1">
+                            ·
+                          </span>
+                          <span className="whitespace-nowrap">
+                            <span style={{ color: 'var(--c-left)' }}>L&nbsp;{hz(e.left)}</span>
+                            <span aria-hidden className="mx-[2px]">
+                              /
+                            </span>
+                            <span style={{ color: 'var(--c-right)' }}>R&nbsp;{hz(e.right)}</span>
+                          </span>
+                          {swappedNow && <IconSwap size={18} className="ml-1 text-ink2" data-testid="readout-swapped" />}
+                        </>
+                      ) : (
+                        // No % here: noise only is matched to the layer's loudness, not played at its slider value.
+                        <span className="whitespace-nowrap">Noise only · {layer.noise.type}</span>
+                      )}
+                      <IconChevron size={18} className="shrink-0" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => ui.set({ sheet: 'timer' })}
+                      className="min-h-12 px-1 inline-flex items-center gap-1 tnum text-[1rem] text-ink2 hover:text-ink rounded-[10px] shrink-0 whitespace-nowrap"
+                      data-testid="timer-chip"
+                    >
+                      {timerText(timerChoice, layer, active && !!s.takeFive)}
+                      <IconChevron size={18} />
+                    </button>
+                  </div>
+
+                  {active && (
+                    <>
+                      <Segmented
+                        label="Level"
+                        testid="level"
+                        value={s.level}
+                        locked={locked}
+                        lockedNote={blindLock ? 'unavailable, fixed during the blind comparison' : `unavailable, ceiling is ${LEVEL_LABEL[prefs.levelCeiling]}`}
+                        onChange={(v) => session.setLevel(v)}
+                        options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
+                      />
+                      <Segmented
+                        label="Motion"
+                        testid="motion"
+                        value={t.motion}
+                        locked={blindLock ? (['drift', 'vary', 'hold'] as const).filter((m) => m !== t.motion) : layer.motionLocked || layer.journey ? ['drift', 'vary'] : []}
+                        lockedNote={blindLock ? 'unavailable, fixed during the blind comparison' : layer.journey ? 'unavailable, Evening descent follows its own arc' : 'unavailable, Steady never changes'}
+                        onChange={(v) => {
+                          const was = t.motion;
+                          session.setMotion(v);
+                          store.setPrefs({ lastMotion: { ...prefs.lastMotion, [layer.id.replace(/~noise$/, '')]: v } });
+                          // Vary changes the noise from the next session, so say so now (otherwise the tap looks dead).
+                          if (v === 'vary' && was !== 'vary') ui.toast(copy.vary(labels), 6000);
+                          else if (v !== 'vary' && ui.get().toast === copy.vary(labels)) ui.clearToast();
+                        }}
+                        options={[
+                          { value: 'drift', label: 'Drift', icon: <IconDrift size={20} /> },
+                          { value: 'vary', label: 'Vary', icon: <IconVary size={20} /> },
+                          { value: 'hold', label: 'Hold', icon: <IconHold size={20} /> },
+                        ]}
+                      />
+                    </>
+                  )}
                 </div>
+              </div>
 
+              {/* The one primary action, pinned above the safe area so it can never clip. */}
+              <div ref={lowerRef} className="px-5 pt-2 shrink-0" style={{ paddingBottom: SAFE_BOTTOM + 12 }}>
                 {active ? (
-                  <>
-                    <Segmented
-                      label="Level"
-                      testid="level"
-                      value={s.level}
-                      locked={locked}
-                      lockedNote={`unavailable, ceiling is ${LEVEL_LABEL[prefs.levelCeiling]}`}
-                      onChange={(v) => session.setLevel(v)}
-                      options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
-                    />
-                    <Segmented
-                      label="Motion"
-                      testid="motion"
-                      value={t.motion}
-                      locked={layer.motionLocked || layer.journey ? ['drift', 'vary'] : []}
-                      lockedNote={layer.journey ? 'unavailable, Evening descent follows its own arc' : 'unavailable, Steady never changes'}
-                      onChange={(v) => {
-                        session.setMotion(v);
-                        store.setPrefs({ lastMotion: { ...prefs.lastMotion, [layer.id.replace(/~noise$/, '')]: v } });
-                      }}
-                      options={[
-                        { value: 'drift', label: 'Drift', icon: <IconDrift size={20} /> },
-                        { value: 'vary', label: 'Vary', icon: <IconVary size={20} /> },
-                        { value: 'hold', label: 'Hold', icon: <IconHold size={20} /> },
-                      ]}
-                    />
-                    <Button variant="outline" full onClick={stopSound} data-testid="stop" className="mt-1">
-                      Stop
-                    </Button>
-                  </>
+                  <Button variant="outline" full onClick={stopSound} data-testid="stop">
+                    Stop
+                  </Button>
                 ) : (
-                  <Button full onClick={() => startSound()} data-testid="start" className="mt-1">
-                    Start sound
+                  <Button full onClick={() => startSound()} data-testid="start">
+                    {sharedIdle ? 'Play it' : 'Start sound'}
                   </Button>
                 )}
               </div>
@@ -751,57 +890,96 @@ function LayerPanel() {
 }
 
 /**
- * The felt between the stitch and the controls. Playing: the stitch (its gap is the beat, and it moves
- * only when Drift moves the beat), the time with you, and the timer. Idle: the pull-up affordance.
- * A toast, when there is one, sits here too, so it never covers live text.
+ * What a blind comparison shows instead of numbers: the playing label (A or B) during and right after a session,
+ * and a neutral "Blind comparison" on the comparison's layer while idle. Never the condition, until the reveal.
  */
-function Felt({ active, pull, releasing, pulling }: { active: boolean; pull: number; releasing: boolean; pulling: boolean }) {
+function useBlindView(): 'A' | 'B' | 'pending' | null {
+  const { s, prefs, layer } = useTuck();
+  if (s.phase !== 'idle' && s.blind) return s.blind;
+  if (s.ended?.blind) return s.ended.blind;
+  const b = prefs.blind;
+  if (b && !b.revealed && layer.id.replace(/~noise$/, '') === b.layerId) return 'pending';
+  return null;
+}
+
+/**
+ * The felt between the stitch and the controls. Playing: the stitch (its gap is the beat, and it moves
+ * only when Drift moves the beat) is the focal object; under it, the time with you (20 px) and the timer.
+ * Idle: the pull-up affordance. A toast sits here too, so it never covers live text.
+ */
+function Felt({ active, pull, releasing, pulling, blindView }: { active: boolean; pull: number; releasing: boolean; pulling: boolean; blindView: 'A' | 'B' | 'pending' | null }) {
   const t = useTuck();
   const { s, u, prefs, labels, layer, binaural, reduced, sensory } = t;
   const fadeT = { duration: reduced ? 0.6 : 0.25 };
   const ceilingLocked = LEVELS.indexOf(prefs.levelCeiling) < LEVELS.length - 1;
+  const neutral = !!blindView;
 
   // The stitch gap reads the beat: wider for a faster beat, and it glides with Drift (never pulses).
   const beat = s.beatNow ?? layer.beatHz;
   const driftGap = active && wanders(s.motion) && !reduced && !sensory ? s.driftOffset * 6 : 0;
-  const gap = binaural && !s.blind ? Math.round(10 + Math.min(40, beat) * 0.9 + driftGap) : 18;
+  const gap = binaural && !neutral ? Math.round(10 + Math.min(40, beat) * 0.9 + driftGap) : 18;
   const meet = !active && pull > 0 ? pull : 0;
+  const note = u.toast && u.toastKind === 'note' ? u.toast : null;
+  const startWord = u.shared && layer.id === u.shared.id ? 'Play it' : 'Start sound';
+  const replaceToast = u.toast && u.toastKind === 'replace' ? u.toast : null;
 
   let main: React.ReactNode;
-  if (u.toast) {
+  if (replaceToast) {
     main = (
-      <motion.p key={`toast-${u.toast}`} className="text-[16px] leading-[22px] text-ink text-center max-w-[32ch]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fadeT} data-testid="toast" role="status">
-        {u.toast}
+      <motion.p key={`toast-${replaceToast}`} className="text-[1rem] leading-[1.375rem] text-ink text-center max-w-[32ch]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fadeT} data-testid="toast" role="status">
+        {replaceToast}
       </motion.p>
     );
   } else if (releasing) {
     main = (
-      <motion.p key="release" className="text-[16px] text-ink2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.p key="release" className="text-[1rem] text-ink2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
         {copy.releaseHint(labels)}
       </motion.p>
     );
   } else if (active) {
+    const plain = labels === 'plain';
     const timer = s.cycles
       ? `Round ${s.cycles.round} of ${s.cycles.of} · ${s.cycles.phase === 'work' ? `break at Quiet after ${CYCLE.workMin} min` : `break, back to ${LEVEL_LABEL[s.cycles.workLevel]} after ${CYCLE.breakMin} min`}`
       : s.takeFive
-        ? copy.takeFive(labels)
+        ? copy.takeFiveSub(labels, prefs.takeFiveChime)
         : layer.journey
           ? null
           : s.timerMin === null
             ? null
             : `Fades out at ${s.timerMin} min`;
-    const big = s.elapsedSec < 60 ? (labels === 'plain' ? 'Under a minute' : 'Just started') : durationWords(Math.floor(s.elapsedSec / 60) * 60);
+    // One time statement at a time: in Plain labels the status line already says "Fading in over 15 seconds".
+    const quietStart = plain && s.phase !== 'playing';
+    const focal = s.takeFive
+      ? copy.takeFiveFelt(labels)
+      : quietStart
+        ? null
+        : s.elapsedSec < 60
+          ? plain
+            ? 'Under a minute'
+            : 'Just started'
+          : durationWords(Math.floor(s.elapsedSec / 60) * 60);
+    const compact = s.takeFive ? copy.takeFiveFelt(labels) : quietStart ? null : copy.elapsed(labels, s.elapsedSec);
+    const compactLine = [compact, timer].filter(Boolean).join(' · ');
     main = (
-      <motion.div key="focal" className="felt-focal text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fadeT} data-testid="felt-playing">
-        <p className="felt-big tnum text-[39px] leading-[44px] text-ink" data-testid="elapsed">
-          {big}
-        </p>
-        {timer && <p className="felt-big tnum text-[16px] leading-[22px] text-ink2 mt-1">{timer}</p>}
-        <p className="felt-compact tnum text-[16px] leading-[22px] text-ink2">
-          {copy.elapsed(labels, s.elapsedSec)}
-          {timer ? ` · ${timer}` : ''}
-        </p>
-        {ceilingLocked && <p className="felt-note text-[16px] leading-[22px] text-ink2 mt-1">Ceiling: {LEVEL_LABEL[prefs.levelCeiling]}. Change it in Settings.</p>}
+      <motion.div key="focal" className={cx('felt-focal text-center', sensory && 'felt-sensory')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fadeT} data-testid="felt-playing">
+        {focal && (
+          <p className="felt-big tnum text-[1.25rem] leading-7 text-ink" data-testid="elapsed">
+            {focal}
+          </p>
+        )}
+        {timer && <p className="felt-big tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1">{timer}</p>}
+        {compactLine && (
+          <p className="felt-compact tnum text-[1rem] leading-[1.375rem] text-ink2" data-testid="felt-compact">
+            {compactLine}
+          </p>
+        )}
+        {note && (
+          <p className="felt-note text-[1rem] leading-[1.375rem] text-ink2 mt-2 max-w-[32ch] mx-auto" data-testid="felt-note" role="status">
+            {note}
+          </p>
+        )}
+        {s.blind && <p className="felt-note text-[1rem] leading-[1.375rem] text-ink2 mt-1">Level and motion stay fixed during the comparison.</p>}
+        {ceilingLocked && !s.blind && <p className="felt-note text-[1rem] leading-[1.375rem] text-ink2 mt-1">Ceiling: {LEVEL_LABEL[prefs.levelCeiling]}. Change it in Settings.</p>}
       </motion.div>
     );
   } else {
@@ -810,25 +988,25 @@ function Felt({ active, pull, releasing, pulling }: { active: boolean; pull: num
         <span className="felt-chev flex justify-center text-ink2" aria-hidden style={{ transform: reduced ? undefined : `translateY(${-pull * 6}px)`, opacity: 0.55 + pull * 0.45 }}>
           <IconUp size={22} />
         </span>
-        <p className="text-[16px] leading-[22px] text-ink2 mt-1" data-testid="pull-hint">
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="pull-hint">
           {pulling && pull >= 1
             ? labels === 'plain'
               ? 'Let go to start.'
               : 'Let go to start sound.'
             : !prefs.hintDone
-              ? 'Pull the top edge up, or tap Start sound.'
+              ? `Pull the top edge up, or tap ${startWord}.`
               : labels === 'plain'
                 ? 'Pull up to start.'
-                : 'Pull up, or tap Start sound.'}
+                : `Pull up, or tap ${startWord}.`}
         </p>
       </motion.div>
     );
   }
 
   return (
-    <div className="felt flex-1 min-h-0 flex flex-col items-center justify-center px-5 overflow-hidden">
-      <div className="shrink-0 mb-2" aria-hidden>
-        <Stitch width={300} stroke={2} mono={!binaural || !!s.blind} gap={gap} meet={meet >= 1} meetAmount={meet} reduced={reduced} glideMs={active ? 60_000 : 0} />
+    <div className="felt flex-1 min-h-[3.5rem] flex flex-col items-center justify-center px-5 overflow-hidden">
+      <div className="shrink-0 mb-3" aria-hidden>
+        <Stitch width={300} stroke={2} mono={!binaural || neutral} gap={gap} meet={meet >= 1} meetAmount={meet} reduced={reduced} glideMs={active ? 60_000 : 0} />
       </div>
       <AnimatePresence mode="wait" initial={false}>
         {main}

@@ -39,11 +39,11 @@ Tuck plays binaural tones with a soft noise bed **underneath** whatever else is 
 | 21 | Dim wool night theme, warm (automatic from 21:00 for every layer, from 18:00 for Sleep; never a bright button at night) | P1 | Priya, meditator |
 | 22 | Private log (off by default): one-tap rating after a session, a one-tap sleep note the next morning, CSV / JSON export | P1 (built, round 1) | Dev, Priya, Hannah |
 | 23 | **Blind comparison** (beat vs noise only on one layer, 14 days, labelled A / B). Basic version free; Plus adds longer runs, own-layer vs own-layer, PDF | P1 free basic (built, round 1); Plus extension P2 | Hannah, Dev |
-| 24 | One daily schedule (free, built in round 1); more schedules, Apple Health / Health Connect mindful minutes, sync | P1 one daily time; P2 (Plus) the rest | Priya |
+| 24 | One daily schedule and a mindful-minutes write to Apple Health / Health Connect (both free, round 2); more schedules, Health history with sleep notes, sync | P1 the free part; P2 (Plus) the rest | Priya |
 | 25 | Shortcuts / App Intents ("Start Focus under my audio"), the "when Spotify opens, start Tuck" automation recipe, Control Center control, Quick Settings tile, Lock Screen widget | **P1** (round 1: starting is the ADHD job, and this is the no-streak retention loop) | Maya, Dev, Priya |
 | 26 | Pomodoro-style cycles in the timer (25 on, 5 at Quiet, one chime, 4 rounds) | P1 (built, round 1) | Leo, Maya |
 | 27 | Vary (Drift plus a different noise each session, chosen for you) | P1 (built, round 1) | Maya |
-| 28 | Pin one layer to Home (Steady mode): no arrival question, startable from the Lock Screen | P1 (built, round 1) | Sam |
+| 28 | Pin one layer to Home (a pinned layer; not to be confused with the Steady intent): no arrival question, startable from the Lock Screen | P1 (built, round 1) | Sam |
 | 29 | Shareable layer card with a deep link (numbers only, no personal data) | P1 (built, round 1) | Growth: acquisition loop |
 | 30 | Body doubling: opt-in "working alongside" count, or a timer shared with one friend by link | P2 experiment (round 1), to the brand §14 privacy standard | Maya, Leo |
 | — | "Others tucked in right now" | **Cut from v1** | Can return only to the privacy standard in brand.md §14 |
@@ -326,7 +326,7 @@ A grouped list. Every row says exactly what it does.
 
 ### 5.13 Tuck Plus (P2, only from the Menu)
 
-- Plain copy from the copy bank. It lists exactly what Plus adds: schedules, the blind comparison, Health / Health Connect, sync. A reminder 3 days before any charge. Cancel in two taps.
+- Plain copy from the copy bank. Since round 2 it is a two-column Free / Plus table (layers, saved layers, timers, start recipes, schedule, blind comparison, Health), with the price and trial on the page: £24.99 a year or £3.49 a month (proposed), 7 days free, a reminder 3 days before any charge, cancel in two taps. The ADHD-core Plus item is start recipes: a layer, level and timer per Shortcut.
 - **Never shown before the first sound, never during a session, never as a modal.**
 
 ---
@@ -396,7 +396,8 @@ Starting from `fadingOut` fades back in from the current gain, without a click.
 
 Tuck measures nothing it doesn't need, and nothing leaves the phone without consent. These are the product's own definitions, computed on device for the user's own This week page and, only if they opt in to anonymous diagnostics, counted in aggregate:
 
-- **Activation:** first sound within 10 seconds of first launch (onboarding skip or ear check, then Start sound).
+- **First sound:** within 10 seconds of first launch. Since round 2 the intro's "Check my headphones" plays the left tone straight away (one tap to sound).
+- **Activation (the aha, round 2):** Tuck stays under another app for 10 minutes in total within the first 48 hours (`underSec` ≥ 600 while "Your audio keeps playing above" is true). It is marked once, quietly, in the Home indicator: "Stayed under your audio for 10 min". No badge, no sound, no streak. Stored on the phone as `prefs.activatedAt`.
 - **North-star input:** the share of sessions with "Your audio keeps playing above" true for at least half the session. That number is the proof of the wedge: Tuck under something else, not instead of it.
 - **Retention without streaks:** the share of sessions started without opening the app (Control Center, Shortcuts automation, Lock Screen widget, schedule). It replaces any streak mechanic.
 

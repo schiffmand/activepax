@@ -8,46 +8,57 @@ import { Button, EASE, Mark, Stitch, cx } from '../ui/kit';
 import { IconCheck } from '../ui/icons';
 import { startSound } from '../ui/derived';
 
+/** Set by the intro's button so the ear check plays its first tone straight away (one tap to first sound). */
+let playLeftOnArrival = false;
+
 export function Intro({ reduced }: { reduced: boolean }) {
   return (
     <div className="absolute inset-0 flex flex-col px-5 pt-[47px] pb-[34px]" data-testid="screen-intro">
       <div className="pt-6">
         <Mark size={56} />
       </div>
-      <h1 className="voice text-[31px] leading-[38px] text-ink mt-6">Your audio stays on top.</h1>
-      <p className="text-[16px] leading-6 text-ink mt-4 max-w-[34ch]">
+      <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-6">Your audio stays on top.</h1>
+      <p className="text-[1rem] leading-6 text-ink mt-4 max-w-[34ch]">
         Tuck plays a soft layer of tones and noise under your podcast, music or videos. It never pauses them.
       </p>
       {/* What Background Sounds doesn't do: say it once, plainly. */}
-      <ul className="mt-4 flex flex-col gap-1 text-[16px] leading-6 text-ink2" data-testid="intro-why">
-        <li>Binaural beats with exact numbers, or noise only.</li>
-        <li>Layers for focus, calm and sleep, with timers that fade out.</li>
-        <li>The same on iPhone and Android.</li>
-      </ul>
+      <p className="mt-3 text-[1rem] leading-6 text-ink2 max-w-[34ch]" data-testid="intro-why">
+        Binaural beats with exact numbers, or noise only, for focus, calm and sleep, with timers that fade out.
+      </p>
 
       {/* Static two-band diagram: your audio above, Tuck below. Nothing moves on launch. */}
       <figure className="mt-6 rounded-[22px] overflow-hidden border border-line" aria-label="Your audio sits on top. Tuck sits underneath.">
         <div className="bg-bg h-[92px] px-4 flex items-center justify-between">
-          <span className="text-[16px] text-ink2">Your audio</span>
+          <span className="text-[1rem] text-ink2">Your audio</span>
           <span className="flex flex-col gap-[7px] items-end" aria-hidden>
             <span className="block h-[3px] w-16 rounded bg-ink2/55" />
             <span className="block h-[3px] w-10 rounded bg-ink2/55" />
           </span>
         </div>
         <div className="relative bg-surface h-[92px] twill">
-          <div className="h-[10px] bg-lining" style={{ opacity: 0.85 }} />
+          <div className="h-[10px] bg-lining" />
           <div className="h-px bg-fold opacity-70" />
           <div className="px-4 pt-4 flex items-center justify-between">
-            <span className="text-[16px] font-medium text-ink">Tuck</span>
+            <span className="text-[1rem] font-medium text-ink">Tuck</span>
             <Stitch width={120} stroke={2.5} />
           </div>
         </div>
       </figure>
 
       <div className="mt-auto flex flex-col items-stretch gap-2">
-        <Button full data-testid="onboard-check" onClick={() => ui.set({ onboarding: 'ear', earFrom: 'onboarding' })}>
+        <Button
+          full
+          data-testid="onboard-check"
+          onClick={() => {
+            // Wake the audio inside this tap, so the first tone can play the moment the ear check appears.
+            void ensureRunning();
+            playLeftOnArrival = true;
+            ui.set({ onboarding: 'ear', earFrom: 'onboarding' });
+          }}
+        >
           Check my headphones
         </Button>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 text-center">Put your headphones on. A soft tone plays on the left.</p>
         <Button
           variant="text"
           className="self-center"
@@ -93,6 +104,16 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => () => handle.current?.cancel(), []);
+  useEffect(() => {
+    if (!playLeftOnArrival) return;
+    const id = setTimeout(() => {
+      if (!playLeftOnArrival) return;
+      playLeftOnArrival = false;
+      void play('left');
+    }, 450);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (asking) setTimeout(() => answerRef.current?.querySelector('button')?.focus(), 50);
   }, [asking]);
@@ -199,14 +220,14 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
           </Button>
         )}
       </div>
-      <h1 className="voice text-[31px] leading-[38px] text-ink mt-4">{meet ? 'Stereo confirmed.' : 'Quick ear check.'}</h1>
-      <p className="text-[16px] leading-6 text-ink mt-3 max-w-[36ch]">
+      <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-4">{meet ? 'Stereo confirmed.' : 'Quick ear check.'}</h1>
+      <p className="text-[1rem] leading-6 text-ink mt-3 max-w-[36ch]">
         {meet
           ? 'Each ear hears its own tone. Your brain hears the difference between them as a slow beat.'
           : 'The beat only forms when each ear gets its own tone, so it needs stereo headphones.'}
       </p>
 
-      <div className="mt-12 mb-10 flex justify-center" aria-hidden>
+      <div className="mt-8 mb-8 flex justify-center" aria-hidden>
         <Stitch width={240} stroke={4} left={mono ? 'on' : (leftLit as 'on')} right={mono ? 'on' : (rightLit as 'on')} mono={mono} meet={meet} reduced={reduced} />
       </div>
 
@@ -226,7 +247,7 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <p className="text-[16px] leading-6 text-ink">{asking === 'left' ? 'A low tone, on the left. Where did you hear it?' : 'A low tone, on the right. Where did you hear it?'}</p>
+              <p className="text-[1rem] leading-6 text-ink">{asking === 'left' ? 'A low tone, on the left. Where did you hear it?' : 'A low tone, on the right. Where did you hear it?'}</p>
               <div className="mt-3 grid grid-cols-4 gap-2" role="group" aria-label="Where did you hear it?">
                 {(
                   [
@@ -269,7 +290,7 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
             </motion.div>
           )}
           {blocked && !asking && !verdict && (
-            <motion.p key="blocked" className="text-[16px] leading-6 text-ink2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.p key="blocked" className="text-[1rem] leading-6 text-ink2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               The browser didn’t let sound start. Tap Play left again.
             </motion.p>
           )}
@@ -305,7 +326,7 @@ function EarButton({ ear, state, onPlay, disabled, refEl }: { ear: Ear; state: E
         disabled={disabled}
         data-testid={`ear-play-${ear}`}
         className={cx(
-          'h-14 rounded-[18px] border-[1.5px] text-[17px] font-bold inline-flex items-center justify-center gap-2 transition-colors duration-200',
+          'h-14 rounded-[18px] border-[1.5px] text-[1.0625rem] font-bold inline-flex items-center justify-center gap-2 transition-colors duration-200',
           state.status === 'playing' ? 'bg-surface2' : 'hover:bg-surface',
           'disabled:cursor-default',
         )}
@@ -315,16 +336,19 @@ function EarButton({ ear, state, onPlay, disabled, refEl }: { ear: Ear; state: E
         <span aria-hidden className="inline-block h-[10px] w-[10px] rounded-full" style={{ background: color }} />
         {state.status === 'playing' ? (ear === 'left' ? 'Playing left' : 'Playing right') : label}
       </button>
-      <p id={`ear-state-${ear}`} className="mt-2 h-6 text-[16px] leading-6 text-center tnum" style={{ color: state.status === 'done' ? 'var(--c-ink)' : 'var(--c-ink2)' }}>
+      <p id={`ear-state-${ear}`} className="mt-2 h-6 text-[1rem] leading-6 text-center tnum" style={{ color: state.status === 'done' ? 'var(--c-ink)' : 'var(--c-ink2)' }}>
         {state.status === 'done' ? (
           <span className="inline-flex items-center gap-1">
             {heardOk && <IconCheck size={18} style={{ color }} />}
             {heardText(ear, state.heard!)}
           </span>
-        ) : state.status === 'idle' ? (
-          ear === 'left' ? 'L · 200 Hz' : 'R · 214 Hz'
+        ) : state.status === 'playing' ? (
+          // The caption stays; only its words change while the tone plays (no layout shift).
+          ear === 'left' ? 'Playing · 200 Hz' : 'Playing · 214 Hz'
+        ) : ear === 'left' ? (
+          'L · 200 Hz'
         ) : (
-          ''
+          'R · 214 Hz'
         )}
       </p>
     </div>
@@ -350,7 +374,7 @@ function VerdictBlock({
   onLouder: () => void;
   onRetry: () => void;
 }) {
-  const p = 'text-[16px] leading-6 text-ink';
+  const p = 'text-[1rem] leading-6 text-ink';
   const [how, setHow] = useState(false);
   switch (verdict) {
     case 'none-left':
@@ -404,19 +428,28 @@ function VerdictBlock({
         </div>
       );
     case 'mono':
+      // What we observed, not a guessed cause: both tones reached both ears.
       return (
-        <div>
-          <p className={p}>Mono Audio is on in Accessibility settings. It merges left and right, so the beat can’t form.</p>
-          {how && <p className="text-[16px] leading-6 text-ink2 mt-2">On a phone this opens Settings, Accessibility, Audio and Visual, Mono Audio.</p>}
+        <div data-testid="ear-mono">
+          <p className={p}>Both tones came through both ears, so left and right are being merged. Usually that’s Mono Audio, Spatial Audio, or the phone speaker.</p>
+          {how && (
+            <ul className="text-[1rem] leading-6 text-ink2 mt-2 flex flex-col gap-1" data-testid="ear-mono-how">
+              <li>Mono Audio: Settings, Accessibility, Audio and Visual (Android: Audio adjustment).</li>
+              <li>Spatial Audio: in Control Center, press and hold the volume slider.</li>
+              <li>Speaker: connect stereo headphones.</li>
+            </ul>
+          )}
           <div className="mt-2 flex flex-wrap gap-x-4">
-            <Button variant="quiet" onClick={() => setHow(true)}>
-              Open Settings
+            {!how && (
+              <Button variant="quiet" onClick={() => setHow(true)} data-testid="ear-mono-show">
+                Show me where
+              </Button>
+            )}
+            <Button variant="text" onClick={reset} data-testid="ear-mono-again">
+              I’ve changed it, check again
             </Button>
             <Button variant="text" onClick={() => finish({ noiseOnly: true })}>
               Use noise only
-            </Button>
-            <Button variant="text" onClick={() => setVerdict('spatial')}>
-              Mono Audio is off
             </Button>
           </div>
         </div>
@@ -427,7 +460,7 @@ function VerdictBlock({
           <p className={p}>
             Spatial Audio seems to be on. It blends the two ears together, which hides the beat. You can turn it off in Control Center, or carry on with noise only. Both are fine.
           </p>
-          {how && <p className="text-[16px] leading-6 text-ink2 mt-2">In Control Center, press and hold the volume slider, then turn Spatial Audio off.</p>}
+          {how && <p className="text-[1rem] leading-6 text-ink2 mt-2">In Control Center, press and hold the volume slider, then turn Spatial Audio off.</p>}
           <div className="mt-2 flex flex-wrap gap-x-4">
             <Button variant="quiet" onClick={() => setHow(true)}>
               Show me how

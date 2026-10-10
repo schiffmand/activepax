@@ -16,6 +16,7 @@ export class LayerEngine implements EngineLike {
 
   constructor(private readonly opts: { fadeInSec: number; fadeOutSec: number; glideSec: number; binaural: boolean }) {
     this.binaural = opts.binaural;
+    this.bed.setBinaural(opts.binaural, 0);
     this.tones = new BinauralEngine({
       context: routedContext(),
       fadeInSec: opts.fadeInSec,
@@ -89,6 +90,7 @@ export class LayerEngine implements EngineLike {
   setBinaural(on: boolean, glideSec: number) {
     this.binaural = on;
     this.tones.setVolume(on ? this.volume : 0, glideSec);
+    this.bed.setBinaural(on, glideSec);
   }
 
   dispose(afterSec = 0) {

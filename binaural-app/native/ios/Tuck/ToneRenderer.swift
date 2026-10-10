@@ -25,8 +25,10 @@ import os
 enum Headroom {
     /// Each sine peaks at -6 dBFS before volume.
     static let tone = 0.5
-    /// Noise bed headroom; noise voices peak at 0.9, so worst case = 0.5 + 0.45 < 1 (no limiter needed).
-    static let noise = 0.5
+    /// Noise at 100% (gain on the RMS-matched streams): as loud as the beat. Noise % is linear amplitude re the beat,
+    /// so 25% is -12 dB. Worst case 0.5 + 0.9 × 2.11 before the user volume; volumes up to about 0.61 stay under
+    /// -1 dBFS (Full is 0.42), so no limiter is needed. Same law as core `noiseVolumeToGain`.
+    static let noiseFull = 2.11
 }
 
 /// A per-sample smoothed value. Linear for gains, exponential (per ear) for frequencies.
@@ -82,7 +84,7 @@ enum RenderParam: Int {
 /// POD commands (trivially copyable: safe to pass through the ring without ARC traffic).
 enum RenderCommand {
     case ramp(RenderParam, target: Double, samples: Int, curve: RampCurve)
-    /// `colorIndex`: 0 white, 1 pink, 2 brown. `gain` is linear (already volumeToGain × headroom).
+    /// `colorIndex`: 0 white, 1 pink, 2 brown. `gain` is linear (already noiseVolumeToGain).
     case noiseGain(colorIndex: Int, gain: Double, samples: Int)
     case swapChannels(Bool)
     case resetPhase

@@ -31,6 +31,7 @@ import app.tuck.layer.model.RampCurve
 import app.tuck.layer.model.clamp
 import app.tuck.layer.model.earFrequencies
 import app.tuck.layer.model.sanitizeTone
+import app.tuck.layer.model.noiseVolumeToGain
 import app.tuck.layer.model.volumeToGain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -200,7 +201,7 @@ class BinauralEngine(
     private fun applyNoise(noise: NoiseSetting, fadeSec: Double) {
         val r = renderer ?: return
         val n = r.samples(gainSec(fadeSec))
-        val target = if (noise.type == NoiseColor.OFF) 0.0 else volumeToGain(noise.volume) * NOISE_HEADROOM
+        val target = if (noise.type == NoiseColor.OFF) 0.0 else noiseVolumeToGain(noise.volume)
         // Crossfade: the chosen colour ramps to its target, the others to 0.
         listOf(NoiseColor.WHITE, NoiseColor.PINK, NoiseColor.BROWN).forEachIndexed { i, c ->
             r.send(RenderCommand.NoiseGain(i, if (c == noise.type) target else 0.0, n))

@@ -5,7 +5,7 @@
  * - a routed AudioContextLike that core's BinauralEngine renders into
  * - a noise bed (core generateNoise) so the beat and the noise can be faded independently (noise only, call mode)
  */
-import { generateNoise, NOISE_HEADROOM, rampFade, rampParam, setParam, TONE_HEADROOM, volumeToGain, type AudioContextLike, type NoiseSetting, type NoiseType } from '@core';
+import { generateNoise, NOISE_PEAK, NOISE_RMS, noiseOnlyGain, noiseVolumeToGain, rampFade, rampParam, setParam, TONE_HEADROOM, volumeToGain, type AudioContextLike, type NoiseSetting, type NoiseType } from '@core';
 
 let ctx: AudioContext | null = null;
 let routerIn: GainNode | null = null;
@@ -45,22 +45,54 @@ function wireSwap() {
   splitter.connect(merger, 1, swapped ? 0 : 1);
 }
 
+/**
+ * Swap left and right. Rewiring the splitter is instant, so if sound is running it's done inside a 50 ms dip
+ * (25 ms down, rewire, 25 ms up) so it can never click. The swap doesn't change the beat (it forms either way);
+ * it only keeps "L 200" true for the ear that hears it.
+ */
 export function setSwap(on: boolean) {
   if (swapped === on) return;
   swapped = on;
-  wireSwap();
+  if (!ctx || !routerIn || ctx.state !== 'running') {
+    wireSwap();
+    return;
+  }
+  const t = ctx.currentTime;
+  rampParam(routerIn.gain, 0, t, 0.025, 'linear');
+  setTimeout(() => {
+    wireSwap();
+    if (ctx && routerIn) rampParam(routerIn.gain, 1, ctx.currentTime, 0.025, 'linear');
+  }, 30);
 }
 
-export async function ensureRunning(): Promise<boolean> {
+/**
+ * Resume the context from a tap. iOS can take well over half a second to wake a Bluetooth route, so wait for
+ * the context's own statechange (up to 2 s) instead of giving up early and showing a "blocked" notice while
+ * sound then starts anyway.
+ */
+export async function ensureRunning(capMs = 2000): Promise<boolean> {
   const c = getContext();
-  if (c.state !== 'running') {
-    try {
-      await Promise.race([c.resume(), new Promise((r) => setTimeout(r, 600))]);
-    } catch {
-      /* fallthrough */
-    }
-  }
-  return c.state === 'running';
+  const isRunning = () => (c.state as string) === 'running';
+  if (isRunning()) return true;
+  await new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      c.removeEventListener('statechange', onChange);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onChange = () => {
+      if (isRunning()) finish();
+    };
+    const timer = setTimeout(finish, capMs);
+    c.addEventListener('statechange', onChange);
+    c.resume().then(() => {
+      if (isRunning()) finish();
+    }, finish);
+  });
+  return isRunning();
 }
 
 /** The input every Tuck sound connects to (passes through the L/R swap). */
@@ -103,13 +135,8 @@ export function routedContext(): AudioContextLike {
 /** Loop length. 30 s, so a two-hour session repeats each grain about 240 times rather than 900. */
 export const NOISE_LOOP_SEC = 30;
 
-/**
- * RMS per colour, loudness-matched with the BS.1770 K-weighting (measured on these buffers with
- * core's generateNoise: at equal RMS, white reads 4.7 dB and pink 1.2 dB louder than brown).
- * Every colour therefore lands at about the same loudness, so switching colour doesn't jump.
- * Peaks stay under 0.83, within core's 0.9 ceiling, so WORST_CASE_PEAK still holds.
- */
-export const NOISE_RMS: Record<NoiseType, number> = { brown: 0.18, pink: 0.157, white: 0.105 };
+/** Per-colour RMS (core NOISE_RMS): loudness-matched with BS.1770 K-weighting, so switching colour doesn't jump. */
+export { NOISE_RMS };
 
 const bufferCache = new Map<NoiseType, AudioBuffer>();
 function noiseBuffer(type: NoiseType): AudioBuffer {
@@ -119,22 +146,19 @@ function noiseBuffer(type: NoiseType): AudioBuffer {
   const len = Math.floor(c.sampleRate * NOISE_LOOP_SEC);
   const buf = c.createBuffer(2, len, c.sampleRate);
   // Different seeds per ear: a wide, natural bed (decorrelated noise doesn't form a beat).
-  const opts = { rms: NOISE_RMS[type], peak: 0.9, loopCrossfadeSamples: Math.floor(c.sampleRate * 0.5) };
+  const opts = { rms: NOISE_RMS[type], peak: NOISE_PEAK, loopCrossfadeSamples: Math.floor(c.sampleRate * 0.5) };
   buf.copyToChannel(generateNoise(type, len, { ...opts, seed: 11 }) as Float32Array<ArrayBuffer>, 0);
   buf.copyToChannel(generateNoise(type, len, { ...opts, seed: 23 }) as Float32Array<ArrayBuffer>, 1);
   bufferCache.set(type, buf);
   return buf;
 }
 
-/** The noise level the shipping engines use: square law (core volumeToGain), then core's headroom. */
-export function noiseGain(volume: number): number {
-  return volumeToGain(volume) * NOISE_HEADROOM;
-}
-
-/** The same value in dB (for the editor's label). */
-export function noiseDb(volume: number): number {
-  const g = volumeToGain(volume);
-  return g > 0 ? 20 * Math.log10(g) : -Infinity;
+/**
+ * The noise level the shipping engines use (core noiseVolumeToGain: one linear law, 25% = 12 dB under the beat).
+ * With the beat off (noise only), core noiseOnlyGain brings the noise up to the loudness of the layer it replaces.
+ */
+export function noiseGain(volume: number, binaural = true): number {
+  return binaural ? noiseVolumeToGain(volume) : noiseOnlyGain(volume);
 }
 
 export class NoiseBed {
@@ -146,6 +170,8 @@ export class NoiseBed {
   private readonly wander: GainNode;
   private readonly fade: GainNode;
   private noise: NoiseSetting = { type: 'off', volume: 0.25 };
+  /** The beat is playing: noise at its own level. Off: noise only, loudness-matched to the layer. */
+  private binaural = true;
 
   constructor() {
     const c = getContext();
@@ -168,7 +194,7 @@ export class NoiseBed {
     const sameType = n.type === this.noise.type && this.src;
     this.noise = { ...n };
     if (sameType && this.typeGain) {
-      rampParam(this.typeGain.gain, noiseGain(n.volume), t, Math.max(0.03, fadeSec), 'linear');
+      rampParam(this.typeGain.gain, noiseGain(n.volume, this.binaural), t, Math.max(0.03, fadeSec), 'linear');
       return;
     }
     // Crossfade to the new colour (equal loudness, so only the colour changes).
@@ -196,9 +222,15 @@ export class NoiseBed {
     setParam(g.gain, 0, t);
     src.connect(g).connect(this.level);
     src.start(t, Math.random() * (NOISE_LOOP_SEC - 1));
-    rampParam(g.gain, noiseGain(n.volume), t, Math.max(0.05, fadeSec), 'linear');
+    rampParam(g.gain, noiseGain(n.volume, this.binaural), t, Math.max(0.05, fadeSec), 'linear');
     this.src = src;
     this.typeGain = g;
+  }
+
+  /** Beat on or off: the noise moves between its own level and the layer-matched noise-only level. */
+  setBinaural(on: boolean, glideSec: number) {
+    this.binaural = on;
+    if (this.typeGain) rampParam(this.typeGain.gain, noiseGain(this.noise.volume, on), this.now(), Math.max(0.03, glideSec), 'linear');
   }
 
   setVolume(v: number, glideSec: number) {

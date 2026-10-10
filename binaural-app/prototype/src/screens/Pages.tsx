@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { summarizeWeek, compareRanges, summarizeRange, weekRange } from '@core';
 import { BUILT_IN_LAYERS, INTENT_ORDER, LEVELS, LEVEL_LABEL, builtInLayer, type LevelName } from '../tuck/layers';
 import { copy, durationWords } from '../tuck/copy';
@@ -87,9 +87,9 @@ export function notesCsv(notes: SessionNote[]): string {
   return [head, ...rows].join('\n');
 }
 
-const H1 = ({ children }: { children: React.ReactNode }) => <h1 className="voice text-[31px] leading-[38px] text-ink mt-2 mb-2">{children}</h1>;
-const H2 = ({ children }: { children: React.ReactNode }) => <h2 className="voice text-[25px] leading-8 text-ink mt-8 mb-2">{children}</h2>;
-const P = ({ children }: { children: React.ReactNode }) => <p className="text-[16px] leading-6 text-ink max-w-[60ch] mt-3">{children}</p>;
+const H1 = ({ children }: { children: React.ReactNode }) => <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-2 mb-2">{children}</h1>;
+const H2 = ({ children }: { children: React.ReactNode }) => <h2 className="voice text-[1.5625rem] leading-8 text-ink mt-8 mb-2">{children}</h2>;
+const P = ({ children }: { children: React.ReactNode }) => <p className="text-[1rem] leading-6 text-ink max-w-[60ch] mt-3">{children}</p>;
 
 // ───────────────────────────── Settings (a plain tool screen, no metaphor) ─────────────────────────────
 
@@ -102,20 +102,20 @@ function Settings() {
   const fadeOuts = [10, 20, 30, 60, 120];
   return (
     <div className="pb-8">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">Settings</h1>
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">Settings</h1>
 
       <Group title="Home and arriving">
         <SwitchRow testid="set-ask" label="Ask how I’m arriving" hint="Off shows the five layer names instead." checked={prefs.askArrival} onChange={(v) => set({ askArrival: v })} />
         <SwitchRow testid="set-greeting" label="Greeting" hint="Off shows the word Tuck instead of Morning, Afternoon or Evening." checked={prefs.greeting} onChange={(v) => set({ greeting: v })} />
         <div className="py-3">
-          <label htmlFor="toomuch" className="block text-[16px] font-medium text-ink">
+          <label htmlFor="toomuch" className="block text-[1rem] font-medium text-ink">
             When I pick Too much, play
           </label>
           <select
             id="toomuch"
             value={prefs.tooMuchLayerId ?? ''}
             onChange={(e) => set({ tooMuchLayerId: e.target.value || null })}
-            className="mt-2 w-full h-12 rounded-[14px] bg-bg px-3 text-[16px] text-ink border-[1.5px] border-edge"
+            className="mt-2 w-full h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge"
             data-testid="set-toomuch"
           >
             <option value="">Steady</option>
@@ -127,10 +127,10 @@ function Settings() {
           </select>
         </div>
         <div className="py-3">
-          <label htmlFor="pin" className="block text-[16px] font-medium text-ink">
+          <label htmlFor="pin" className="block text-[1rem] font-medium text-ink">
             Pin one layer to Home
           </label>
-          <p className="text-[16px] leading-[22px] text-ink2 mt-1">Steady mode: Home always offers this layer, exactly as saved, with no arrival question. The Lock Screen can start it too.</p>
+          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">Home always offers this one layer, exactly as saved, with no arrival question. The Lock Screen can start it too.</p>
           <select
             id="pin"
             value={prefs.pinnedLayerId ?? ''}
@@ -139,7 +139,7 @@ function Settings() {
               set({ pinnedLayerId: id });
               if (id) ui.set({ selectedId: id, chip: null, chipLine: null, chipFirst: null, chipsOpen: false });
             }}
-            className="mt-2 w-full h-12 rounded-[14px] bg-bg px-3 text-[16px] text-ink border-[1.5px] border-edge"
+            className="mt-2 w-full h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge"
             data-testid="set-pin"
           >
             <option value="">Nothing pinned</option>
@@ -155,9 +155,9 @@ function Settings() {
 
       <Group title="Schedule" note="One daily time is free. Your phone starts the layer under whatever is playing, with a notification you can stop from. More schedules come with Tuck Plus.">
         <SwitchRow testid="set-schedule" label="Start a layer every day" checked={prefs.schedule.on} onChange={(v) => set({ schedule: { ...prefs.schedule, on: v } })} />
-        <div className="py-3 grid grid-cols-[120px_1fr] gap-3 items-end">
+        <div className="py-3 grid grid-cols-[minmax(9.5rem,auto)_1fr] gap-3 items-end">
           <div>
-            <label htmlFor="sched-time" className="block text-[16px] font-medium text-ink mb-2">
+            <label htmlFor="sched-time" className="block text-[1rem] font-medium text-ink mb-2">
               At
             </label>
             <input
@@ -165,19 +165,19 @@ function Settings() {
               type="time"
               value={prefs.schedule.time}
               onChange={(e) => set({ schedule: { ...prefs.schedule, time: e.target.value || '21:30', lastFired: null } })}
-              className="w-full h-12 rounded-[14px] bg-bg px-3 text-[16px] text-ink border-[1.5px] border-edge tnum"
+              className="w-full min-w-[9.5rem] h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge tnum"
               data-testid="set-schedule-time"
             />
           </div>
           <div>
-            <label htmlFor="sched-layer" className="block text-[16px] font-medium text-ink mb-2">
+            <label htmlFor="sched-layer" className="block text-[1rem] font-medium text-ink mb-2">
               Play
             </label>
             <select
               id="sched-layer"
               value={prefs.schedule.layerId}
               onChange={(e) => set({ schedule: { ...prefs.schedule, layerId: e.target.value } })}
-              className="w-full h-12 rounded-[14px] bg-bg px-3 text-[16px] text-ink border-[1.5px] border-edge"
+              className="w-full h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge"
               data-testid="set-schedule-layer"
             >
               {[...INTENT_ORDER.map((id) => builtInLayer(id)!), builtInLayer('long-focus')!, ...saved].map((l) => (
@@ -189,7 +189,7 @@ function Settings() {
           </div>
         </div>
         {prefs.schedule.on && (
-          <p className="py-3 text-[16px] leading-[22px] text-ink tnum" data-testid="schedule-next">
+          <p className="py-3 text-[1rem] leading-[1.375rem] text-ink tnum" data-testid="schedule-next">
             Next: {nextScheduleText(prefs.schedule.time, prefs.schedule.lastFired)}, {store.findLayer(prefs.schedule.layerId)?.name ?? 'Evening descent'}.
           </p>
         )}
@@ -197,17 +197,24 @@ function Settings() {
 
       <Group title="Your notes" note="Off by default. When on: after a session, one tap for how it went, and the morning after an evening session, one tap for how you slept. Kept on this phone. Export them from This week.">
         <SwitchRow testid="set-log" label="Keep a private log" checked={prefs.logOn} onChange={(v) => set({ logOn: v })} />
+        <SwitchRow
+          testid="set-health"
+          label="Save sessions to Health"
+          hint="Free. Each session is written as mindful minutes to Apple Health or Health Connect, and nothing else. In this prototype it’s described, not wired."
+          checked={prefs.healthOn}
+          onChange={(v) => set({ healthOn: v })}
+        />
       </Group>
 
       <Group title="Senses and motion" note="Sensory mode sets: Plain labels on, greeting off, Ask how I’m arriving off, texture off, Still screen on, Hold, fades 15 s in and 30 s out, ceiling Medium and locked, haptics and chime off. You can still change each one.">
         <SwitchRow testid="set-sensory" label="Sensory mode" hint="One switch for a quieter, literal, still app." checked={core.settings.sensoryMode} onChange={(v) => store.setSensory(v)} />
-        <p className="py-3 text-[16px] leading-[22px] text-ink2" data-testid="set-system-note">
+        <p className="py-3 text-[1rem] leading-[1.375rem] text-ink2" data-testid="set-system-note">
           Tuck follows your phone’s Reduce Motion and Reduce Transparency. Right now: Reduce Motion {t.systemReduced ? 'on' : 'off'}, Reduce Transparency{' '}
           {t.transparencyReduced ? 'on (no texture, no see-through panels)' : 'off'}.
         </p>
         <SwitchRow testid="set-plain" label="Plain labels" hint="Literal words everywhere: Sound on, Playing for 24 min, Stopped after 52 min." checked={prefs.plainLabels} onChange={(v) => store.setPlainLabels(v)} />
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Still screen</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Still screen</p>
           <Segmented
             label="Still screen"
             testid="set-still"
@@ -218,7 +225,7 @@ function Settings() {
               { value: 'reduce', label: 'Always on' },
             ]}
           />
-          <p className="text-[16px] leading-[22px] text-ink2 mt-2">Every movement becomes a 600 ms cross-fade. Sound fades don’t change.</p>
+          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">Every movement becomes a 600 ms cross-fade. Sound fades don’t change.</p>
         </div>
         <SwitchRow testid="set-texture" label="Texture on the layer" checked={prefs.texture} onChange={(v) => set({ texture: v })} />
         <SwitchRow label="Breathing layer" hint="Calm, Unwind and Sleep: one slow rise and fall every 10 seconds." checked={prefs.breathingLayer} onChange={(v) => set({ breathingLayer: v })} />
@@ -227,7 +234,7 @@ function Settings() {
 
       <Group title="Sound">
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Level ceiling</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Level ceiling</p>
           <Segmented<LevelName>
             label="Level ceiling"
             testid="set-ceiling"
@@ -242,19 +249,19 @@ function Settings() {
         </div>
         <SwitchRow testid="set-lock" label="Lock ceiling" hint="Nothing in the app can go louder than this." checked={prefs.ceilingLocked} onChange={(v) => set({ ceilingLocked: v })} />
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">
+          <p className="text-[1rem] font-medium text-ink mb-2">
             Fade in <span className="tnum text-ink2 font-normal">{prefs.fadeInSec} s</span>
           </p>
           <Segmented label="Fade in" value={String(prefs.fadeInSec)} onChange={(v) => set({ fadeInSec: Number(v) })} options={fadeIns.map((n) => ({ value: String(n), label: `${n}` }))} />
         </div>
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">
+          <p className="text-[1rem] font-medium text-ink mb-2">
             Fade out <span className="tnum text-ink2 font-normal">{prefs.fadeOutSec} s</span>
           </p>
           <Segmented label="Fade out" value={String(prefs.fadeOutSec)} onChange={(v) => set({ fadeOutSec: Number(v) })} options={fadeOuts.map((n) => ({ value: String(n), label: `${n}` }))} />
         </div>
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Default motion for new layers</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Default motion for new layers</p>
           <Segmented
             label="Default motion"
             value={prefs.defaultMotion}
@@ -276,7 +283,7 @@ function Settings() {
 
       <Group title="Display">
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Theme</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Theme</p>
           <Segmented
             label="Theme"
             testid="set-theme"
@@ -290,7 +297,7 @@ function Settings() {
           />
         </div>
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Dim at night</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Dim at night</p>
           <Segmented<DimPref>
             label="Dim at night"
             testid="set-dim"
@@ -302,13 +309,13 @@ function Settings() {
               { value: 'off', label: 'Off' },
             ]}
           />
-          <p className="text-[16px] leading-[22px] text-ink2 mt-2">
+          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">
             Auto: warm and dim from 21:00 for every layer, and from 18:00 for Sleep. Keeps the screen under about 40 cd/m², removes most blue, and never shows a bright button.
           </p>
         </div>
         <SwitchRow testid="set-legible" label="Legible text" hint="Atkinson Hyperlegible throughout, including headings." checked={prefs.legibleText} onChange={(v) => set({ legibleText: v })} />
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">App icon</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">App icon</p>
           <Segmented
             label="App icon"
             value={prefs.appIcon}
@@ -320,7 +327,7 @@ function Settings() {
           />
         </div>
         <div className="py-3">
-          <p className="text-[16px] font-medium text-ink mb-2">Live Activity style</p>
+          <p className="text-[1rem] font-medium text-ink mb-2">Live Activity style</p>
           <Segmented
             label="Live Activity style"
             value={prefs.liveActivityStyle}
@@ -334,7 +341,7 @@ function Settings() {
       </Group>
 
       <Group title="Privacy">
-        <p className="py-3 text-[16px] leading-6 text-ink">Everything stays on this phone. No account. No trackers.</p>
+        <p className="py-3 text-[1rem] leading-6 text-ink">Everything stays on this phone. No account. No trackers.</p>
         <div className="py-3 flex flex-wrap gap-3">
           <Button variant="quiet" onClick={() => download('tuck-data.json', 'application/json', JSON.stringify({ core: st.core, prefs }, null, 2))}>
             Export my data (JSON)
@@ -358,7 +365,7 @@ function Settings() {
       <Group title="About">
         <RowButton label="What we know" onClick={() => ui.set({ page: 'science' })} />
         <RowButton label="How Tuck plays under your audio" onClick={() => ui.set({ page: 'mixing' })} />
-        <div className="py-3 text-[16px] text-ink2 tnum">Version 0.3 prototype · built-in layers v1.0</div>
+        <div className="py-3 text-[1rem] text-ink2 tnum">Version 0.3 prototype · built-in layers v1.0</div>
       </Group>
     </div>
   );
@@ -386,7 +393,7 @@ function Science() {
   return (
     <article className="pb-8">
       <H1>What we know, and what we don’t.</H1>
-      <p className="text-[16px] text-ink2 tnum">Evidence last reviewed {REVIEWED}.</p>
+      <p className="text-[1rem] text-ink2 tnum">Evidence last reviewed {REVIEWED}.</p>
       <H2>This part is well established.</H2>
       <P>
         Play 200 Hz in one ear and 214 Hz in the other, and your brain hears a slow 14 Hz beat that isn’t in either ear. That’s a real perceptual effect, and it’s why Tuck needs stereo
@@ -408,7 +415,7 @@ function Science() {
       </section>
       <P>So Tuck doesn’t promise anything. It gives you a calm layer, lets you run it with or without the beat, and helps you see what works for you.</P>
       <div className="mt-6 rounded-[18px] bg-surface2 px-4 py-4">
-        <p className="text-[16px] leading-6 text-ink max-w-[60ch]">
+        <p className="text-[1rem] leading-6 text-ink max-w-[60ch]">
           Tuck is not a medical device and doesn’t diagnose or treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don’t use Sleep while driving. Keep the
           volume moderate.
         </p>
@@ -475,19 +482,22 @@ function Studies() {
     <article className="pb-8">
       <H1>The studies.</H1>
       <P>Six we keep coming back to, including the ones that don’t go our way. Each line says what was found, not what we hoped.</P>
-      <p className="text-[16px] text-ink2 mt-2 tnum">Last reviewed {REVIEWED}. Each link opens the paper’s DOI.</p>
+      <p className="text-[1rem] text-ink2 mt-2 tnum">Last reviewed {REVIEWED}. Each link opens the paper’s DOI.</p>
       <ol className="mt-6 flex flex-col gap-3">
         {STUDIES.map((st) => (
           <li key={st.who} className="rounded-[18px] bg-surface px-4 py-4">
-            <p className="text-[16px] font-bold text-ink">{st.who}</p>
-            <p className="text-[16px] leading-6 text-ink2 mt-1">{st.what}</p>
-            <p className="text-[16px] leading-6 text-ink mt-2 max-w-[60ch]">{st.found}</p>
+            <p className="text-[1rem] font-bold text-ink">{st.who}</p>
+            <p className="text-[1rem] leading-6 text-ink2 mt-1">{st.what}</p>
+            <p className="text-[1rem] leading-6 text-ink mt-2 max-w-[60ch]">{st.found}</p>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <p className="inline-flex items-center gap-2 rounded-full border border-edge px-3 h-8 text-[16px] text-ink">
+              {/* A finding, not a button: no border, a word and a glyph (never the glyph alone). */}
+              <p className="inline-flex items-center gap-2 text-[1rem] text-ink" data-testid="study-finding">
                 <DirGlyph dir={st.dir} />
-                {st.dir}
+                <span>
+                  <span className="text-ink2">Finding:</span> {FINDING[st.dir]}
+                </span>
               </p>
-              <a href={`https://doi.org/${st.doi}`} target="_blank" rel="noreferrer" className="tnum text-[16px] text-ink underline decoration-ink2/60 underline-offset-[5px] break-all min-h-11 inline-flex items-center">
+              <a href={`https://doi.org/${st.doi}`} target="_blank" rel="noreferrer" className="tnum text-[1rem] text-ink underline decoration-ink2/60 underline-offset-[5px] break-all min-h-11 inline-flex items-center">
                 doi.org/{st.doi}
               </a>
             </div>
@@ -498,10 +508,20 @@ function Studies() {
   );
 }
 
+const FINDING: Record<string, string> = { Benefit: 'small benefit', Mixed: 'mixed', 'No effect': 'no clear effect', Negative: 'slightly worse' };
+
+/** Small, filled glyphs (not outlined pills): ↑ benefit, ○ no effect, ↓ worse, ± mixed. Always beside a word. */
 function DirGlyph({ dir }: { dir: string }) {
-  const d = dir === 'Benefit' ? 'M4 12h16M12 4v16' : dir === 'Negative' ? 'M4 12h16' : dir === 'Mixed' ? 'M4 9h16M4 15h10' : 'M5 12h3M10.5 12h3M16 12h3';
+  const d =
+    dir === 'Benefit'
+      ? 'M12 19V5M6 11l6-6 6 6'
+      : dir === 'Negative'
+        ? 'M12 5v14M6 13l6 6 6-6'
+        : dir === 'Mixed'
+          ? 'M5 8h14M12 3v10M5 18h14'
+          : 'M12 12m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0';
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className="text-ink2">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="text-ink2 shrink-0">
       <path d={d} />
     </svg>
   );
@@ -520,25 +540,25 @@ function Mixing() {
   ];
   return (
     <article className="pb-8">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">How Tuck plays under your audio</h1>
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">How Tuck plays under your audio</h1>
       <figure className="mt-6 rounded-[22px] overflow-hidden border border-line" aria-hidden>
         <div className="bg-bg h-16 px-4 flex items-center justify-between text-ink2">
-          <span className="text-[16px]">Your app</span>
-          <span className="text-[16px]">keeps playing</span>
+          <span className="text-[1rem]">Your app</span>
+          <span className="text-[1rem]">keeps playing</span>
         </div>
         <div className="relative bg-surface h-16 twill">
           <div className="h-2 bg-lining" />
           <div className="px-4 h-14 flex items-center justify-between">
-            <span className="text-[16px] text-ink">Tuck</span>
-            <span className="text-[16px] text-ink2">underneath, at your Level</span>
+            <span className="text-[1rem] text-ink">Tuck</span>
+            <span className="text-[1rem] text-ink2">underneath, at your Level</span>
           </div>
         </div>
       </figure>
       <dl className="mt-4">
         {items.map(([k, v]) => (
           <div key={k} className="py-4 border-b border-line">
-            <dt className="text-[16px] font-bold text-ink">{k}</dt>
-            <dd className="text-[16px] leading-6 text-ink mt-1 max-w-[60ch]">{v}</dd>
+            <dt className="text-[1rem] font-bold text-ink">{k}</dt>
+            <dd className="text-[1rem] leading-6 text-ink mt-1 max-w-[60ch]">{v}</dd>
           </div>
         ))}
       </dl>
@@ -550,7 +570,7 @@ function Mixing() {
           Try it with simulated audio
         </Button>
       </div>
-      <p className="text-[16px] leading-6 text-ink2 mt-6 max-w-[60ch]">
+      <p className="text-[1rem] leading-6 text-ink2 mt-6 max-w-[60ch]">
         On iPhone, Tuck uses the playback audio category with mix-with-others, and never ducks other audio. On Android, it never requests audio focus and runs as a media playback service.
       </p>
     </article>
@@ -574,22 +594,30 @@ function Week() {
   const cmp = compareRanges(week, prev);
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const notes = prefs.notes.filter((n) => !n.blind);
+  // Sleep notes beside the evening sessions: the night a note belongs to is the day its session started.
+  const r0 = weekRange(now).from;
+  const dayKey = (i: number) => {
+    const d = new Date(r0 + i * 86400_000 + 12 * 3600_000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const sleepByDay = week.perDay.map((_, i) => prefs.sleepNotes.find((n) => n.night === dayKey(i) && n.rating > 0) ?? null);
+  const anySleep = sleepByDay.some(Boolean);
   return (
     <article className="pb-8">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">This week</h1>
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">This week</h1>
       {prefs.sampleWeek && week.sessions > 0 && (
-        <p className="mt-2 inline-flex items-center rounded-full border border-edge px-3 h-8 text-[16px] text-ink" data-testid="week-sample">
+        <p className="mt-2 inline-flex items-center rounded-full border border-edge px-3 h-8 text-[1rem] text-ink" data-testid="week-sample">
           Sample data, from Prototype controls
         </p>
       )}
       {week.sessions === 0 ? (
-        <p className="text-[16px] leading-6 text-ink mt-4 max-w-[60ch]">Nothing yet. Time with Tuck shows here as plain totals. There are no streaks.</p>
+        <p className="text-[1rem] leading-6 text-ink mt-4 max-w-[60ch]">Nothing yet. Time with Tuck shows here as plain totals. There are no streaks.</p>
       ) : (
         <>
-          <p className="voice text-[25px] leading-8 text-ink mt-4" data-testid="week-total">
+          <p className="voice text-[1.5625rem] leading-8 text-ink mt-4" data-testid="week-total">
             {copy.weekly(labels, durationWords(week.totalSec), week.sessions)}
           </p>
-          {prev.sessions > 0 && <p className="text-[16px] text-ink2 mt-2">{cmp.direction === 'similar' ? 'About the same as last week.' : cmp.direction === 'more' ? 'A little more than last week.' : 'A little less than last week.'}</p>}
+          {prev.sessions > 0 && <p className="text-[1rem] text-ink2 mt-2">{cmp.direction === 'similar' ? 'About the same as last week.' : cmp.direction === 'more' ? 'A little more than last week.' : 'A little less than last week.'}</p>}
           <figure className="mt-8" aria-label="Minutes per day this week">
             <div className="flex items-end justify-between h-[140px] gap-3">
               {week.perDay.map((d, i) => (
@@ -601,19 +629,24 @@ function Week() {
             <div className="flex justify-between gap-3 mt-2 border-t border-line pt-2">
               {week.perDay.map((d, i) => (
                 <div key={i} className="flex-1 text-center">
-                  <span className="block text-[16px] text-ink2">{days[i]}</span>
-                  <span className="block tnum text-[16px] text-ink">{Math.round(d.totalSec / 60)}</span>
+                  <span className="block text-[1rem] text-ink2">{days[i]}</span>
+                  <span className="block tnum text-[1rem] text-ink">{Math.round(d.totalSec / 60)}</span>
+                  {anySleep && (
+                    <span className="block text-[1rem] text-ink2" data-testid={sleepByDay[i] ? 'week-slept' : undefined}>
+                      {sleepByDay[i] ? (sleepByDay[i]!.rating === 3 ? 'Well' : sleepByDay[i]!.rating === 2 ? 'OK' : 'Poorly') : '·'}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
-            <figcaption className="text-[16px] text-ink2 mt-2">Minutes per day. No target line.</figcaption>
+            <figcaption className="text-[1rem] text-ink2 mt-2">Minutes per day. No target line.{anySleep ? ' The last row is how you slept after that evening’s session.' : ''}</figcaption>
           </figure>
-          <h2 className="text-[16px] font-bold text-ink2 mt-8 mb-1">By layer</h2>
+          <h2 className="text-[1rem] font-bold text-ink2 mt-8 mb-1">By layer</h2>
           <ul className="divide-y divide-line">
             {[...byLayer.entries()]
               .sort((a, b) => b[1] - a[1])
               .map(([name, sec]) => (
-                <li key={name} className="flex justify-between py-3 text-[16px]">
+                <li key={name} className="flex justify-between py-3 text-[1rem]">
                   <span className="text-ink">{name}</span>
                   <span className="tnum text-ink2">{durationWords(sec)}</span>
                 </li>
@@ -622,10 +655,10 @@ function Week() {
         </>
       )}
 
-      <h2 className="text-[16px] font-bold text-ink2 mt-8 mb-1">Your notes</h2>
+      <h2 className="text-[1rem] font-bold text-ink2 mt-8 mb-1">Your notes</h2>
       {!prefs.logOn && notes.length === 0 && prefs.sleepNotes.length === 0 ? (
         <div className="rounded-[18px] bg-surface px-4 py-4" data-testid="log-offer">
-          <p className="text-[16px] leading-6 text-ink">Keep a private log: one tap after each session for how it went, and one the morning after an evening session for how you slept. It stays on this phone.</p>
+          <p className="text-[1rem] leading-6 text-ink">Keep a private log: one tap after each session for how it went, and one the morning after an evening session for how you slept. It stays on this phone.</p>
           <Button variant="quiet" className="mt-3" onClick={() => store.setPrefs({ logOn: true }, { user: true })} data-testid="log-on">
             Turn on the log
           </Button>
@@ -633,7 +666,7 @@ function Week() {
       ) : (
         <>
           {notes.length === 0 && prefs.sleepNotes.length === 0 ? (
-            <p className="text-[16px] leading-6 text-ink2">The log is on. Notes appear here after your next session.</p>
+            <p className="text-[1rem] leading-6 text-ink2">The log is on. Notes appear here after your next session.</p>
           ) : (
             <NotesSummary notes={notes} />
           )}
@@ -644,7 +677,7 @@ function Week() {
                 .slice(-5)
                 .reverse()
                 .map((n) => (
-                  <li key={n.night} className="flex justify-between py-3 text-[16px]">
+                  <li key={n.night} className="flex justify-between py-3 text-[1rem]">
                     <span className="text-ink">
                       {new Date(`${n.night}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · {n.layerName}
                     </span>
@@ -661,7 +694,7 @@ function Week() {
               Export JSON
             </Button>
           </div>
-          <p className="text-[16px] leading-[22px] text-ink2 mt-2">Turn the log off in Settings, Your notes.</p>
+          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">Turn the log off in Settings, Your notes.</p>
         </>
       )}
     </article>
@@ -675,10 +708,10 @@ function NotesSummary({ notes }: { notes: SessionNote[] }) {
   const words = (m: number | null) => (m === null ? 'none yet' : m >= 2.5 ? 'mostly good' : m >= 1.8 ? 'mostly the same as usual' : 'mostly not for you');
   return (
     <div data-testid="notes-summary">
-      <p className="text-[16px] leading-6 text-ink">
+      <p className="text-[1rem] leading-6 text-ink">
         {notes.length} noted session{notes.length === 1 ? '' : 's'}. With the beat: {words(mean(beat))} ({beat.length}). Noise only: {words(mean(noise))} ({noise.length}).
       </p>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-1">These are your notes, not a test. For a fair answer, run a blind comparison.</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">These are your notes, not a test. For a fair answer, run a blind comparison.</p>
     </div>
   );
 }
@@ -692,20 +725,20 @@ function Blind() {
   if (!b) {
     return (
       <article className="pb-8" data-testid="blind-setup">
-        <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">Does the beat do anything for you?</h1>
+        <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">Does the beat do anything for you?</h1>
         <P>
-          For two weeks, the layer you choose plays as layer A or layer B. One has the beat, one is noise only, at the same level. Tuck picks at random each time and hides the numbers. After each
-          session you tap how it went. At the end you see your own result.
+          For two weeks, the layer you choose plays as layer A or layer B. One has the beat, one is noise only. Tuck picks at random each time and hides the numbers. After each session you tap
+          how it went. At the end you see your own result.
         </P>
         <div className="mt-6">
-          <label htmlFor="blind-layer" className="block text-[16px] font-medium text-ink mb-2">
+          <label htmlFor="blind-layer" className="block text-[1rem] font-medium text-ink mb-2">
             Compare on
           </label>
           <select
             id="blind-layer"
             value={layerId}
             onChange={(e) => setLayerId(e.target.value)}
-            className="w-full h-12 rounded-[14px] bg-bg px-3 text-[16px] text-ink border-[1.5px] border-edge"
+            className="w-full h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge"
             data-testid="blind-layer"
           >
             {BUILT_IN_LAYERS.filter((l) => !l.journey).map((l) => (
@@ -720,6 +753,9 @@ function Blind() {
             ))}
           </select>
         </div>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3" data-testid="blind-fixed">
+          To keep it fair, both play loudness-matched, at Medium, held still. Level and motion are fixed during the comparison’s sessions.
+        </p>
         <Button
           full
           className="mt-6"
@@ -731,7 +767,7 @@ function Blind() {
         >
           Start the comparison
         </Button>
-        <p className="text-[16px] leading-[22px] text-ink2 mt-3">Free, on this phone. Tuck Plus adds longer comparisons, two of your own layers against each other, and a PDF of the result.</p>
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">Free, on this phone. Tuck Plus adds longer comparisons, two of your own layers against each other, and a PDF of the result.</p>
       </article>
     );
   }
@@ -745,9 +781,11 @@ function Blind() {
   const name = store.findLayer(b.layerId)?.name ?? 'Focus';
   const day = Math.min(b.days, Math.floor((Date.now() - b.startedAt) / 86400_000) + 1);
   const fmt = (m: number | null) => (m === null ? '–' : m.toFixed(1));
+  // Averages only once both labels have at least one note, so one tap can't read as a result.
+  const both = a.length > 0 && bb.length > 0;
   return (
     <article className="pb-8" data-testid="blind-running">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">{b.revealed ? 'Your result' : `Day ${day} of ${b.days}`}</h1>
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">{b.revealed ? 'Your result' : `Day ${day} of ${b.days}`}</h1>
       <P>
         {b.revealed
           ? `Layer ${b.beatIs} had the beat. Layer ${b.beatIs === 'A' ? 'B' : 'A'} was noise only.`
@@ -756,18 +794,23 @@ function Blind() {
       <dl className="mt-6 grid grid-cols-2 gap-3">
         {(['A', 'B'] as const).map((k) => (
           <div key={k} className="rounded-[18px] bg-surface px-4 py-4">
-            <dt className="text-[16px] text-ink2">
+            <dt className="text-[1rem] text-ink2">
               Layer {k}
               {b.revealed ? (k === b.beatIs ? ', beat' : ', noise only') : ''}
             </dt>
-            <dd className="tnum text-[31px] leading-[38px] text-ink mt-1">{fmt(k === 'A' ? ma : mb)}</dd>
-            <dd className="tnum text-[16px] text-ink2">
+            <dd className="tnum text-[1rem] text-ink2 mt-1">Average</dd>
+            <dd className="tnum text-[1.9375rem] leading-[2.375rem] text-ink" data-testid={`blind-avg-${k}`}>
+              {both ? fmt(k === 'A' ? ma : mb) : '–'}
+            </dd>
+            <dd className="tnum text-[1rem] text-ink2">
               {(k === 'A' ? a : bb).length} note{(k === 'A' ? a : bb).length === 1 ? '' : 's'}, {b.plays[k]} play{b.plays[k] === 1 ? '' : 's'}
             </dd>
           </div>
         ))}
       </dl>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-2">Average of your taps: 3 good, 2 same as usual, 1 not for me.</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2" data-testid="blind-scoring">
+        How the average is scored: Good = 3, Same as usual = 2, Not for me = 1. {both ? '' : 'It shows once both layers have a note.'}
+      </p>
       {b.revealed ? (
         <>
           <P>
@@ -775,8 +818,8 @@ function Blind() {
               ? 'There aren’t notes for both layers, so there’s no comparison to make.'
               : Math.abs(ma - mb) < 0.3
                 ? 'They came out about the same. For you, on these days, the beat didn’t make a clear difference.'
-                : `The ${(b.beatIs === 'A' ? ma : mb) > (b.beatIs === 'A' ? mb : ma) ? 'beat' : 'noise only'} sessions came out a little better for you.`}{' '}
-            With this few sessions, n is small and one good day can tip it. Treat it as a hint, not a finding.
+                : `The ${(b.beatIs === 'A' ? ma : mb) > (b.beatIs === 'A' ? mb : ma) ? 'beat' : 'noise only'} sessions came out a little better for you.`}
+            {both && ` Layer A: ${fmt(ma)} from ${a.length} note${a.length === 1 ? '' : 's'}. Layer B: ${fmt(mb)} from ${bb.length}. With this few sessions, n is small and one good day can tip it. Treat it as a hint, not a finding.`}
           </P>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button variant="quiet" onClick={() => download('tuck-blind.csv', 'text/csv', notesCsv(notes))} data-testid="blind-export">
@@ -789,7 +832,7 @@ function Blind() {
         </>
       ) : (
         <>
-          <p className="text-[16px] leading-6 text-ink mt-4">{enough ? 'You have at least five notes for each. You can reveal the result now, or keep going for a steadier answer.' : 'The result is fairer with at least five notes for each layer.'}</p>
+          <p className="text-[1rem] leading-6 text-ink mt-4">{enough ? 'You have at least five notes for each. You can reveal the result now, or keep going for a steadier answer.' : 'The result is fairer with at least five notes for each layer.'}</p>
           <div className="mt-4 flex flex-col gap-2">
             <Button full onClick={() => { ui.set({ page: 'home' }); startSound(b.layerId); }} data-testid="blind-play">
               Start {name}
@@ -809,37 +852,68 @@ function Blind() {
 
 // ───────────────────────────── Tuck Plus ─────────────────────────────
 
+const PLAN: { what: string; free: string; plus: string }[] = [
+  { what: 'Layers', free: 'All of them, with every number, Drift, Hold and Vary', plus: 'The same' },
+  { what: 'Saved layers', free: 'As many as you like', plus: 'Synced to your other devices' },
+  { what: 'Timers', free: 'Any length, Cycles 25 + 5, Take 5', plus: 'The same' },
+  { what: 'Start without opening', free: 'One Control Center tile, one automation, the widget', plus: 'Start recipes: a layer, level and timer per Shortcut, as many as you like' },
+  { what: 'Schedule', free: 'One daily time', plus: 'As many as you like' },
+  { what: 'Blind comparison', free: 'Two weeks, beat or noise only, CSV', plus: 'Four weeks, two of your own layers, sleep notes in the result, PDF' },
+  { what: 'Health', free: 'Mindful minutes, written as you go', plus: 'Your history, with sleep notes beside it' },
+];
+
 function Plus() {
   return (
-    <article className="pb-8">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">Tuck Plus</h1>
-      <p className="text-[16px] leading-6 text-ink mt-4 max-w-[60ch]">
-        Tuck is free, and the layer stays free. Tuck Plus adds schedules, the blind comparison, Health and sync. We’ll remind you 3 days before any charge. Cancel in two taps.
+    <article className="pb-8" data-testid="plus-page">
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">Tuck Plus</h1>
+      <p className="text-[1rem] leading-6 text-ink mt-4 max-w-[60ch]">Tuck is free, and the layer stays free. Plus goes further with the things you already use: starting, scheduling and your own evidence.</p>
+      <p className="tnum text-[1.25rem] leading-7 text-ink mt-4" data-testid="plus-price">
+        £24.99 a year, or £3.49 a month
       </p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">7 days free. We remind you 3 days before any charge. Cancel in two taps.</p>
+
+      <table className="mt-6 w-full text-left border-collapse" data-testid="plus-table">
+        <caption className="sr-only">What’s free and what Plus adds</caption>
+        <thead>
+          <tr className="border-b border-line">
+            <th scope="col" className="sr-only">
+              Feature
+            </th>
+            <th scope="col" className="pb-2 pr-3 text-[1rem] font-bold text-ink w-1/2">
+              Free
+            </th>
+            <th scope="col" className="pb-2 text-[1rem] font-bold text-ink w-1/2">
+              Plus
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {PLAN.map((r) => (
+            <Fragment key={r.what}>
+              <tr>
+                <th scope="rowgroup" colSpan={3} className="pt-3 text-[1rem] font-medium text-ink2">
+                  {r.what}
+                </th>
+              </tr>
+              <tr className="border-b border-line align-top">
+                <td className="sr-only">{r.what}</td>
+                <td className="pb-3 pr-3 text-[1rem] leading-[1.375rem] text-ink">{r.free}</td>
+                <td className="pb-3 text-[1rem] leading-[1.375rem] text-ink">{r.plus}</td>
+              </tr>
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+
       <section className="mt-6 rounded-[22px] bg-surface px-5 py-5">
-        <p className="text-[16px] text-ink2">The reason to pay</p>
-        <p className="voice text-[25px] leading-8 text-ink mt-1">Your own evidence.</p>
-        <p className="text-[16px] leading-6 text-ink mt-2">
-          A basic blind comparison is free. Plus runs longer ones (four weeks), compares two of your own layers, adds the morning sleep notes to the result, and exports a PDF and CSV you can show
-          anyone.
-        </p>
+        <p className="text-[1rem] text-ink2">The reason to pay</p>
+        <p className="voice text-[1.5625rem] leading-8 text-ink mt-1">Your own evidence.</p>
+        <p className="text-[1rem] leading-6 text-ink mt-2">The free comparison tells you whether the beat does anything for you. Plus runs it longer, on your own layers, with your sleep notes beside it.</p>
         <Button variant="quiet" className="mt-3" onClick={() => ui.set({ page: 'blind' })} data-testid="plus-blind">
           Try the free comparison
         </Button>
       </section>
-      <ul className="mt-4 divide-y divide-line border-y border-line">
-        {[
-          ['Schedules', 'One daily time is free. Plus adds as many as you like: weekdays at 9, Sleep at 22:30.'],
-          ['Health', 'Mindful minutes in Apple Health or Health Connect.'],
-          ['Sync', 'Your saved layers on your other devices.'],
-        ].map(([k, v]) => (
-          <li key={k} className="py-4">
-            <p className="text-[16px] font-bold text-ink">{k}</p>
-            <p className="text-[16px] leading-6 text-ink2 mt-1">{v}</p>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[16px] text-ink2 mt-6">In this prototype, the free comparison and the daily schedule work. Purchasing isn’t wired.</p>
+      <p className="text-[1rem] text-ink2 mt-6">In this prototype, the free comparison and the daily schedule work. Purchasing isn’t wired, and the price is a proposal.</p>
     </article>
   );
 }

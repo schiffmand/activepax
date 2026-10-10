@@ -52,7 +52,7 @@ export function App() {
               </div>
             </div>
             <aside className={wide ? 'justify-self-start w-[340px] max-h-[92vh] overflow-y-auto scroll-soft pr-1' : 'w-full max-w-[520px]'} aria-label="Prototype controls">
-              <p className="text-[16px] font-bold text-[#AEB2A0] mb-3 px-1">Prototype controls</p>
+              <p className="text-[1rem] font-bold text-[#AEB2A0] mb-3 px-1">Prototype controls</p>
               <div className="tuck-theme" data-theme="night">
                 <DemoControls />
               </div>
@@ -84,13 +84,13 @@ function Caption({ wide }: { wide: boolean }) {
     <header className={wide ? 'justify-self-end max-w-[360px] text-[#ECE7DA]' : 'max-w-[520px] text-[#ECE7DA] text-left w-full'}>
       <div className="flex items-center gap-3">
         <Mark size={44} />
-        <span className="font-[family-name:var(--font-voice)] text-[31px] leading-none font-medium tracking-[-0.01em]">Tuck</span>
+        <span className="font-[family-name:var(--font-voice)] text-[1.9375rem] leading-none font-medium tracking-[-0.01em]">Tuck</span>
       </div>
-      <h1 className="font-[family-name:var(--font-voice)] text-[31px] leading-[38px] mt-8">Tuck a little sound under whatever you’re playing.</h1>
-      <p className="text-[16px] leading-6 mt-4 text-[#ECE7DA]">
+      <h1 className="font-[family-name:var(--font-voice)] text-[1.9375rem] leading-[2.375rem] mt-8">Tuck a little sound under whatever you’re playing.</h1>
+      <p className="text-[1rem] leading-6 mt-4 text-[#ECE7DA]">
         A phone app that plays binaural beats and soft noise underneath Spotify, podcasts or YouTube, without pausing them. Exact numbers one tap away. No streaks, no claims.
       </p>
-      <p className="text-[16px] leading-6 mt-4 text-[#AEB2A0]">
+      <p className="text-[1rem] leading-6 mt-4 text-[#AEB2A0]">
         This prototype plays real binaural tones in your browser, so put on stereo headphones. Enter starts sound, Esc stops it, and the arrow keys change the level.
       </p>
     </header>
@@ -106,14 +106,17 @@ function Device({ children }: { children: React.ReactNode }) {
 }
 
 function StatusBar() {
-  const [time, setTime] = useState(() => new Date());
+  // Follows ?hour= and Prototype controls, so the clock agrees with "Morning." on Home.
+  const hourOverride = useTuck().u.hourOverride;
+  const [time, setTime] = useState(() => ui.now());
+  useEffect(() => setTime(ui.now()), [hourOverride]);
   useEffect(() => {
-    const i = setInterval(() => setTime(new Date()), 30_000);
+    const i = setInterval(() => setTime(ui.now()), 30_000);
     return () => clearInterval(i);
   }, []);
   return (
     <div className="absolute inset-x-0 top-0 h-[47px] z-[45] flex items-center justify-between px-[34px] pointer-events-none text-ink" aria-hidden>
-      <span className="tnum text-[16px] font-semibold" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+      <span className="tnum text-[1rem] font-semibold" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{time.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
       <span className="absolute left-1/2 -translate-x-1/2 top-[11px] h-[34px] w-[122px] rounded-full bg-[#0d0f0d]" />
       <span className="flex items-center gap-[6px]">
         <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">

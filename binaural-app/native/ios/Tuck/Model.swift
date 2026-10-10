@@ -82,6 +82,17 @@ func volumeToGain(_ v: Double) -> Double {
     return c * c
 }
 
+/// Noise % -> gain, as in core `noiseVolumeToGain`: one linear law, 100% = the beat's loudness, 25% = -12 dB re beat.
+func noiseVolumeToGain(_ v: Double) -> Double {
+    v.clamped(to: Limits.unit) * Headroom.noiseFull
+}
+
+/// Noise only, loudness-matched to the layer it replaces (beat + noise), as in core `noiseOnlyGain`.
+func noiseOnlyGain(_ v: Double) -> Double {
+    let c = v.clamped(to: Limits.unit)
+    return (1 + c * c).squareRoot() * Headroom.noiseFull
+}
+
 // MARK: - Presets (core/src/presets.ts)
 
 struct Preset: Codable, Equatable, Identifiable {

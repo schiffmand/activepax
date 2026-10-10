@@ -30,7 +30,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
   const { s, u } = t;
   const active = session.isActive();
   const card = compact ? 'py-4 border-b border-line' : 'rounded-[20px] bg-[#1f251f] border border-[#2f372e] p-4';
-  const h = compact ? 'text-[16px] font-bold text-ink mb-2' : 'text-[16px] font-bold text-[#ECE7DA] mb-2';
+  const h = compact ? 'text-[1rem] font-bold text-ink mb-2' : 'text-[1rem] font-bold text-[#ECE7DA] mb-2';
   const sub = compact ? 'text-ink2' : 'text-[#AEB2A0]';
   return (
     <div className={cx('flex flex-col', compact ? '' : 'gap-3')} data-testid="demo-controls">
@@ -48,8 +48,8 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             {other.playing ? <IconPause /> : <IconPlay />}
           </button>
           <div className="min-w-0">
-            <p className={cx('text-[16px] font-medium', compact ? 'text-ink' : 'text-[#ECE7DA]')}>{other.kind === 'music' ? 'Soft music' : 'A spoken passage'}</p>
-            <p className={cx('text-[16px]', sub)}>{other.playing ? 'Playing above Tuck' : 'Paused'}</p>
+            <p className={cx('text-[1rem] font-medium', compact ? 'text-ink' : 'text-[#ECE7DA]')}>{other.kind === 'music' ? 'Soft music' : 'A spoken passage'}</p>
+            <p className={cx('text-[1rem]', sub)}>{other.playing ? 'Playing above Tuck' : 'Paused'}</p>
           </div>
         </div>
         <div className="mt-3">
@@ -63,11 +63,11 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             ]}
           />
         </div>
-        <label className={cx('block mt-3 text-[16px]', compact ? 'text-ink' : 'text-[#ECE7DA]')} htmlFor={`ov-${compact}`}>
+        <label className={cx('block mt-3 text-[1rem]', compact ? 'text-ink' : 'text-[#ECE7DA]')} htmlFor={`ov-${compact}`}>
           Your app’s volume <span className={cx('tnum', sub)}>{Math.round(other.volume * 100)}%</span>
         </label>
         <input id={`ov-${compact}`} type="range" className="tuck-range" min={0} max={100} value={Math.round(other.volume * 100)} onChange={(e) => otherApp.setVolume(Number(e.target.value) / 100)} />
-        <p className={cx('text-[16px] mb-2', compact ? 'text-ink' : 'text-[#ECE7DA]')}>Tuck’s level underneath</p>
+        <p className={cx('text-[1rem] mb-2', compact ? 'text-ink' : 'text-[#ECE7DA]')}>Tuck’s level underneath</p>
         <Segmented<LevelName>
           label="Tuck level"
           testid="demo-level"
@@ -76,7 +76,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
           onChange={(v) => (active ? session.setLevel(v) : store.setPrefs({ lastLevel: v }))}
           options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
         />
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>Use headphones. On a phone, this is Spotify, a podcast or a lecture; Tuck never sees its name.</p>
+        <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)}>Use headphones. On a phone, this is Spotify, a podcast or a lecture; Tuck never sees its name.</p>
       </section>
 
       <section className={card} aria-label="Headphones">
@@ -92,7 +92,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             ui.set({ headphone: v });
             if (v === 'swapped') store.setPrefs({ swapChannels: true });
           }}
-          className={cx('w-full h-12 rounded-[14px] px-3 text-[16px] border-[1.5px]', compact ? 'bg-bg text-ink border-line' : 'bg-[#1C211C] text-[#ECE7DA] border-[#3B443A]')}
+          className={cx('w-full h-12 rounded-[14px] px-3 text-[1rem] border-[1.5px]', compact ? 'bg-bg text-ink border-line' : 'bg-[#1C211C] text-[#ECE7DA] border-[#3B443A]')}
         >
           {HP.map((o) => (
             <option key={o.value} value={o.value}>
@@ -100,7 +100,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             </option>
           ))}
         </select>
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>Native apps read this from the audio route. Speaker, one earbud, call mode and Mono Audio switch Tuck to noise only.</p>
+        <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)}>Native apps read this from the audio route. Speaker, one earbud, call mode and Mono Audio switch Tuck to noise only.</p>
       </section>
 
       <section className={card} aria-label="Time and interruptions">
@@ -125,7 +125,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             App takes over
           </DemoBtn>
         </div>
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>Skip ahead jumps to just before the timer’s fade, the next break, or ten minutes on. 07:00 shows the morning sleep note (when the log is on and an evening session was played).</p>
+        <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)}>Skip ahead jumps to just before the timer’s fade, the next break, or ten minutes on. 07:00 shows the morning sleep note (when the log is on and an evening session was played).</p>
       </section>
 
       <section className={card} aria-label="Data">
@@ -147,7 +147,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             Start over
           </DemoBtn>
         </div>
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)} data-testid="demo-week-note">
+        <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)} data-testid="demo-week-note">
           {t.prefs.sampleWeek ? 'Sample week added. This week labels it as sample data.' : 'The sample week is illustrative, so This week has something to show.'}
         </p>
       </section>
@@ -164,7 +164,7 @@ function DemoBtn({ children, onClick, disabled, compact, testid, pressed }: { ch
       data-testid={testid}
       aria-pressed={pressed}
       className={cx(
-        'min-h-12 rounded-[14px] px-3 text-[16px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+        'min-h-12 rounded-[14px] px-3 text-[1rem] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
         compact ? 'bg-surface2 text-ink hover:bg-line' : 'bg-[#2b322b] text-[#ECE7DA] hover:bg-[#363f35]',
         pressed && (compact ? 'ring-2 ring-ink2' : 'ring-2 ring-[#AEB2A0]'),
       )}
@@ -193,5 +193,5 @@ function addSampleWeek() {
     mk(Math.min(sinceMon, 4), 11, 25, 'Focus', 'focus', 'beta'),
   ];
   for (const r of recs) if (r.startedAt < now) store.core.dispatch({ type: 'history/add', record: r });
-  store.setPrefs({ firstSessionDone: true, sampleWeek: true });
+  store.setPrefs({ firstSessionDone: true, sampleWeek: true, audioNoteDismissed: true });
 }

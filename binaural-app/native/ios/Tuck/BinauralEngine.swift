@@ -154,7 +154,7 @@ final class BinauralEngine: AudioSessionControllerDelegate {
     private func applyNoise(_ noise: NoiseSetting, fadeSec: Double, renderer r: ToneRenderer? = nil) {
         guard let r = r ?? renderer else { return }
         let n = r.samples(gainSec(fadeSec))
-        let target = noise.type == .off ? 0 : volumeToGain(noise.volume) * Headroom.noise
+        let target = noise.type == .off ? 0 : noiseVolumeToGain(noise.volume)
         // Crossfade: the chosen colour ramps to its target, the others ramp to 0.
         for (i, color) in [NoiseColor.white, .pink, .brown].enumerated() {
             r.send(.noiseGain(colorIndex: i, gain: color == noise.type ? target : 0, samples: n))

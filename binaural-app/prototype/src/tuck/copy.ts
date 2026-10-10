@@ -113,6 +113,13 @@ export const copy = {
   releaseHint: (l: Labels) => (l === 'plain' ? 'Let go to stop.' : 'Let go to set it down.'),
   takeFive: (l: Labels) =>
     l === 'plain' ? 'Break, 5 min. Level Quiet. One chime at the end.' : 'Five minutes off. The layer drops to Quiet and one soft chime marks the end.',
+  /** The status line during Take 5 and during a Cycles break. */
+  statusBreak: (l: Labels, min = 5) => (l === 'plain' ? `Break, ${min} min.` : min === 5 ? 'Five minutes off.' : `${min} minutes off.`),
+  /** The felt during Take 5: where the break goes, no countdown. */
+  takeFiveFelt: (l: Labels) => (l === 'plain' ? 'Break ends at 5 min' : 'Back in 5 min'),
+  takeFiveSub: (l: Labels, chime: boolean) =>
+    l === 'plain' ? `Level Quiet.${chime ? ' One chime at the end.' : ''}` : `At Quiet.${chime ? ' One soft chime at the end, then it fades out.' : ' Then it fades out.'}`,
+  vary: (l: Labels) => (l === 'plain' ? 'Vary: applies from your next session. A different noise each time.' : 'Vary: from your next session, a different noise bed each time.'),
   homeSame: (l: Labels) => (l === 'plain' ? 'Last layer:' : 'Same as last time?'),
   homeFirst: (l: Labels) => (l === 'plain' ? 'Pick a layer.' : 'How are you arriving?'),
   returning: (l: Labels) => (l === 'plain' ? 'Your last layer is ready.' : 'Hello again. Your layer’s where you left it.'),
@@ -123,7 +130,8 @@ export const copy = {
 };
 
 /** The line under the arrival chips, for whatever will actually play (beat or noise only). */
-export function playsLine(l: Layer, binaural: boolean, labels: Labels): string {
+export function playsLine(l0: Layer, binaural: boolean, labels: Labels): string {
+  const l = { ...l0, name: l0.name.replace(/, noise only$/, '') };
   const noise = l.noise.type === 'off' ? 'no noise' : `${labels === 'plain' ? '' : 'soft '}${l.noise.type} noise`;
   if (!binaural) return labels === 'plain' ? `${l.name}, noise only: ${l.noise.type} noise, no beat.` : `That’s ${l.name}, as noise only: ${noise}, no beat.`;
   if (l.journey) return labels === 'plain' ? 'Evening descent: 8 Hz to 2 Hz over 30 min, then 15 min low, then silence.' : 'That’s Evening descent: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes and silence.';

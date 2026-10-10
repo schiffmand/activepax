@@ -26,7 +26,8 @@ export const LEVELS: readonly LevelName[] = ['quiet', 'medium', 'full'];
 export const LEVEL_VOLUME: Record<LevelName, number> = { quiet: 0.16, medium: 0.28, full: 0.42 };
 export const LEVEL_LABEL: Record<LevelName, string> = { quiet: 'Quiet', medium: 'Medium', full: 'Full' };
 /** tokens.json → layer.restHeight (px above the bottom safe area). */
-export const LAYER_HEIGHT = { idle: 300, quiet: 360, medium: 430, full: 500 } as const;
+/** Round 2: raised by 40 to 70 px so the felt (stitch, time, timer) is the playing screen's centre, not a dead band above it. */
+export const LAYER_HEIGHT = { idle: 300, quiet: 400, medium: 470, full: 540 } as const;
 
 export interface Layer {
   id: string;

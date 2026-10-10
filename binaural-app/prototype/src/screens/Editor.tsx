@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LIMITS, validateTone, type NoiseSetting } from '@core';
+import { LIMITS, formatDb, noiseDbfs, noiseDbReBeat, toneDbfs, validateTone, type NoiseSetting } from '@core';
 import { session } from '../audio/session';
-import { noiseDb } from '../audio/hub';
-import { builtInLayer, ears, hz, LEVEL_LABEL, LEVELS, type Layer, type LevelName, type Motion } from '../tuck/layers';
+import { builtInLayer, ears, hz, LEVEL_LABEL, LEVEL_VOLUME, LEVELS, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import { store } from '../tuck/store';
 import { useTuck } from '../ui/derived';
 import { ui } from '../ui/state';
@@ -50,9 +49,10 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
     if (!fromText) setCarrierText(hz(v));
   };
   const setNoise = (n: Partial<NoiseSetting>) => setD((x) => ({ ...x, noise: { ...x.noise, ...n } }));
-  // The same square law as core and the native engines (volumeToGain), before the shared headroom.
-  const dbv = noiseDb(d.noise.volume);
-  const db = Number.isFinite(dbv) ? `${dbv.toFixed(1)} dB` : '−∞ dB';
+  // The same law as core and the native engines (noiseVolumeToGain): the noise relative to the beat, and the real
+  // output level at the chosen Level (RMS per ear, with a true minus sign).
+  const db = d.noise.volume > 0 ? `${formatDb(noiseDbReBeat(d.noise.volume))} re the beat` : 'off';
+  const v = LEVEL_VOLUME[level];
   const lowWarn = e.left < 60 || e.right < 60;
   // Log slider for carrier: 0..1000 steps over 40..1000 Hz.
   const toLog = (hzv: number) => Math.round((Math.log(hzv / 40) / Math.log(1000 / 40)) * 1000);
@@ -68,18 +68,18 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
       >
         Save
       </Button>
-      <p className="text-[16px] leading-[22px] text-ink2 mt-2">{playingThis ? 'You’re hearing these changes now, with a 1 second glide.' : 'Start sound on Home to hear changes live.'}</p>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">{playingThis ? 'You’re hearing these changes now, with a 1 second glide.' : 'Start sound on Home to hear changes live.'}</p>
     </div>
   );
   return (
     <PageShell title={d.name} onBack={onBack} reduced={reduced} testid="page-editor" backLabel="Cancel" footer={footer}>
     <div className="pb-4" data-testid="editor">
-      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">{d.name}</h1>
-      <p className="text-[16px] text-ink2 mt-1">{base.kind === 'builtin' ? `${base.name} stays as it is. This copy is yours.` : 'Changes apply when you save.'}</p>
+      <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">{d.name}</h1>
+      <p className="text-[1rem] text-ink2 mt-1">{base.kind === 'builtin' ? `${base.name} stays as it is. This copy is yours.` : 'Changes apply when you save.'}</p>
 
       <section className="mt-6">
         <div className="flex items-end justify-between">
-          <label htmlFor="beat" className="text-[16px] font-bold text-ink">
+          <label htmlFor="beat" className="text-[1rem] font-bold text-ink">
             Beat
           </label>
           <div className="flex items-center gap-2">
@@ -94,10 +94,10 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
                 if (Number.isFinite(v) && ev.target.value.trim() !== '') setBeat(v, true);
               }}
               onBlur={() => setBeatText(hz(d.beatHz))}
-              className="tnum w-24 h-12 rounded-[12px] bg-bg border-[1.5px] border-line px-3 text-right text-[20px] text-ink focus:border-[var(--c-focus)] outline-none"
+              className="tnum w-24 h-12 rounded-[12px] bg-bg border-[1.5px] border-line px-3 text-right text-[1.25rem] text-ink focus:border-[var(--c-focus)] outline-none"
               aria-describedby="beat-ears"
             />
-            <span className="text-[16px] text-ink2">Hz</span>
+            <span className="text-[1rem] text-ink2">Hz</span>
           </div>
         </div>
         <input
@@ -112,11 +112,11 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
           aria-valuetext={`${hz(d.beatHz)} hertz`}
           data-testid="editor-beat-slider"
         />
-        <p id="beat-ears" className="tnum text-[20px] font-medium flex gap-4" aria-live="polite">
+        <p id="beat-ears" className="tnum text-[1.25rem] font-medium flex gap-4" aria-live="polite">
           <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)} Hz</span>
           <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)} Hz</span>
         </p>
-        <p className="tnum text-[16px] leading-[22px] text-ink2 mt-1" data-testid="editor-range">
+        <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="editor-range">
           {LIMITS.beatHz.min}–45 Hz on the slider, steps of 0.1 Hz. Type any value from {LIMITS.beatHz.min} to {LIMITS.beatHz.max} Hz.
         </p>
       </section>
@@ -124,12 +124,12 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
       {errors.length > 0 && (
         <div className="mt-4 rounded-[14px] bg-surface2 px-4 py-3 flex gap-3" role="alert" data-testid="editor-error">
           <IconInfo className="text-ink2 shrink-0" />
-          <p className="text-[16px] leading-[22px] text-ink">{errors[0]}</p>
+          <p className="text-[1rem] leading-[1.375rem] text-ink">{errors[0]}</p>
         </div>
       )}
 
       <section className="mt-8">
-        <p className="text-[16px] font-bold text-ink mb-2">Noise</p>
+        <p className="text-[1rem] font-bold text-ink mb-2">Noise</p>
         <Segmented
           label="Noise colour"
           testid="editor-noise"
@@ -143,10 +143,10 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
           ]}
         />
         <div className="mt-2 flex items-center justify-between">
-          <label htmlFor="noise-vol" className="text-[16px] text-ink">
+          <label htmlFor="noise-vol" className="text-[1rem] text-ink">
             Noise level
           </label>
-          <span className="tnum text-[16px] text-ink2">
+          <span className="tnum text-[1rem] text-ink2" data-testid="editor-noise-db">
             {Math.round(d.noise.volume * 100)}% · {db}
           </span>
         </div>
@@ -164,7 +164,7 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
       </section>
 
       <section className="mt-6">
-        <p className="text-[16px] font-bold text-ink mb-2">Level</p>
+        <p className="text-[1rem] font-bold text-ink mb-2">Level</p>
         <Segmented<LevelName>
           label="Level"
           value={level}
@@ -175,10 +175,14 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
           }}
           options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
         />
+        <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-2" data-testid="editor-level-db">
+          At {LEVEL_LABEL[level]}: beat {formatDb(toneDbfs(v), 'dBFS')}
+          {d.noise.type === 'off' ? '' : `, noise ${formatDb(noiseDbfs(v, d.noise.volume), 'dBFS')}`} (RMS per ear). Your music is usually far louder.
+        </p>
       </section>
 
       <section className="mt-6">
-        <p className="text-[16px] font-bold text-ink mb-2">Motion</p>
+        <p className="text-[1rem] font-bold text-ink mb-2">Motion</p>
         <Segmented<Motion>
           label="Motion"
           testid="editor-motion"
@@ -190,7 +194,7 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
             { value: 'hold', label: 'Hold' },
           ]}
         />
-        <p className="text-[16px] leading-[22px] text-ink2 mt-2">
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">
           {d.motion === 'drift'
             ? `The beat wanders slowly within ±${hz(d.driftHz)} Hz and the noise within ±1 dB, so it doesn’t go stale.`
             : d.motion === 'vary'
@@ -201,13 +205,13 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
 
       <section className="mt-6 border-t border-line pt-2">
         <button type="button" aria-expanded={more} onClick={() => setMore(!more)} className="w-full min-h-12 flex items-center justify-between text-left" data-testid="editor-more">
-          <span className="text-[16px] font-bold text-ink">More</span>
-          <span className="text-[16px] text-ink2">{more ? 'Hide' : 'Carrier, Drift range, fades'}</span>
+          <span className="text-[1rem] font-bold text-ink">More</span>
+          <span className="text-[1rem] text-ink2">{more ? 'Hide' : 'Carrier, Drift range, fades'}</span>
         </button>
         {more && (
           <div className="pb-2">
             <div className="flex items-end justify-between mt-2">
-              <label htmlFor="carrier" className="text-[16px] text-ink">
+              <label htmlFor="carrier" className="text-[1rem] text-ink">
                 Carrier
               </label>
               <div className="flex items-center gap-2">
@@ -222,9 +226,9 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
                     if (Number.isFinite(v) && ev.target.value.trim() !== '') setCarrier(v, true);
                   }}
                   onBlur={() => setCarrierText(hz(d.carrierHz))}
-                  className="tnum w-24 h-12 rounded-[12px] bg-bg border-[1.5px] border-line px-3 text-right text-[20px] text-ink focus:border-[var(--c-focus)] outline-none"
+                  className="tnum w-24 h-12 rounded-[12px] bg-bg border-[1.5px] border-line px-3 text-right text-[1.25rem] text-ink focus:border-[var(--c-focus)] outline-none"
                 />
-                <span className="text-[16px] text-ink2">Hz</span>
+                <span className="text-[1rem] text-ink2">Hz</span>
               </div>
             </div>
             <input
@@ -237,7 +241,7 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
               aria-label="Carrier frequency"
               aria-valuetext={`${hz(d.carrierHz)} hertz`}
             />
-            {lowWarn && <p className="text-[16px] leading-[22px] text-ink2">Very low tones can be hard to hear on earbuds.</p>}
+            {lowWarn && <p className="text-[1rem] leading-[1.375rem] text-ink2">Very low tones can be hard to hear on earbuds.</p>}
 
             <RangeRow label="Drift range" unit={`±${hz(d.driftHz)} Hz`} min={0} max={2} step={0.1} value={d.driftHz} onChange={(v) => setD((x) => ({ ...x, driftHz: v }))} disabled={d.motion === 'hold'} />
             <RangeRow label="Drift period" unit={`${d.driftPeriodMin} min`} min={5} max={20} step={1} value={d.driftPeriodMin} onChange={(v) => setD((x) => ({ ...x, driftPeriodMin: v }))} disabled={d.motion === 'hold'} />
@@ -257,10 +261,10 @@ function RangeRow({ label, unit, min, max, step, value, onChange, disabled }: { 
   return (
     <div className="mt-3">
       <div className="flex justify-between">
-        <label htmlFor={id} className="text-[16px] text-ink">
+        <label htmlFor={id} className="text-[1rem] text-ink">
           {label}
         </label>
-        <span className="tnum text-[16px] text-ink2">{unit}</span>
+        <span className="tnum text-[1rem] text-ink2">{unit}</span>
       </div>
       <input id={id} type="range" className="tuck-range" min={min} max={max} step={step} value={value} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} aria-valuetext={unit} />
     </div>

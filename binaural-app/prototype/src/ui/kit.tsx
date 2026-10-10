@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useDragControls } from 'motion/react';
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type RefObject } from 'react';
 import { IconBack, IconClose } from './icons';
 
 export const EASE = [0.22, 0.8, 0.3, 1] as const;
@@ -10,18 +10,42 @@ export { cx };
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'quiet' | 'text'; full?: boolean };
 
 /** Buttons: 56 px primary (Fleece fill, Loden label); outline for Stop; quiet for secondary; text links. */
+/**
+ * Marks a scroll container with data-overflow="top|bottom|both" while it has hidden content, so CSS
+ * (.fade-overflow) can soften the cut edge instead of slicing a line of text in half (large text).
+ */
+export function useOverflowFade(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const top = el.scrollTop > 1;
+      const bottom = el.scrollHeight - el.clientHeight - el.scrollTop > 1;
+      const v = top && bottom ? 'both' : top ? 'top' : bottom ? 'bottom' : '';
+      if (v) el.dataset.overflow = v;
+      else delete el.dataset.overflow;
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const c of Array.from(el.children)) ro.observe(c);
+    el.addEventListener('scroll', update, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', update); };
+  });
+}
+
 export function Button({ variant = 'primary', full, className, children, ...p }: BtnProps) {
   const v = {
-    primary: 'btn-primary bg-ink text-onink h-14 rounded-[18px] px-6 text-[17px] font-bold',
-    outline: 'border-[1.5px] border-ink/70 text-ink h-14 rounded-[18px] px-6 text-[17px] font-bold hover:bg-ink/5',
-    quiet: 'bg-surface2 text-ink min-h-12 rounded-[14px] px-4 text-[16px] font-medium hover:bg-line/60',
-    text: 'text-ink min-h-12 px-1 text-[16px] font-medium underline decoration-ink2/60 underline-offset-[5px] hover:decoration-ink',
+    primary: 'btn-primary bg-ink text-onink h-14 rounded-[18px] px-6 text-[1.0625rem] font-bold',
+    outline: 'border-[1.5px] border-ink/70 text-ink h-14 rounded-[18px] px-6 text-[1.0625rem] font-bold hover:bg-ink/5',
+    quiet: 'bg-surface2 text-ink min-h-12 rounded-[14px] px-4 text-[1rem] font-medium hover:bg-line/60',
+    text: 'text-ink min-h-12 px-1 text-[1rem] font-medium underline decoration-ink2/60 underline-offset-[5px] hover:decoration-ink',
   }[variant];
   return (
     <button
       type="button"
       {...p}
-      className={cx('inline-flex items-center justify-center gap-2 leading-[22px] transition-colors duration-200 select-none disabled:opacity-45', v, full && 'w-full', className)}
+      className={cx('inline-flex items-center justify-center gap-2 leading-[1.375rem] transition-colors duration-200 select-none disabled:opacity-45', v, full && 'w-full', className)}
     >
       {children}
     </button>
@@ -63,7 +87,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       data-testid={testid}
-      className="flex h-12 w-full rounded-[14px] bg-bg/55 p-1 gap-1 border border-edge"
+      className="flex flex-wrap min-h-12 w-full rounded-[14px] bg-bg/55 p-1 gap-1 border border-edge"
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
           e.preventDefault();
@@ -93,7 +117,7 @@ export function Segmented<T extends string>({
             data-testid={testid ? `${testid}-${o.value}` : undefined}
             onClick={() => !isLocked && onChange(o.value)}
             className={cx(
-              'relative flex-1 min-w-0 rounded-[10px] text-[16px] font-medium inline-flex items-center justify-center gap-1.5 transition-colors duration-200',
+              'relative flex-1 min-w-max min-h-10 px-2 rounded-[10px] text-[1rem] font-medium inline-flex items-center justify-center gap-1.5 transition-colors duration-200',
               // Selected: a 2 px Fleece outline, so the state reads at 3:1 or better (WCAG 1.4.11), not by fill alone.
               on ? 'bg-surface2 text-ink font-bold shadow-[inset_0_0_0_2px_var(--c-ink)]' : 'text-ink2 hover:text-ink',
               isLocked && 'cursor-not-allowed text-ink2/70',
@@ -134,10 +158,10 @@ export function SwitchRow({
   return (
     <div className="flex items-start gap-4 py-3 min-h-14">
       <div className="flex-1 min-w-0">
-        <label htmlFor={id} className="block text-[16px] font-medium leading-[22px] text-ink pt-[3px]">
+        <label htmlFor={id} className="block text-[1rem] font-medium leading-[1.375rem] text-ink pt-[3px]">
           {label}
         </label>
-        {hint && <p className="text-[16px] leading-[22px] text-ink2 mt-1">{hint}</p>}
+        {hint && <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">{hint}</p>}
       </div>
       <button
         id={id}
@@ -164,9 +188,9 @@ export function SwitchRow({
 export function Group({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
   return (
     <section className="mt-8 first:mt-2" aria-label={title}>
-      <h2 className="text-[16px] font-bold text-ink2 mb-1 px-1">{title}</h2>
+      <h2 className="text-[1rem] font-bold text-ink2 mb-1 px-1">{title}</h2>
       <div className="rounded-[18px] bg-surface px-4 divide-y divide-line">{children}</div>
-      {note && <p className="text-[16px] leading-[22px] text-ink2 mt-2 px-1">{note}</p>}
+      {note && <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2 px-1">{note}</p>}
     </section>
   );
 }
@@ -175,8 +199,8 @@ export function RowButton({ label, value, onClick, testid, icon }: { label: stri
   return (
     <button type="button" onClick={onClick} data-testid={testid} className="w-full flex items-center gap-3 min-h-14 py-3 text-left">
       {icon && <span className="text-ink2">{icon}</span>}
-      <span className="flex-1 text-[16px] font-medium text-ink">{label}</span>
-      {value && <span className="text-[16px] text-ink2 tnum">{value}</span>}
+      <span className="flex-1 text-[1rem] font-medium text-ink">{label}</span>
+      {value && <span className="text-[1rem] text-ink2 tnum">{value}</span>}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-ink2" aria-hidden>
         <path d="M9 6l6 6-6 6" />
       </svg>
@@ -368,7 +392,7 @@ export function Sheet({
               <span className="block h-[5px] w-10 rounded-full bg-ink2/70" aria-hidden />
             </div>
             <div className="flex items-center justify-between px-5 pb-2">
-              <h2 id={titleId} className="text-[20px] leading-7 font-bold">
+              <h2 id={titleId} className="text-[1.25rem] leading-7 font-bold">
                 {title}
               </h2>
               <button type="button" onClick={onClose} className="h-12 w-12 -mr-2 inline-flex items-center justify-center rounded-full text-ink2 hover:text-ink" data-testid="sheet-close">
@@ -430,10 +454,11 @@ export function PageShell({
       <header className={cx('relative h-14 shrink-0 flex items-center gap-1 px-2 bg-bg z-[2] border-b transition-colors duration-200', scrolled ? 'border-line' : 'border-transparent')}>
         <button type="button" onClick={onBack} className="h-12 min-w-12 inline-flex items-center gap-1 pr-3 pl-1 rounded-full text-ink relative z-[1]" data-testid="page-back">
           <IconBack />
-          <span className="text-[16px] font-medium">{backLabel}</span>
+          {/* A long back label ("What we know") gives way to the title once it moves into the header. */}
+          <span className="text-[1rem] font-medium">{scrolled && backLabel.length > 7 ? 'Back' : backLabel}</span>
         </button>
         <p
-          className={cx('absolute inset-x-[110px] text-center text-[17px] font-bold text-ink truncate transition-opacity duration-200', scrolled ? 'opacity-100' : 'opacity-0')}
+          className={cx('absolute inset-x-[110px] text-center text-[1.0625rem] font-bold text-ink truncate transition-opacity duration-200', scrolled ? 'opacity-100' : 'opacity-0')}
           aria-hidden
           data-testid="page-header-title"
         >
@@ -444,7 +469,13 @@ export function PageShell({
       <div className="flex-1 overflow-y-auto scroll-soft px-5 pb-12" tabIndex={-1} onScroll={(e) => setScrolled((e.target as HTMLElement).scrollTop > 36)} data-testid="page-scroll">
         {children}
       </div>
-      {footer && <div className="shrink-0 bg-surface border-t border-line px-5 pt-3 pb-[calc(34px+8px)]">{footer}</div>}
+      {footer && (
+        <div className="relative shrink-0 bg-surface border-t border-line px-5 pt-3 pb-[calc(34px+8px)]">
+          {/* Content scrolling under the footer fades out instead of being sliced mid-line. */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-full h-8 bg-gradient-to-t from-bg to-transparent" />
+          {footer}
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -455,7 +486,7 @@ export function Banner({ icon, children, actions, testid }: { icon: ReactNode; c
     <div role="status" data-testid={testid} className="rounded-[18px] bg-surface2 px-4 py-3 text-ink flex gap-3">
       <span className="text-ink2 mt-[1px] shrink-0">{icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-[16px] leading-[22px]">{children}</p>
+        <p className="text-[1rem] leading-[1.375rem]">{children}</p>
         {actions && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 -ml-1">{actions}</div>}
       </div>
     </div>

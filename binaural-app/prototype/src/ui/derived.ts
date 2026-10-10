@@ -80,7 +80,7 @@ export function startSound(layerId?: string) {
   const { prefs } = store.get();
   const u = ui.get();
   let l = store.findLayer(layerId ?? u.selectedId) ?? builtInLayer('focus')!;
-  const motion: Motion = l.motionLocked ? 'hold' : u.motionOverride ?? prefs.lastMotion[l.id] ?? l.motion;
+  let motion: Motion = l.motionLocked ? 'hold' : u.motionOverride ?? prefs.lastMotion[l.id] ?? l.motion;
   const timer = prefs.timerByLayer[l.id] ?? null;
   let binaural = binauralFor(l);
   // A blind comparison on this layer: pick A or B (balanced, random), and play the beat or noise only.
@@ -94,6 +94,8 @@ export function startSound(layerId?: string) {
     l = beat ? base : noiseOnlyOf(base);
     binaural = beat && binauralFor(base);
     store.setPrefs({ blind: { ...b, current: blind, plays: { ...b.plays, [blind]: b.plays[blind] + 1 } } });
+    // Both arms play the same way: Medium, held still, loudness-matched (noise only is matched to the layer).
+    motion = 'hold';
   } else if (motion === 'vary') {
     // Vary: a different noise bed this session, chosen for you, within the layer's character.
     const i = (prefs.varyIndex[l.id] ?? 0) + 1;
@@ -105,20 +107,23 @@ export function startSound(layerId?: string) {
   if (chip && !blind && !prefs.chipsSeen.includes(chip) && prefs.askArrival && !prefs.pinnedLayerId) {
     store.setPrefs({ chipsSeen: [...prefs.chipsSeen, chip] });
     const labels: Labels = prefs.plainLabels || store.get().core.settings.sensoryMode ? 'plain' : 'warm';
-    ui.toast(firstPickLine(chip, labels), 7000);
+    // A note under the time, not in place of it, and gone when the session ends.
+    ui.toast(firstPickLine(chip, labels), 12_000, 'note');
   }
   // Remember an evening session for the morning sleep note (local date of the night it started).
   const h = ui.hour();
-  if (h >= 18 || h < 4) {
-    const d = new Date();
+  if ((h >= 18 || h < 4) && !blind) {
+    const d = ui.now();
+    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     if (h < 4) d.setDate(d.getDate() - 1);
-    store.setPrefs({ lastNight: { night: localDate(d), layerName: l.name.replace(/, noise only$/, '') } });
+    store.setPrefs({ lastNight: { night: localDate(d), layerName: l.name.replace(/, noise only$/, ''), at: Date.now(), time } });
   }
-  // The audio explainer is first-view only: it goes once sound has started.
-  store.setPrefs({ audioNoteDismissed: true, hintDone: true });
+  // The "phone doesn't tell apps" note appears after the first session (not above the first-run question),
+  // and goes once the next session starts.
+  store.setPrefs({ hintDone: true, ...(prefs.firstSessionDone ? { audioNoteDismissed: true } : {}) });
   ui.set({ chipsOpen: false });
   void session.start(l, {
-    level: prefs.lastLevel,
+    level: blind ? 'medium' : prefs.lastLevel,
     motion,
     timerMin: typeof timer === 'number' ? timer : null,
     cycles: timer === 'cycles',

@@ -26,9 +26,13 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Same constants as core/src/audio/engine.ts. Worst-case peak 0.5 + 0.9 × 0.5 < 1: no limiter needed. */
+/**
+ * Same constants as core/src/audio/engine.ts. Noise % is linear amplitude re the beat: 100% = as loud as the beat
+ * (NOISE_FULL_GAIN on the RMS-matched streams), 25% = -12 dB. Worst case 0.5 + 0.9 × 2.11 before the user volume;
+ * any volume up to MAX_CLEAN_VOLUME (about 0.61, Full is 0.42) stays under -1 dBFS, so no limiter is needed.
+ */
 const val TONE_HEADROOM = 0.5
-const val NOISE_HEADROOM = 0.5
+const val NOISE_FULL_GAIN = 2.11
 
 class Ramp(initial: Double) {
     var value = initial
@@ -115,7 +119,7 @@ enum class RenderParam { LEFT_HZ, RIGHT_HZ, LEVEL, VOLUME_GAIN, FADE }
 
 sealed interface RenderCommand {
     data class Ramp(val param: RenderParam, val target: Double, val samples: Int, val curve: RampCurve) : RenderCommand
-    /** colorIndex: 0 white, 1 pink, 2 brown. gain is linear (volumeToGain × NOISE_HEADROOM). */
+    /** colorIndex: 0 white, 1 pink, 2 brown. gain is linear (noiseVolumeToGain, or noiseOnlyGain when the beat is off). */
     data class NoiseGain(val colorIndex: Int, val gain: Double, val samples: Int) : RenderCommand
     data class SwapChannels(val on: Boolean) : RenderCommand
     data object ResetPhase : RenderCommand

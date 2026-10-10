@@ -4,7 +4,9 @@ import {
   AudioBlockedError,
   DISPOSE_FADE_SEC,
   GAIN_STEP_SEC,
-  NOISE_HEADROOM,
+  NOISE_FULL_GAIN,
+  MAX_CLEAN_VOLUME,
+  PEAK_CEILING,
   TONE_HEADROOM,
   RESUME_TIMEOUT_MS,
   WORST_CASE_PEAK,
@@ -67,7 +69,10 @@ describe('BinauralEngine graph', () => {
     expect(ctx.of('compressor')).toHaveLength(0); // no limiter: headroom does the job without makeup gain
     expect(g.toneGain.gain.value).toBe(TONE_HEADROOM);
     expect(g.volumeGain.gain.value).toBeCloseTo(0.25);
-    expect(WORST_CASE_PEAK).toBeLessThan(1);
+    // 100% noise is as loud as the beat, so the sum can pass 1 before the user volume; any volume up to
+    // MAX_CLEAN_VOLUME keeps it under -1 dBFS, and Tuck's loudest level (Full, 0.42) is well under that.
+    expect(WORST_CASE_PEAK * volumeToGain(MAX_CLEAN_VOLUME)).toBeLessThanOrEqual(PEAK_CEILING + 1e-9);
+    expect(MAX_CLEAN_VOLUME).toBeGreaterThan(0.42);
     expect(g.oscL.startedAt).toBe(0);
   });
 
@@ -356,7 +361,7 @@ describe('noise bed', () => {
     const noiseGain = src.connections[0]!.dest as MockGain;
     expect(noiseGain.connections[0]!.dest).toBe(graph(rig.ctx).levelGain);
     await rig.advance(1.1);
-    expect(noiseGain.gain.value).toBeCloseTo(NOISE_HEADROOM);
+    expect(noiseGain.gain.value).toBeCloseTo(NOISE_FULL_GAIN);
   });
 
   it('no noise by default', async () => {
@@ -385,7 +390,7 @@ describe('noise bed', () => {
     expect(rig.ctx.of('bufferSource')).toHaveLength(1);
     const g = rig.ctx.of<MockBufferSource>('bufferSource')[0]!.connections[0]!.dest as MockGain;
     await rig.advance(0.05, 10); // "instant" changes still get a GAIN_STEP_SEC ramp (no click)
-    expect(g.gain.value).toBeCloseTo(NOISE_HEADROOM);
+    expect(g.gain.value).toBeCloseTo(NOISE_FULL_GAIN);
     rig.engine.setNoise({ type: 'off' }, 0);
     expect(g.gain.valueAt(rig.ctx.currentTime + GAIN_STEP_SEC)).toBeCloseTo(0);
     await rig.advance(0.2, 10);
@@ -596,7 +601,7 @@ describe('browsers without cancelAndHoldAtTime and with a lagging AudioParam.val
     const src = rig.ctx.of<MockBufferSource>('bufferSource')[0]!;
     const noiseGain = src.connections[0]!.dest as MockGain;
     expect(noiseGain.gain.valueAt(0)).toBe(0);
-    expect(noiseGain.gain.valueAt(0.5)).toBeCloseTo(NOISE_HEADROOM / 2);
+    expect(noiseGain.gain.valueAt(0.5)).toBeCloseTo(NOISE_FULL_GAIN / 2);
     // and a colour switched on mid-play also starts from 0
     await rig.advance(1.5);
     rig.engine.setNoise({ type: 'white' }, 1);

@@ -30,7 +30,9 @@ async function boot() {
   const shared = parseShared(q.get('layer'));
   if (shared) {
     if (!store.get().core.settings.onboarded) store.core.dispatch({ type: 'settings/update', patch: { onboarded: true } });
-    ui.set({ onboarding: null, shared });
+    // The shared layer becomes the layer: the readout, the spec card and Start sound all play it before it's saved.
+    store.setTransient(shared);
+    ui.set({ onboarding: null, shared, selectedId: shared.id, chip: null, chipLine: null, chipFirst: null });
   }
   // ?hour=14 pretends the local hour is 14:00 (screenshots that shouldn't depend on the real clock).
   const hour = Number(q.get('hour'));

@@ -15,11 +15,15 @@ export function shareText(l: Layer): string {
   return `${l.name}: ${hz(l.beatHz)} Hz over ${noise}, L ${hz(e.left)} / R ${hz(e.right)}.`;
 }
 
+/** The full link (copied, never shown raw). Brand §1: the domain is tuckapp. */
 export function shareLink(l: Layer): string {
   const motion = l.motion === 'hold' ? 'hold' : 'drift';
   const v = [hz(l.beatHz), hz(l.carrierHz), l.noise.type, Math.round(l.noise.volume * 100), motion, l.binaural ? 1 : 0, encodeURIComponent(l.name)].join(',');
-  return `https://tuck.app/l?layer=${v}`;
+  return `https://tuckapp.com/l?layer=${v}`;
 }
+
+/** What the share sheet shows instead of the raw query. */
+export const SHARE_LINK_LABEL = 'tuckapp.com link';
 
 /** Parse a shared layer. Anything out of range is refused (never "fixed" silently). */
 export function parseShared(param: string | null): Layer | null {

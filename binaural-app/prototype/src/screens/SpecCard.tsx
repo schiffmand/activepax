@@ -1,6 +1,8 @@
 import { capital, ears, envelopeFor, hz, LEVEL_LABEL, LEVEL_VOLUME, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import type { TimerChoice } from '../tuck/store';
-import { Button } from '../ui/kit';
+import { Button, Segmented } from '../ui/kit';
+import { ui } from '../ui/state';
+import { formatDb, noiseDbfs, noiseDbReBeat, toneDbfs } from '@core';
 import { CYCLE, fadesFor } from '../audio/session';
 
 /** The back of the layer: exact numbers, the session envelope (the only wave in the brand), and the actions. */
@@ -12,10 +14,11 @@ export function SpecCard({
   timer,
   binaural,
   blind,
+  swapped,
+  forced,
   onDone,
   onEditCopy,
-  onSave,
-  onNoiseOnly,
+  onBeat,
   onScience,
   onShare,
   onDelete,
@@ -26,11 +29,13 @@ export function SpecCard({
   motion: Motion;
   timer: TimerChoice;
   binaural: boolean;
-  blind: 'A' | 'B' | null;
+  blind: 'A' | 'B' | 'pending' | null;
+  swapped: boolean;
+  /** Why the beat is off regardless of the layer: the headphone route, or Settings → Noise only. */
+  forced: 'route' | 'setting' | null;
   onDone: () => void;
   onEditCopy: () => void;
-  onSave: () => void;
-  onNoiseOnly: () => void;
+  onBeat: (on: boolean) => void;
   onScience: (anchor: 'beat' | 'noise') => void;
   onShare: () => void;
   onDelete: () => void;
@@ -39,6 +44,7 @@ export function SpecCard({
   const { fadeIn, fadeOut } = fadesFor(layer);
   const shown: Layer = { ...layer, fadeInSec: fadeIn, fadeOutSec: fadeOut };
   const beat = binaural && layer.binaural;
+  const shared = layer.id === 'shared';
 
   if (blind) {
     return (
@@ -48,15 +54,25 @@ export function SpecCard({
             Done
           </Button>
         </div>
-        <p className="tnum text-[61px] leading-[64px] text-ink text-center -mt-3">Layer {blind}</p>
-        <p className="text-[16px] leading-6 text-ink mt-4 text-center max-w-[34ch] mx-auto">
-          This is a blind comparison. One label has the beat and one is noise only, at the same level. The numbers stay hidden until you reveal the result, so they can’t sway you.
+        <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] text-ink text-center -mt-3">{blind === 'pending' ? 'A or B' : `Layer ${blind}`}</p>
+        <p className="text-[1rem] leading-6 text-ink mt-4 text-center max-w-[34ch] mx-auto">
+          This is a blind comparison. One label has the beat and one is noise only, loudness-matched, at Medium and held still. The numbers stay hidden until you reveal the result, so they
+          can’t sway you.
         </p>
       </div>
     );
   }
 
-  const noiseRow = layer.noise.type === 'off' ? 'Off' : `${capital(layer.noise.type)} · ${Math.round(layer.noise.volume * 100)}% · loudness-matched`;
+  const v = LEVEL_VOLUME[level];
+  const noiseRow =
+    layer.noise.type === 'off'
+      ? 'Off'
+      : beat
+        ? `${capital(layer.noise.type)} · ${Math.round(layer.noise.volume * 100)}% · ${formatDb(noiseDbReBeat(layer.noise.volume))} re the beat`
+        : `${capital(layer.noise.type)} · matched to the layer’s loudness`;
+  const levelRow = beat
+    ? `${LEVEL_LABEL[level]} · beat ${formatDb(toneDbfs(v), 'dBFS')}${layer.noise.type === 'off' ? '' : `, noise ${formatDb(noiseDbfs(v, layer.noise.volume), 'dBFS')}`} · ceiling ${LEVEL_LABEL[ceiling]}`
+    : `${LEVEL_LABEL[level]} · noise ${formatDb(noiseDbfs(v, layer.noise.volume, { noiseOnly: true }), 'dBFS')} · ceiling ${LEVEL_LABEL[ceiling]}`;
   const motionRow = layer.journey
     ? 'A journey: 8 → 4 → 2 Hz'
     : motion === 'hold'
@@ -66,11 +82,19 @@ export function SpecCard({
         : `${motion === 'vary' ? 'Vary' : 'Drift'} · noise level wanders ±1 dB over ${layer.driftPeriodMin} min${motion === 'vary' ? ' · new noise each session' : ''}`;
   const rows: [string, string][] = [
     ['Noise', noiseRow],
-    ['Level', `${LEVEL_LABEL[level]} (${LEVEL_VOLUME[level].toFixed(2)}) · ceiling ${LEVEL_LABEL[ceiling]}`],
+    ['Level', levelRow],
     ['Motion', motionRow],
     ['Fades', `In ${fadeIn} s, out ${fadeOut} s, even in dB`],
-    ['Layer', layer.kind === 'builtin' ? `${layer.name.replace(/, noise only$/, '')} · built-in v${layer.version} · unchanged` : `${layer.name} · saved, frozen`],
+    [
+      'Layer',
+      shared
+        ? `${layer.name} · shared with you, not saved`
+        : layer.kind === 'builtin'
+          ? `${layer.name.replace(/, noise only$/, '')} · built-in v${layer.version} · unchanged`
+          : `${layer.name.replace(/, noise only$/, '')} · saved, frozen`,
+    ],
   ];
+  if (swapped && beat) rows.push(['Ears', 'Swapped for your headphones. The beat is the same either way.']);
   return (
     <div className="flex flex-col h-full px-5 pt-3 overflow-y-auto scrollbar-none" data-testid="spec-card">
       <div className="flex justify-end -mr-2">
@@ -81,62 +105,85 @@ export function SpecCard({
       <div className="text-center -mt-3">
         {beat ? (
           <>
-            <p className="tnum text-[61px] leading-[64px] tracking-[-0.01em] text-ink" aria-label={`${hz(layer.beatHz)} hertz beat`}>
+            <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] tracking-[-0.01em] text-ink" aria-label={`${hz(layer.beatHz)} hertz beat`}>
               {layer.journey ? '8 → 2 Hz' : `${hz(layer.beatHz)} Hz`}
             </p>
-            <p className="tnum text-[20px] leading-7 font-medium mt-2">
+            <p className="tnum text-[1.25rem] leading-7 font-medium mt-2">
               <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)} Hz</span>
               <span className="text-ink2 mx-3" aria-hidden>
                 ·
               </span>
               <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)} Hz</span>
             </p>
-            <p className="tnum text-[16px] leading-[22px] text-ink2 mt-1" data-testid="spec-carrier">
+            <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="spec-carrier">
               Carrier {hz(layer.carrierHz)} Hz: the pitch both tones sit around.
             </p>
-            {layer.note && <p className="text-[16px] leading-[22px] text-ink mt-1">{layer.note}</p>}
+            {layer.note && <p className="text-[1rem] leading-[1.375rem] text-ink mt-1">{layer.note}</p>}
           </>
         ) : (
           <>
-            <p className="tnum text-[61px] leading-[64px] tracking-[-0.01em] text-ink">Noise</p>
-            <p className="text-[16px] text-ink2 mt-2">No beat is playing. Both ears hear {layer.noise.type} noise.</p>
+            <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] tracking-[-0.01em] text-ink">Noise</p>
+            <p className="text-[1rem] text-ink2 mt-2">No beat is playing. Both ears hear {layer.noise.type} noise.</p>
           </>
         )}
       </div>
       <dl className="mt-4 border-t border-line">
-        {rows.map(([k, v]) => (
+        {/* Beat on or off is a property of the layer, so it's a row here, not a third button. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-[6px] border-b border-line">
+          <dt className="w-[4rem] shrink-0 text-[1rem] text-ink2">Beat</dt>
+          <dd className="flex-1 basis-[12rem] min-w-0">
+            {forced ? (
+              <span className="text-[1rem] leading-[1.375rem] text-ink" data-testid="spec-beat-forced">
+                {forced === 'route' ? 'Off on this headphone route, so noise only. It comes back with stereo headphones.' : 'Off: Noise only is on in Settings, Sound.'}
+              </span>
+            ) : (
+              <Segmented
+                label="Beat"
+                testid="spec-beat"
+                value={layer.binaural ? 'on' : 'off'}
+                onChange={(x) => onBeat(x === 'on')}
+                options={[
+                  { value: 'on', label: 'On' },
+                  { value: 'off', label: 'Off, noise only' },
+                ]}
+              />
+            )}
+          </dd>
+        </div>
+        {rows.map(([k, val]) => (
           <div key={k} className="flex gap-4 py-[8px] border-b border-line">
-            <dt className="w-[64px] shrink-0 text-[16px] text-ink2">{k}</dt>
-            <dd className="text-[16px] leading-[22px] text-ink tnum">{v}</dd>
+            <dt className="w-[4rem] shrink-0 text-[1rem] text-ink2">{k}</dt>
+            <dd className="text-[1rem] leading-[1.375rem] text-ink tnum" data-testid={`spec-row-${k.toLowerCase()}`}>
+              {val}
+            </dd>
           </div>
         ))}
       </dl>
       <Envelope layer={shown} timer={timer} motion={motion} />
       <div className="mt-auto pt-2 pb-[calc(34px+12px)]">
-        <div className="grid grid-cols-[1.25fr_1fr_1.15fr] gap-2">
-          <Button variant="quiet" onClick={onEditCopy} data-testid="spec-edit" className="px-2">
-            {layer.kind === 'builtin' ? 'Edit a copy' : 'Edit'}
+        <div className={shared ? 'grid grid-cols-2 gap-2' : ''}>
+          <Button variant="quiet" full onClick={onEditCopy} data-testid="spec-edit">
+            Edit a copy
           </Button>
-          {layer.kind === 'saved' ? (
-            <Button variant="quiet" onClick={onDelete} data-testid="spec-delete" className="px-2">
-              Delete
-            </Button>
-          ) : (
-            <Button variant="quiet" onClick={onSave} data-testid="spec-save" className="px-2">
+          {/* Save appears only when there's something unsaved (a shared layer). A built-in is already kept. */}
+          {shared && (
+            <Button variant="quiet" full onClick={() => ui.set({ spec: false, sheet: 'save', draft: layer, draftFrom: layer.id })} data-testid="spec-save">
               Save
             </Button>
           )}
-          <Button variant="quiet" onClick={onNoiseOnly} data-testid="spec-noise" className="px-2" aria-pressed={!layer.binaural}>
-            {layer.binaural ? 'Noise only' : 'Add beat'}
-          </Button>
         </div>
-        <div className="flex justify-center gap-6 mt-1">
+        <div className="flex flex-wrap justify-center gap-x-6 mt-1">
           <Button variant="text" onClick={() => onScience(beat ? 'beat' : 'noise')} data-testid="spec-science">
             What does this do?
           </Button>
           <Button variant="text" onClick={onShare} data-testid="spec-share">
             Share
           </Button>
+          {layer.kind === 'saved' && !shared && (
+            <Button variant="text" onClick={onDelete} data-testid="spec-delete">
+              Delete
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -206,7 +253,7 @@ function Envelope({ layer, timer, motion }: { layer: Layer; timer: TimerChoice; 
         {beatPath && <path d={beatPath} fill="none" stroke="var(--c-left)" strokeWidth="1.5" strokeDasharray="4 4" strokeLinecap="round" data-testid="envelope-beat" />}
         {env.open && <path d={`M${W - fadeW + 6} ${yOf(1)} H${W}`} stroke="var(--c-ink2)" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="1 6" />}
       </svg>
-      <figcaption className="tnum relative h-6 text-[16px] text-ink2 mt-1 whitespace-nowrap">
+      <figcaption className="tnum relative h-6 text-[1rem] text-ink2 mt-1 whitespace-nowrap">
         <span className="absolute left-0">0</span>
         <span className="absolute" style={{ left: fadeW - 6 }}>
           {fmtT(layer.fadeInSec)}
@@ -223,7 +270,7 @@ function Envelope({ layer, timer, motion }: { layer: Layer; timer: TimerChoice; 
         )}
       </figcaption>
       {layer.journey && (
-        <p className="text-[16px] leading-[22px] text-ink2 mt-1">
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">
           <span style={{ color: 'var(--c-left)' }}>Dashed</span>: the beat, 8 → 4 → 2 Hz. Solid: the level.
         </p>
       )}

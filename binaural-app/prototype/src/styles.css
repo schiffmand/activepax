@@ -173,17 +173,18 @@ input[type='range'].tuck-range:focus-visible::-moz-range-thumb { outline: 2px so
   box-shadow: inset 0 0 0 1.5px var(--c-edge);
 }
 
-/* The felt between the stitch and the controls: what fits depends on the layer's height (its level). */
+/* The felt between the stitch and the controls: what fits depends on the layer's height (its level).
+   Thresholds are in rem so they scale with the text: at large text sizes the note gives way instead of clipping. */
 .felt { container-type: size; }
 .felt-compact { display: none; }
-@container (max-height: 112px) {
+@container (max-height: 7rem) {
   .felt-big { display: none; }
   .felt-compact { display: block; }
 }
-@container (max-height: 84px) {
+@container (max-height: 5.25rem) {
   .felt-note { display: none; }
 }
-@container (max-height: 72px) {
+@container (max-height: 4.5rem) {
   .felt-chev { display: none; }
 }
 
@@ -196,3 +197,12 @@ input[type='range'].tuck-range:focus-visible::-moz-range-thumb { outline: 2px so
 /* Breathing layer (optional, off by default): one rise and fall every 10 s. Never in Dim or Still screen. */
 @keyframes tuck-breath { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 .breathing { animation: tuck-breath 10s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
+
+/* Sensory mode: the compact felt line only (16 px), never the 20 px focal line. */
+.felt-sensory .felt-big { display: none; }
+.felt-sensory .felt-compact { display: block; }
+
+/* Scroll regions that only scroll at large text sizes: soften the cut edge instead of slicing a line. */
+.fade-overflow[data-overflow='bottom'] { mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+.fade-overflow[data-overflow='top'] { mask-image: linear-gradient(to bottom, transparent, #000 28px); }
+.fade-overflow[data-overflow='both'] { mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent); }

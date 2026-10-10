@@ -89,6 +89,15 @@ fun volumeToGain(v: Double): Double {
     return c * c
 }
 
+/** Noise % -> gain, as in core `noiseVolumeToGain`: one linear law, 100% = the beat's loudness, 25% = -12 dB re beat. */
+fun noiseVolumeToGain(v: Double): Double = clamp(v, 0.0, 1.0) * 2.11
+
+/** Noise only, loudness-matched to the layer it replaces (beat + noise), as in core `noiseOnlyGain`. */
+fun noiseOnlyGain(v: Double): Double {
+    val c = clamp(v, 0.0, 1.0)
+    return kotlin.math.sqrt(1 + c * c) * 2.11
+}
+
 // ── Presets (core/src/presets.ts) ──
 
 @Serializable

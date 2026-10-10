@@ -5,7 +5,7 @@ import { session } from '../audio/session';
 import { ears, hz } from '../tuck/layers';
 import { startSound, useTuck } from '../ui/derived';
 import { store } from '../tuck/store';
-import { useOther } from '../ui/state';
+import { ui, useOther } from '../ui/state';
 import { EASE, Mark } from '../ui/kit';
 import { IconBack, IconPause, IconPlay } from '../ui/icons';
 
@@ -17,9 +17,11 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
   const t = useTuck();
   const other = useOther();
   const { s, layer, prefs, binaural } = t;
-  const [now, setNow] = useState(new Date());
+  // The simulated clock: ?hour= and Prototype controls change the hour shown here too.
+  const [now, setNow] = useState(() => ui.now());
+  useEffect(() => setNow(ui.now()), [t.u.hourOverride]);
   useEffect(() => {
-    const i = setInterval(() => setNow(new Date()), 15_000);
+    const i = setInterval(() => setNow(ui.now()), 15_000);
     return () => clearInterval(i);
   }, []);
   const active = s.phase !== 'idle';
@@ -53,7 +55,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
                 <path d="M2 4h5" stroke="#9DB2D6" strokeWidth="2.5" strokeLinecap="round" />
                 <path d="M19 4h5" stroke="#CFCB86" strokeWidth="2.5" strokeLinecap="round" />
               </svg>
-              <span className="tnum text-[16px] text-[#AEB2A0]">{left !== null ? `${left}m` : ''}</span>
+              <span className="tnum text-[1rem] text-[#AEB2A0]">{left !== null ? `${left}m` : ''}</span>
             </>
           ) : (
             <span className="w-full" />
@@ -61,8 +63,8 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
         </div>
       </div>
       <div className="text-center mt-10">
-        <p className="text-[18px] text-[#C9CCBD]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{date}</p>
-        <p className="tnum text-[84px] leading-[90px] font-semibold tracking-[-0.02em]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{time}</p>
+        <p className="text-[1.125rem] text-[#C9CCBD]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{date}</p>
+        <p className="tnum text-[5.25rem] leading-[5.625rem] font-semibold tracking-[-0.02em]" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>{time}</p>
       </div>
 
       <div className="mt-auto px-3 flex flex-col gap-2 pb-4">
@@ -78,8 +80,8 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[16px] font-bold">Your audio</p>
-              <p className="text-[16px] text-[#AEB2A0]">Another app, playing above</p>
+              <p className="text-[1rem] font-bold">Your audio</p>
+              <p className="text-[1rem] text-[#AEB2A0]">Another app, playing above</p>
             </div>
             <button
               type="button"
@@ -97,10 +99,10 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
         {active ? (
           minimal ? (
             <div className="rounded-[24px] bg-[rgba(48,54,48,.82)] px-4 h-16 flex items-center justify-between" data-testid="live-activity">
-              <p className="tnum text-[16px]">
+              <p className="tnum text-[1rem]">
                 {blind ? `Layer ${blind}` : layer.name} · {blind ? 'blind' : binaural ? `${hz(s.beatNow ?? layer.beatHz)} Hz` : 'noise'} · {left !== null ? `${left} min` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}` : 'no timer'}
               </p>
-              <button type="button" onClick={() => void session.stop()} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[16px] font-bold">
+              <button type="button" onClick={() => void session.stop()} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[1rem] font-bold">
                 Stop
               </button>
             </div>
@@ -108,27 +110,27 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
             <div className="rounded-[24px] bg-[rgba(39,46,39,.92)] px-4 pt-3 pb-4" data-testid="live-activity">
               <div className="flex items-center gap-2">
                 <Mark size={20} plain={prefs.appIcon === 'plain'} />
-                <span className="text-[16px] font-bold">{blind ? `Blind comparison · layer ${blind}` : layer.name}</span>
+                <span className="text-[1rem] font-bold">{blind ? `Blind comparison · layer ${blind}` : layer.name}</span>
               </div>
               <div className="mt-2 flex items-end justify-between">
                 <div>
-                  <p className="text-[16px] text-[#AEB2A0]" data-testid="live-status">
+                  <p className="text-[1rem] text-[#AEB2A0]" data-testid="live-status">
                     {under}, {left !== null ? `${left} min left` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}${s.cycles.phase === 'break' ? ', break' : ''}` : layer.journey ? 'ends after 45 min' : 'no timer'}
                   </p>
                   {blind ? (
-                    <p className="tnum text-[34px] leading-[38px] font-medium mt-1">Layer {blind}</p>
+                    <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">Layer {blind}</p>
                   ) : binaural ? (
                     <>
-                      <p className="tnum text-[34px] leading-[38px] font-medium mt-1">{hz(s.beatNow ?? layer.beatHz)} Hz</p>
-                      <p className="tnum text-[16px]">
+                      <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">{hz(s.beatNow ?? layer.beatHz)} Hz</p>
+                      <p className="tnum text-[1rem]">
                         <span style={{ color: '#9DB2D6' }}>L {hz(e.left)}</span> <span className="text-[#AEB2A0]">/</span> <span style={{ color: '#CFCB86' }}>R {hz(e.right)}</span>
                       </p>
                     </>
                   ) : (
-                    <p className="tnum text-[34px] leading-[38px] font-medium mt-1">Noise only</p>
+                    <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">Noise only</p>
                   )}
                 </div>
-                <button type="button" onClick={() => void session.stop()} className="h-12 px-5 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[17px] font-bold" data-testid="live-stop">
+                <button type="button" onClick={() => void session.stop()} className="h-12 px-5 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[1.0625rem] font-bold" data-testid="live-stop">
                   Stop
                 </button>
               </div>
@@ -138,8 +140,8 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
           // The Lock Screen widget: start the pinned (or last) layer without unlocking.
           <div className="rounded-[24px] bg-[rgba(39,46,39,.86)] px-4 h-16 flex items-center gap-3" data-testid="lock-widget">
             <Mark size={20} plain={prefs.appIcon === 'plain'} />
-            <p className="flex-1 min-w-0 text-[16px] text-[#C9CCBD] truncate">{startable.name}{prefs.pinnedLayerId ? ', pinned' : ''}</p>
-            <button type="button" onClick={() => startSound(startable.id)} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[16px] font-bold" data-testid="lock-start">
+            <p className="flex-1 min-w-0 text-[1rem] text-[#C9CCBD] truncate">{startable.name}{prefs.pinnedLayerId ? ', pinned' : ''}</p>
+            <button type="button" onClick={() => startSound(startable.id)} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[1rem] font-bold" data-testid="lock-start">
               Start
             </button>
           </div>
@@ -149,7 +151,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
         <button
           type="button"
           onClick={onBack}
-          className="h-12 pl-3 pr-4 rounded-full inline-flex items-center gap-1 text-[16px] bg-white/10 hover:bg-white/15"
+          className="h-12 pl-3 pr-4 rounded-full inline-flex items-center gap-1 text-[1rem] bg-white/10 hover:bg-white/15"
           data-testid="page-back"
         >
           <IconBack /> Back to Tuck

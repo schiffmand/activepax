@@ -112,14 +112,77 @@ export class AudioBlockedError extends Error {
 
 /** Headroom: each sine peaks at this amplitude before the user volume. -6 dBFS. */
 export const TONE_HEADROOM = 0.5;
-/** Noise bed headroom relative to full scale. */
-export const NOISE_HEADROOM = 0.5;
+/** RMS of each ear's tone before the user volume (a sine at TONE_HEADROOM): about -9 dBFS. */
+export const TONE_RMS = TONE_HEADROOM / Math.SQRT2;
 /**
- * Worst-case peak of the whole layer per channel: tones (0.5) + noise (buffer peak 0.9 × 0.5),
- * before volume/level/fade gains which are all ≤ 1. Always < 1, so no limiter is needed
- * (a DynamicsCompressor would add ~+3.4 dB of automatic makeup gain and pump with the noise).
+ * RMS of the noise buffers, per colour. Loudness-matched with BS.1770 K-weighting (measured on
+ * generateNoise output: all three land within 0.1 LU of each other), so switching colour doesn't jump.
+ * Peaks stay at or under 0.83.
  */
-export const WORST_CASE_PEAK = TONE_HEADROOM + 0.9 * NOISE_HEADROOM;
+export const NOISE_RMS: Readonly<Record<NoiseType, number>> = Object.freeze({ brown: 0.18, pink: 0.157, white: 0.105 });
+/**
+ * The noise law, in one place (round 2: the old law stacked a second square law and a 0.5 headroom on top of
+ * the user volume, which left the noise about 36 dB under the beat and inaudible).
+ *
+ * Noise % is the noise's amplitude relative to the beat, linear: 100% is as loud as the beat (equal
+ * BS.1770 loudness), 50% is 6 dB under it, 25% is 12 dB under it. NOISE_FULL_GAIN is the gain that puts
+ * an RMS-normalised buffer (NOISE_RMS) at the beat's loudness: measured 2.11 for all three colours.
+ */
+export const NOISE_FULL_GAIN = 2.11;
+/** Highest noise peak the buffers produce (generateNoise caps it; the RMS-normalised colours peak at 0.81 or less). */
+export const NOISE_PEAK = 0.9;
+/**
+ * Worst-case peak of the whole layer per channel before the user volume: both tones (0.5) plus noise at
+ * 100% (peak 0.9 x NOISE_FULL_GAIN). It is above 1 on purpose, because 100% noise is as loud as the beat;
+ * the user volume keeps the sum clean. Every volume up to MAX_CLEAN_VOLUME stays under -1 dBFS, so no
+ * limiter is needed (a DynamicsCompressor would add about +3.4 dB of makeup gain and pump with the noise).
+ */
+export const WORST_CASE_PEAK = TONE_HEADROOM + NOISE_PEAK * NOISE_FULL_GAIN;
+/** -1 dBFS. */
+export const PEAK_CEILING = Math.pow(10, -1 / 20);
+/** The highest user volume at which the worst case still peaks under -1 dBFS (about 0.61; Tuck's Full is 0.42). */
+export const MAX_CLEAN_VOLUME = Math.sqrt(PEAK_CEILING / WORST_CASE_PEAK);
+
+/** Noise % (0..1) -> gain on an RMS-normalised buffer. One law, linear in amplitude: 25% = -12 dB re the beat. */
+export function noiseVolumeToGain(volume: number): number {
+  return clamp(fin(volume, 0), 0, 1) * NOISE_FULL_GAIN;
+}
+
+/**
+ * Noise only (speaker, mono, call mode, a blind comparison's noise arm, or the Noise only switch): the noise
+ * is brought up to the loudness of the layer it replaces (beat + noise at `volume`), so the fallback is never
+ * quieter than what it stands in for. Loudness adds as power: sqrt(1 + v^2) x the beat's loudness.
+ */
+export function noiseOnlyGain(volume: number): number {
+  const v = clamp(fin(volume, 0), 0, 1);
+  return Math.sqrt(1 + v * v) * NOISE_FULL_GAIN;
+}
+
+/** The noise's level relative to the beat, in dB (25% -> -12.0). -Infinity at 0%. */
+export function noiseDbReBeat(volume: number): number {
+  const v = clamp(fin(volume, 0), 0, 1);
+  return v > 0 ? 20 * Math.log10(v) : -Infinity;
+}
+
+/** The beat's RMS level per ear at a user volume, in dBFS (Medium 0.28 -> about -31). */
+export function toneDbfs(volume: number): number {
+  const g = volumeToGain(volume);
+  return g > 0 ? 20 * Math.log10(TONE_RMS * g) : -Infinity;
+}
+
+/** The noise's RMS level per ear at a user volume and noise %, in dBFS (brown reference). */
+export function noiseDbfs(volume: number, noiseVolume: number, opts: { noiseOnly?: boolean } = {}): number {
+  const g = volumeToGain(volume) * (opts.noiseOnly ? noiseOnlyGain(noiseVolume) : noiseVolumeToGain(noiseVolume)) * NOISE_RMS.brown;
+  return g > 0 ? 20 * Math.log10(g) : -Infinity;
+}
+
+/** dB with a true minus sign (U+2212), one decimal unless whole: "−12 dB", "−24.1 dBFS". */
+export function formatDb(db: number, unit = 'dB', digits = 0): string {
+  if (!Number.isFinite(db)) return `\u2212\u221E ${unit}`;
+  const r = Number(db.toFixed(digits));
+  const abs = Math.abs(r).toFixed(digits);
+  return `${r < 0 ? '\u2212' : ''}${abs} ${unit}`;
+}
 /** Instant gain changes are rendered as a short linear ramp so they never click. */
 export const GAIN_STEP_SEC = 0.03;
 /** Fade used by dispose() while audible. */
@@ -499,9 +562,10 @@ export class BinauralEngine {
     if (cached) return cached;
     const length = Math.max(1024, Math.floor(ctx.sampleRate * this.opts.noiseBufferSec));
     const buf = ctx.createBuffer(2, length, ctx.sampleRate);
-    // Decorrelated L/R so the noise sounds wide rather than centred. Peak 0.9 (see WORST_CASE_PEAK).
-    buf.getChannelData(0).set(generateNoise(type, length, { seed: 11, peak: 0.9 }));
-    buf.getChannelData(1).set(generateNoise(type, length, { seed: 23, peak: 0.9 }));
+    // Decorrelated L/R so the noise sounds wide rather than centred. RMS-normalised per colour (NOISE_RMS),
+    // peak capped at NOISE_PEAK (see WORST_CASE_PEAK).
+    buf.getChannelData(0).set(generateNoise(type, length, { seed: 11, peak: NOISE_PEAK, rms: NOISE_RMS[type] }));
+    buf.getChannelData(1).set(generateNoise(type, length, { seed: 23, peak: NOISE_PEAK, rms: NOISE_RMS[type] }));
     this.noiseBuffers.set(type, buf);
     return buf;
   }
@@ -519,7 +583,7 @@ export class BinauralEngine {
     source.connect(gain);
     gain.connect(g.levelGain);
     source.start(t);
-    rampParam(gain.gain, volumeToGain(volume) * NOISE_HEADROOM, t, Math.max(fadeSec, GAIN_STEP_SEC), 'linear');
+    rampParam(gain.gain, noiseVolumeToGain(volume), t, Math.max(fadeSec, GAIN_STEP_SEC), 'linear');
     this.noiseVoice = { type, source, gain };
   }
 
@@ -555,7 +619,7 @@ export class BinauralEngine {
       return;
     }
     if (current && current.type === noise.type) {
-      rampParam(current.gain.gain, volumeToGain(noise.volume) * NOISE_HEADROOM, this.ctx.currentTime, fadeSec, 'linear');
+      rampParam(current.gain.gain, noiseVolumeToGain(noise.volume), this.ctx.currentTime, fadeSec, 'linear');
       return;
     }
     // Crossfade between noise colours.

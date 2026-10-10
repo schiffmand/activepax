@@ -82,7 +82,7 @@ export interface TuckPrefs {
   liveActivityStyle: 'standard' | 'minimal';
   showWeeklyTotal: boolean;
   tooMuchLayerId: string | null;
-  /** Steady mode: Home always offers this one layer, with no arrival question. */
+  /** Pinned layer: Home always offers this one layer, with no arrival question. */
   pinnedLayerId: string | null;
   theme: ThemePref;
   /** Private log: one tap after each session, and a sleep note the morning after. Off by default. */
@@ -106,8 +106,12 @@ export interface TuckPrefs {
   lastLevel: LevelName;
   lastMotion: Record<string, Motion>;
   lastVisit: number | null;
-  /** The last session that started in the evening (for the morning sleep note). */
-  lastNight: { night: string; layerName: string } | null;
+  /** The last session that started in the evening (for the morning sleep note): layer, start time, length. */
+  lastNight: { night: string; layerName: string; at: number; time: string; minutes?: number } | null;
+  /** When Tuck first stayed under another app for 10 minutes (the activation moment). 0 = not yet. */
+  activatedAt: number;
+  /** Write each session to Health as mindful minutes (free; history and analysis are Plus). */
+  healthOn: boolean;
   /** Values the user changed after Sensory mode applied its bundle. */
   sensoryOverrides: string[];
 }
@@ -154,6 +158,8 @@ export const DEFAULT_PREFS: TuckPrefs = {
   lastMotion: {},
   lastVisit: null,
   lastNight: null,
+  activatedAt: 0,
+  healthOn: false,
   sensoryOverrides: [],
 };
 
@@ -280,8 +286,16 @@ class TuckStore {
     return this.state.core.customPresets.map((p) => presetToLayer(p as Preset & TuckPresetExtras));
   }
 
+  /** A layer that isn't saved yet: one opened from a shared link. It plays like any other until Saved or dismissed. */
+  private transient: Layer | null = null;
+  setTransient(l: Layer | null) {
+    this.transient = l;
+    this.set({});
+  }
+
   findLayer(id: string | null | undefined): Layer | undefined {
     if (!id) return undefined;
+    if (this.transient && id === this.transient.id) return this.transient;
     if (id.endsWith('~noise')) {
       const base = this.findLayer(id.slice(0, -'~noise'.length));
       return base ? { ...base, id, name: `${base.name}, noise only`, binaural: false } : undefined;

@@ -5,6 +5,7 @@
  */
 import { ProgramPlayer, sessionToRecord, AudioBlockedError, type PlayerState } from '@core';
 import { getContext, ensureRunning, playChime, setSwap } from './hub';
+import { otherApp } from './otherApp';
 import { LayerEngine } from './layerEngine';
 import { createWarpClock } from './warpClock';
 import { LEVEL_VOLUME, LEVELS, programFor, wanders, type Layer, type LevelName, type Motion } from '../tuck/layers';
@@ -35,6 +36,8 @@ export interface Ended {
   blind: 'A' | 'B' | null;
   /** Set once the one-tap note is saved (or skipped). */
   noted?: boolean;
+  /** This was a Take 5 break ending: offer "Another N min" (the timer before the break). */
+  afterBreak?: { timerMin: number | null };
 }
 
 export type Phase = 'idle' | 'starting' | 'fadingIn' | 'playing' | 'fadingOut';
@@ -61,6 +64,14 @@ export interface SessionSnapshot {
   driftOffset: number;
   ended: Ended | null;
   notice: Notice;
+  /** Seconds of this session with another app playing above (the activation moment is 10 min of this). */
+  underSec: number;
+  /** The timer that ran before Take 5 (for "Another 25 min"). */
+  breakAfterTimer: number | null;
+  /** This session is the one where Tuck first stayed under another app for 10 minutes. */
+  activatedNow: boolean;
+  /** Wall-clock start of this session (ms). */
+  startedAt: number;
 }
 
 const initial: SessionSnapshot = {
@@ -81,6 +92,10 @@ const initial: SessionSnapshot = {
   driftOffset: 0,
   ended: null,
   notice: null,
+  underSec: 0,
+  breakAfterTimer: null,
+  activatedNow: false,
+  startedAt: 0,
 };
 
 const TAKE_FIVE_SEC = 5 * 60;
@@ -101,7 +116,7 @@ class Session {
   private engine: LayerEngine | null = null;
   private player: ProgramPlayer | null = null;
   private offPlayer: (() => void)[] = [];
-  private fadeTimer: ReturnType<typeof setTimeout> | undefined;
+  private fadeTimer: unknown;
   private driftTimer: ReturnType<typeof setTimeout> | undefined;
   private takeFiveTimer: unknown;
   private cycleTimer: unknown;
@@ -130,7 +145,7 @@ class Session {
   }
 
   /** Start sound (or pull up). Must run from a tap the first time (autoplay policy). */
-  async start(layer: Layer, opts: { level: LevelName; motion: Motion; timerMin: number | null; binaural: boolean; cycles?: boolean; blind?: 'A' | 'B' | null }) {
+  async start(layer: Layer, opts: { level: LevelName; motion: Motion; timerMin: number | null; binaural: boolean; cycles?: boolean; blind?: 'A' | 'B' | null; keepLevel?: boolean }) {
     const prefs = store.get().prefs;
     setSwap(prefs.swapChannels);
     const ok = await ensureRunning();
@@ -172,6 +187,10 @@ class Session {
       blind: opts.blind ?? null,
       driftOffset: 0,
       fadeSec: fadeIn,
+      underSec: 0,
+      breakAfterTimer: null,
+      activatedNow: false,
+      startedAt: Date.now(),
     });
     try {
       await this.player!.play(programFor(layer, level), {
@@ -185,8 +204,10 @@ class Session {
     }
     this.engine!.setVolume(LEVEL_VOLUME[level], 0.05);
     this.set({ phase: 'fadingIn', fadeSec: fadeIn });
-    if (this.fadeTimer) clearTimeout(this.fadeTimer);
-    this.fadeTimer = setTimeout(() => {
+    this.clearFadeTimer();
+    // On the warp clock, so Skip ahead in Prototype controls also finishes the fade-in.
+    this.fadeTimer = this.clock.setTimeout(() => {
+      this.fadeTimer = undefined;
       if (this.snap.phase === 'fadingIn') this.set({ phase: 'playing' });
     }, fadeIn * 1000);
     this.driftSeed = Math.floor(Math.random() * 1e9);
@@ -195,11 +216,26 @@ class Session {
     this.clearCycles();
     if (opts.cycles) this.beginCycles(level);
     store.core.dispatch({ type: 'lastPlayed/set', value: { kind: 'preset', id: layer.id } });
-    store.setPrefs({ lastLevel: opts.level });
+    // A blind session or a Take 5 break doesn't change the level you come back to.
+    if (!opts.blind && !opts.keepLevel) store.setPrefs({ lastLevel: opts.level });
+  }
+
+  private clearFadeTimer() {
+    if (this.fadeTimer !== undefined) this.clock.clearTimeout(this.fadeTimer);
+    this.fadeTimer = undefined;
   }
 
   private onPlayer(s: PlayerState) {
     if (this.switching) return;
+    // Time under another app (1 s ticks). The first 10 minutes of it, ever, is Tuck's activation moment.
+    if (s.status === 'playing' && otherApp.get().playing && this.isActive()) {
+      const under = this.snap.underSec + Math.max(0, s.elapsedSec - this.snap.elapsedSec);
+      if (under !== this.snap.underSec) this.set({ underSec: under });
+      if (under >= 600 && !store.get().prefs.activatedAt) {
+        store.setPrefs({ activatedAt: Date.now() });
+        this.set({ activatedNow: true });
+      }
+    }
     const patch: Partial<SessionSnapshot> = {
       elapsedSec: s.elapsedSec,
       remainingSec: s.remainingSec,
@@ -227,8 +263,12 @@ class Session {
     this.set(patch);
   }
 
-  private finishLine(elapsedSec: number, fadeSec: number, byTimer: boolean) {
+  private finishLine(elapsedSec: number, fadeSec: number, byTimer: boolean, afterBreak?: { timerMin: number | null }) {
+    const p0 = store.get().prefs;
     store.setPrefs({ firstSessionDone: true });
+    // The morning note names the layer, the time and the length of last night's session.
+    const ln = p0.lastNight;
+    if (ln && ln.minutes == null && Date.now() - ln.at < elapsedSec * 1000 + 10 * 60_000) store.setPrefs({ lastNight: { ...ln, minutes: Math.floor(elapsedSec / 60) } });
     const l = this.snap.layer;
     const binaural = this.snap.binaural && !!l?.binaural;
     this.set({
@@ -242,13 +282,14 @@ class Session {
         beatHz: binaural && l ? l.beatHz : null,
         noise: l ? (l.noise.type === 'off' ? 'none' : l.noise.type) : 'brown',
         blind: this.snap.blind,
+        afterBreak,
       },
     });
     if (this.endedTimer) clearTimeout(this.endedTimer);
     // The session-end line shows for 8 s (30 s when it offers Take 5 or a one-tap note), then the home returns.
     const p = store.get().prefs;
     const asks = (p.logOn || !!this.snap.blind) && elapsedSec >= 60;
-    this.endedTimer = setTimeout(() => this.set({ ended: null }), byTimer || asks ? 30_000 : 8_000);
+    this.endedTimer = setTimeout(() => this.set({ ended: null }), byTimer || asks || afterBreak ? 30_000 : 8_000);
   }
 
   /** The one-tap note was saved or skipped: keep the line, drop the question. */
@@ -270,20 +311,23 @@ class Session {
     const layer = this.snap.layer;
     const fade = fadeOverride ?? (layer ? fadesFor(layer).fadeOut : 20);
     const elapsed = this.player.getState().elapsedSec;
+    const afterBreak = this.snap.takeFive && byTimer ? { timerMin: this.snap.breakAfterTimer } : undefined;
     this.stopDrift();
     this.clearTakeFive();
     this.clearCycles();
-    if (this.fadeTimer) clearTimeout(this.fadeTimer);
+    this.clearFadeTimer();
     this.set({ phase: 'fadingOut', fadeSec: fade, notice, takeFive: null, cycles: null });
     this.switching = true;
     const p = this.player.stop(fade);
     this.switching = false;
-    if (!notice) this.finishLine(elapsed, fade, byTimer);
+    if (!notice) this.finishLine(elapsed, fade, byTimer && !afterBreak, afterBreak);
     await p;
     if ((this.snap.phase as Phase) === 'fadingOut') this.set({ phase: 'idle' });
   }
 
   setLevel(level: LevelName) {
+    // A blind comparison fixes the level for its sessions (so the two arms stay matched).
+    if (this.snap.blind && this.isActive()) return;
     const l = this.ceiling(level);
     this.set({ level: l });
     if (this.snap.cycles && this.snap.cycles.phase === 'work') this.set({ cycles: { ...this.snap.cycles, workLevel: l } });
@@ -296,6 +340,7 @@ class Session {
 
   setMotion(m: Motion) {
     if (this.snap.layer?.motionLocked) return;
+    if (this.snap.blind && this.isActive()) return;
     const was = this.snap.motion;
     this.set({ motion: m });
     if (m === 'hold') {
@@ -415,18 +460,21 @@ class Session {
 
   /** Take 5: sound continues at Quiet for 5 minutes, one soft chime, then the layer fades out. */
   async takeFive(layer: Layer | null) {
+    const l0 = layer ?? this.snap.layer;
+    const t0 = l0 ? store.get().prefs.timerByLayer[l0.id] : undefined;
+    const before = typeof t0 === 'number' ? t0 : this.snap.timerMin;
     if (this.snap.phase === 'idle' || this.snap.phase === 'fadingOut') {
       const l = layer ?? this.snap.layer;
       if (!l) return;
-      await this.start(l, { level: 'quiet', motion: this.snap.motion, timerMin: null, binaural: this.snap.binaural });
-    } else this.setLevel('quiet');
+      await this.start(l, { level: 'quiet', motion: this.snap.motion, timerMin: null, binaural: this.snap.binaural, keepLevel: true });
+    } else this.applyLevel('quiet', 1.2);
     const endsAt = (this.player?.elapsedSec() ?? 0) + TAKE_FIVE_SEC;
-    this.set({ takeFive: { endsAtSec: endsAt }, ended: null, level: 'quiet' });
+    this.set({ takeFive: { endsAtSec: endsAt }, ended: null, level: 'quiet', breakAfterTimer: before });
     this.clearTakeFive();
     this.takeFiveTimer = this.clock.setTimeout(() => {
       this.takeFiveTimer = undefined;
       if (store.get().prefs.takeFiveChime) playChime(LEVEL_VOLUME[this.snap.level]);
-      setTimeout(() => void this.stop(), 1600);
+      setTimeout(() => void this.stop(undefined, null, true), 1600);
     }, TAKE_FIVE_SEC * 1000);
   }
 
