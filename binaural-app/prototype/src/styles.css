@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/* Fonts: embedded into the single-file build (latin subsets only). System fallbacks if anything fails. */
+@font-face {
+  font-family: 'Literata';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url('../node_modules/@fontsource-variable/literata/files/literata-latin-opsz-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../node_modules/@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../node_modules/@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('../node_modules/@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-700-normal.woff2') format('woff2');
+}
+
+@theme inline {
+  --font-voice: 'Literata', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface2: var(--c-surface2);
+  --color-line: var(--c-line);
+  --color-ink: var(--c-ink);
+  --color-ink2: var(--c-ink2);
+  --color-heather: var(--c-left);
+  --color-lichen: var(--c-right);
+  --color-lining: var(--c-lining);
+  --color-onink: var(--c-onink);
+  --color-fold: var(--c-fold);
+  --ease-tuck: cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+/* Night wool (default). Values from docs/tokens.json. */
+.tuck-theme, [data-theme='night'] {
+  --c-bg: #1C211C;
+  --c-surface: #272E27;
+  --c-surface2: #323A31;
+  --c-line: #3B443A;
+  --c-ink: #ECE7DA;
+  --c-ink2: #AEB2A0;
+  --c-left: #9DB2D6;
+  --c-right: #CFCB86;
+  --c-lining: #EBB89A;
+  --c-fold: #C99577;
+  --c-onink: #1C211C;
+  --c-focus: #9DB2D6;
+  --c-scrim: rgba(20, 24, 20, 0.72);
+  --twill: 0.08;
+  --lining-max: 1;
+  --sheet-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+[data-theme='day'] {
+  --c-bg: #E7E8E0;
+  --c-surface: #F3F3EC;
+  --c-surface2: #DCDED3;
+  --c-line: #CCD0C3;
+  --c-ink: #212820;
+  --c-ink2: #545C50;
+  --c-left: #43618F;
+  --c-right: #5E5D18;
+  --c-lining: #E5AD88;
+  --c-fold: #C99577;
+  --c-onink: #F3F3EC;
+  --c-focus: #43618F;
+  --c-scrim: rgba(33, 40, 32, 0.40);
+  --twill: 0.07;
+  --lining-max: 1;
+  --sheet-shadow: 0 -8px 32px rgba(33, 40, 32, 0.10);
+  color-scheme: light;
+}
+[data-theme='dim'] {
+  --c-bg: #141814;
+  --c-surface: #1C221C;
+  --c-surface2: #242B24;
+  --c-line: #2C342B;
+  --c-ink: #A3A897;
+  --c-ink2: #8A8F7E;
+  --c-left: #7E8B9E;
+  --c-right: #9A976A;
+  --c-lining: #8C6F60;
+  --c-fold: #5E4B41;
+  --c-onink: #141814;
+  --c-focus: #8A8F7E;
+  --c-scrim: rgba(10, 12, 10, 0.80);
+  --twill: 0;
+  --lining-max: 0.4;
+  --sheet-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: #121612;
+  color: #ECE7DA;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+#root { min-height: 100vh; min-height: 100dvh; }
+
+.tnum { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1; }
+.voice { font-family: var(--font-voice); font-weight: 400; font-optical-sizing: auto; letter-spacing: -0.005em; }
+[data-legible='true'] .voice { font-family: var(--font-ui); font-weight: 500; letter-spacing: 0; }
+
+/* Focus: 2 px ring, 2 px offset, on every focusable element. */
+.tuck-theme :focus { outline: none; }
+.tuck-theme :focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; border-radius: 10px; }
+.page :focus-visible { outline: 2px solid #9DB2D6; outline-offset: 2px; }
+
+/* Twill: two 45° hairline weaves. Off via data-texture='off'. */
+.twill { position: relative; }
+.twill::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  opacity: var(--twill);
+  background-image:
+    repeating-linear-gradient(45deg, var(--c-ink) 0 0.6px, transparent 0.6px 6px),
+    repeating-linear-gradient(-45deg, var(--c-ink) 0 0.6px, transparent 0.6px 9px);
+}
+[data-texture='off'] .twill::before { display: none; }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scroll-soft { scrollbar-width: thin; scrollbar-color: var(--c-line) transparent; }
+
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:disabled { cursor: default; }
+
+input[type='range'].tuck-range { -webkit-appearance: none; appearance: none; background: transparent; height: 48px; width: 100%; }
+input[type='range'].tuck-range::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: var(--c-line); }
+input[type='range'].tuck-range::-moz-range-track { height: 4px; border-radius: 4px; background: var(--c-line); }
+input[type='range'].tuck-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 50%; background: var(--c-ink); border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+input[type='range'].tuck-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: var(--c-ink); border: 0; }
+input[type='range'].tuck-range:focus-visible { outline: none; }
+input[type='range'].tuck-range:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+input[type='range'].tuck-range:focus-visible::-moz-range-thumb { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
+
+/* Breathing layer (optional, off by default): one rise and fall every 10 s. Never in Dim or Still screen. */
+@keyframes tuck-breath { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.breathing { animation: tuck-breath 10s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
