@@ -1,23 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="t d">
-  <title id="t">Tealight</title>
-  <desc id="d">Tealight mark: a round-bellied flame split down the middle, periwinkle on the left and saffron on the right (the two ears), standing on a short wick in a shallow tealight cup seen slightly from above.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="tuck-title tuck-desc">
+  <title id="tuck-title">Tuck</title>
+  <desc id="tuck-desc">The Tuck mark. Two faint lines at the top stand for your audio. Under them, a soft layer rises from the bottom edge. Its top edge is folded back to show an apricot lining, and a running stitch crosses it: the left half in Heather for the left ear, the right half in Lichen for the right ear.</desc>
   <defs>
-    <clipPath id="left"><rect x="0" y="0" width="126.75" height="256"/></clipPath>
-    <clipPath id="right"><rect x="129.25" y="0" width="126.75" height="256"/></clipPath>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F5B941" stop-opacity="0.22"/><stop offset="1" stop-color="#F5B941" stop-opacity="0"/></radialGradient>
-    <path id="flame" d="M128 50 C138 82 170 106 170 136 C170 160 151 172 128 172 C105 172 86 160 86 136 C86 106 118 82 128 50 Z"/>
+    <clipPath id="tuck-tile"><rect width="96" height="96" rx="22"/></clipPath>
   </defs>
-  <!-- App-icon room (cocoa). Delete this rect for the transparent mark. -->
-  <rect width="256" height="256" rx="58" fill="#2E2320"/>
-  <!-- Soft glow: the only gradient in the system -->
-  <circle cx="128" cy="132" r="92" fill="url(#glow)"/>
-  <!-- Flame: left ear (wick-blue) | right ear (saffron) -->
-  <use href="#flame" clip-path="url(#left)" fill="#93A8E8"/>
-  <use href="#flame" clip-path="url(#right)" fill="#F5B941"/>
-  <!-- Tealight cup: body, then the wax pool rim on top -->
-  <path d="M60 186 V200 C60 214 72 222 88 222 H168 C184 222 196 214 196 200 V186 Z" fill="#F1E7DE"/>
-  <ellipse cx="128" cy="186" rx="68" ry="13" fill="#BCA79C"/>
-  <ellipse cx="128" cy="186" rx="56" ry="8" fill="#3A2D29"/>
-  <!-- Wick -->
-  <rect x="126" y="170" width="4" height="16" rx="2" fill="#F1E7DE"/>
+  <g clip-path="url(#tuck-tile)">
+    <!-- Ground: Loden. The icon leads with the dark ground in every theme (council must-change 10: no peach tile). -->
+    <rect width="96" height="96" fill="#1C211C"/>
+    <!-- Your audio, above: two Thread lines at 55%. They are dropped below 40 pt. -->
+    <path d="M26 22 H70 M34 31 H62" stroke="#AEB2A0" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+    <!-- The layer: Fleece. It runs off the sides and bottom so it reads as a layer pulled up from below, not a free-floating pad or plaster. -->
+    <path d="M0 48 Q48 40 96 48 V96 H0 Z" fill="#ECE7DA"/>
+    <!-- The fold: the top edge turned back. The lining shows only in this strip, deepest in the middle. -->
+    <path d="M0 48 Q48 40 96 48 V56 Q48 68 0 56 Z" fill="#EBB89A"/>
+    <!-- The fold shadow: a hairline that keeps the turn readable at small sizes. -->
+    <path d="M0 56 Q48 68 96 56" fill="none" stroke="#C99577" stroke-width="1.5"/>
+    <!-- Running stitch. Left half Heather (deep), right half Lichen (deep). They meet at the centre with a gap, which is where the beat lives. -->
+    <path d="M14 79 h8 M30 79 h8" stroke="#43618F" stroke-width="5" stroke-linecap="round"/>
+    <path d="M58 79 h8 M74 79 h8" stroke="#7D7A2E" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <!-- Keyline: keeps the tile's edge visible on light grounds (Linen, Muslin). Invisible on dark ones. -->
+  <rect x="0.5" y="0.5" width="95" height="95" rx="21.5" fill="none" stroke="#1C211C" stroke-opacity=".28"/>
 </svg>

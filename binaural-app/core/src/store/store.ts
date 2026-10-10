@@ -1,7 +1,7 @@
 import { Emitter } from '../emitter';
 import { BUILT_IN_PRESETS, makeId, type Preset } from '../presets';
 import type { SessionSummary } from '../scheduler';
-import { migrate, type MigrationOutcome } from './migrations';
+import { UNPARSEABLE_KEY, isUnparseable, migrate, sanitizeSettingsPatch, type MigrationOutcome } from './migrations';
 import type { PersistenceAdapter } from './persistence';
 import { defaultState, type AppState, type SessionRecord, type Settings } from './schema';
 
@@ -62,12 +62,15 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, favorites: [...ordered, ...rest] };
     }
     case 'settings/update': {
-      const patch = { ...action.patch };
-      if (patch.defaultVolume !== undefined) patch.defaultVolume = Math.min(1, Math.max(0, patch.defaultVolume));
+      // Same validation as loading: NaN, wrong types and unknown enum values are dropped.
+      const patch = sanitizeSettingsPatch(action.patch);
+      if (!Object.keys(patch).length) return state;
       return { ...state, settings: { ...state.settings, ...patch } };
     }
     case 'history/add': {
-      if (action.record.durationSec < MIN_SESSION_SEC) return state;
+      const { durationSec, startedAt } = action.record;
+      if (!Number.isFinite(durationSec) || !Number.isFinite(startedAt)) return state;
+      if (durationSec < MIN_SESSION_SEC) return state;
       if (state.history.some((h) => h.id === action.record.id)) return state;
       const history = [...state.history, action.record].sort((a, b) => a.startedAt - b.startedAt);
       return { ...state, history: history.length > MAX_HISTORY ? history.slice(history.length - MAX_HISTORY) : history };
@@ -75,6 +78,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'history/rate': {
       const idx = state.history.findIndex((h) => h.id === action.id);
       if (idx < 0) return state;
+      if (action.feeling !== null && !Number.isFinite(action.feeling)) return state;
       const feeling = action.feeling === null ? null : Math.min(5, Math.max(1, Math.round(action.feeling)));
       const history = state.history.slice();
       history[idx] = { ...history[idx]!, feeling };
@@ -141,7 +145,10 @@ export interface Store {
   hydrate(): Promise<MigrationOutcome>;
   /** Resolves when all queued writes have finished. */
   flush(): Promise<void>;
-  /** True if stored data came from a newer app version; we won't overwrite it. */
+  /**
+   * True if stored data came from a newer app version, or was corrupt and couldn't be backed up;
+   * in both cases we won't overwrite it.
+   */
   readonly readOnly: boolean;
 }
 
@@ -189,6 +196,19 @@ export function createStore(options: StoreOptions = {}): Store {
       }
       const outcome = migrate(raw);
       readOnly = outcome.status === 'future';
+      if (outcome.status === 'corrupt' && adapter && raw !== null && raw !== undefined) {
+        // Keep the original bytes before any persist() can overwrite them (one truncated write must
+        // never wipe the user's presets and history for good).
+        const backupKey = `${key}.corrupt-${Date.now()}`;
+        const original = isUnparseable(raw) ? raw[UNPARSEABLE_KEY] : raw;
+        try {
+          await adapter.save(backupKey, original);
+          outcome.backupKey = backupKey;
+        } catch {
+          // Couldn't back it up: don't overwrite the original either. Run on defaults, read-only.
+          readOnly = true;
+        }
+      }
       state = outcome.state;
       if (outcome.status === 'migrated') persist();
       emitter.emit('change', { state, action: { type: 'state/replace', state } });

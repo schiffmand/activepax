@@ -1,0 +1,20 @@
+<!--
+  Tealight iOS — Info.plist additions (REFERENCE, NOT YET COMPILED).
+  Merge these keys into the app target's Info.plist.
+-->
+<dict>
+  <!--
+    Background audio. Required so the layer keeps playing with the screen locked or while the user is
+    in Spotify / Podcasts / YouTube. Without it iOS suspends the app (and the sound) seconds after it
+    leaves the foreground. App Review accepts this for an app whose core feature is continuous audio;
+    the review notes should say "plays a continuous audio layer that mixes with other apps' audio".
+  -->
+  <key>UIBackgroundModes</key>
+  <array>
+    <string>audio</string>
+  </array>
+
+  <!-- Live Activity lock-screen control (spec §5.8). The widget extension needs the same key. -->
+  <key>NSSupportsLiveActivities</key>
+  <true/>
+</dict>

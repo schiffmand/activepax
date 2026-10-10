@@ -19,16 +19,32 @@ type Ev =
 export class MockParam implements AudioParamLike {
   events: Ev[] = [];
   calls: string[] = [];
+  /** legacyParams mode: what .value reports (refreshed only on ctx.tick(), like a render quantum). */
+  private rendered: number;
   constructor(
     private readonly ctx: MockAudioContext,
     private defaultValue: number,
-  ) {}
+  ) {
+    this.rendered = defaultValue;
+    if (ctx.opts.legacyParams) {
+      // Firefox: no cancelAndHoldAtTime.
+      (this as { cancelAndHoldAtTime?: unknown }).cancelAndHoldAtTime = undefined;
+      ctx.params.push(this);
+    }
+  }
 
   get value(): number {
+    if (this.ctx.opts.legacyParams) return this.rendered;
     return this.valueAt(this.ctx.currentTime);
+  }
+
+  /** Called by ctx.tick() in legacyParams mode. */
+  render(): void {
+    this.rendered = this.valueAt(this.ctx.currentTime);
   }
   set value(v: number) {
     this.defaultValue = v;
+    this.rendered = v;
   }
 
   valueAt(t: number): number {
@@ -191,6 +207,13 @@ export interface MockContextOptions {
   deferResume?: boolean;
   /** resume() resolves but leaves the context in this state (autoplay block / iOS 'interrupted'). */
   resumeBlockedState?: 'suspended' | 'interrupted' | null;
+  /** resume() rejects (e.g. InvalidStateError on a closed context). */
+  resumeRejects?: boolean;
+  /**
+   * Emulate a browser without cancelAndHoldAtTime (Firefox) whose AudioParam.value only updates once
+   * per render quantum: .value returns the default until the next tick(), ignoring fresh automation.
+   */
+  legacyParams?: boolean;
 }
 
 export class MockAudioContext implements AudioContextLike {
@@ -198,6 +221,7 @@ export class MockAudioContext implements AudioContextLike {
   sampleRate = 8000; // small buffers keep tests fast
   private _state: 'suspended' | 'running' | 'closed' | 'interrupted' = 'suspended';
   nodes: MockNode[] = [];
+  params: MockParam[] = [];
   destination: MockNode;
   resumeCalls = 0;
   suspendCalls = 0;
@@ -245,6 +269,7 @@ export class MockAudioContext implements AudioContextLike {
   }
   resume(): Promise<void> {
     this.resumeCalls++;
+    if (this.opts.resumeRejects) return Promise.reject(new Error('InvalidStateError: cannot resume'));
     const apply = () => this.setState(this.opts.resumeBlockedState ?? 'running');
     if (!this.opts.deferResume) {
       apply();
@@ -278,6 +303,7 @@ export class MockAudioContext implements AudioContextLike {
   /** Advance audio time (seconds). */
   tick(sec: number) {
     this.currentTime += sec;
+    for (const p of this.params) p.render();
   }
 
   of<T extends MockNode>(kind: string): T[] {

@@ -5,7 +5,8 @@ import { SCHEMA_VERSION, defaultState, type AppState, type SessionRecord, type S
 
 /**
  * Adapters return `{ [UNPARSEABLE_KEY]: rawText }` when stored text isn't valid JSON (e.g. a truncated
- * write), so migrate() reports it as 'corrupt' (and the store backs it up) instead of 'empty'.
+ * write), so migrate() reports it as 'corrupt' (and the store's hydrate() backs the raw text up under
+ * `${key}.corrupt-<timestamp>` before anything can overwrite it) instead of 'empty'.
  */
 export const UNPARSEABLE_KEY = '__unparseable';
 
@@ -27,20 +28,32 @@ export const MIGRATIONS: Record<number, Migration> = {
   // v0: unversioned scratch data from the first prototype — keep only what is recognisable.
   0: (d) => ({
     version: 1,
-    favorites: Array.isArray(d.favorites) ? d.favorites : [],
+    favorites: Array.isArray(d.favorites) ? d.favorites.filter((f): f is string => typeof f === 'string') : [],
     customPresets: [],
-    volume: typeof d.volume === 'number' ? d.volume : 0.3,
+    volume: typeof d.volume === 'number' && Number.isFinite(d.volume) ? d.volume : 0.3,
     reducedMotion: false,
     sessions: [],
   }),
   // v1 -> v2: settings grouped; `volume` -> settings.defaultVolume; sessions -> history with bands.
   1: (d) => {
     const base = defaultState();
-    const sessions = Array.isArray(d.sessions) ? (d.sessions as Record<string, unknown>[]) : [];
+    const sessions: unknown[] = Array.isArray(d.sessions) ? d.sessions : [];
     const history: SessionRecord[] = sessions
-      .filter((s) => typeof s.start === 'number' && typeof s.seconds === 'number')
+      // Guard the shape first: null / primitive / garbage entries must be skipped, not crash the
+      // whole migration (which would fall back to defaults and lose favourites and presets).
+      .filter(
+        (s): s is Record<string, unknown> =>
+          !!s &&
+          typeof s === 'object' &&
+          !Array.isArray(s) &&
+          typeof (s as Record<string, unknown>).start === 'number' &&
+          Number.isFinite((s as Record<string, unknown>).start) &&
+          typeof (s as Record<string, unknown>).seconds === 'number' &&
+          ((s as Record<string, unknown>).seconds as number) >= 0 &&
+          Number.isFinite((s as Record<string, unknown>).seconds),
+      )
       .map((s, i) => {
-        const beat = typeof s.beatHz === 'number' ? s.beatHz : 10;
+        const beat = typeof s.beatHz === 'number' && Number.isFinite(s.beatHz) ? s.beatHz : 10;
         const band = bandFor(beat);
         return {
           id: typeof s.id === 'string' ? s.id : `migrated_${i}`,
@@ -58,10 +71,10 @@ export const MIGRATIONS: Record<number, Migration> = {
     return {
       schemaVersion: 2,
       customPresets: Array.isArray(d.customPresets) ? d.customPresets : [],
-      favorites: Array.isArray(d.favorites) ? d.favorites : base.favorites,
+      favorites: Array.isArray(d.favorites) ? d.favorites.filter((f): f is string => typeof f === 'string') : base.favorites,
       settings: {
         ...base.settings,
-        defaultVolume: typeof d.volume === 'number' ? d.volume : base.settings.defaultVolume,
+        defaultVolume: typeof d.volume === 'number' && Number.isFinite(d.volume) ? d.volume : base.settings.defaultVolume,
         reducedMotion: d.reducedMotion === true ? 'reduce' : 'system',
       },
       history,
@@ -82,14 +95,26 @@ export type MigrationOutcome =
   | { status: 'empty'; state: AppState }
   | { status: 'current' | 'migrated'; state: AppState; from: number }
   | { status: 'future'; state: AppState; from: number }
-  | { status: 'corrupt'; state: AppState; error: string };
+  | {
+      status: 'corrupt';
+      state: AppState;
+      error: string;
+      /**
+       * Set by the store's hydrate(): the storage key holding a copy of the original bytes,
+       * written before anything could overwrite them. UIs can offer "recover / send to support".
+       */
+      backupKey?: string;
+    };
 
 /** Upgrade any persisted document to the current schema, filling gaps with defaults. */
 export function migrate(raw: unknown): MigrationOutcome {
   if (raw === null || raw === undefined) return { status: 'empty', state: defaultState() };
   if (isUnparseable(raw)) return { status: 'corrupt', state: defaultState(), error: 'Stored data could not be parsed' };
   const from = detectVersion(raw);
-  if (!Number.isInteger(from) && from >= 0) return { status: 'corrupt', state: defaultState(), error: `Invalid schema version ${from}` };
+  // -1 is detectVersion's "not an object"; anything else must be a non-negative integer (NaN, 1.5, -2 are
+  // possible from non-JSON adapters such as structured clone or hand-edited data).
+  if (from !== -1 && (!Number.isInteger(from) || from < 0))
+    return { status: 'corrupt', state: defaultState(), error: `Invalid schema version ${from}` };
   if (from < 0) return { status: 'corrupt', state: defaultState(), error: 'Stored data is not an object' };
   if (from > SCHEMA_VERSION) return { status: 'future', state: defaultState(), from };
   let doc = { ...(raw as Record<string, unknown>) };

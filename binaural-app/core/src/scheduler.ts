@@ -243,7 +243,9 @@ export class ProgramPlayer {
       beatHz: c.start.beatHz,
       carrierHz: c.start.carrierHz,
       level: c.start.level,
-      noise: c.startNoise ?? { type: 'off', volume: 0 },
+      // No noise bed: switch noise off but keep the engine's remembered noise volume (NaN = "unchanged"),
+      // so turning noise back on later isn't silently stuck at volume 0.
+      noise: c.startNoise ?? { type: 'off', volume: NaN },
     };
     if (opts.volume !== undefined && Number.isFinite(opts.volume)) params.volume = opts.volume;
     // Snapping straight to schedule values is only click-free while the engine is silent.

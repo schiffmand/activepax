@@ -73,7 +73,7 @@ noise (looped stereo buffer) ─ noiseGain ────────────�
 
 Because each gain has a single owner, the user's volume, the program's envelope and the transport fades never overwrite one another.
 
-Parameter changes go through `rampParam`: cancel-and-hold at the current value, then an exponential ramp for frequencies (perceptually even) or a linear ramp for gains. So there is no zipper noise and no jumps, even when a new glide interrupts one already running.
+Parameter changes go through `rampParam`: cancel-and-hold at the current value, then an exponential ramp for frequencies (perceptually even) or a linear ramp for gains. So there is no zipper noise and no jumps, even when a new glide interrupts one already running. The helpers also track what they scheduled on each param (`setParam` for initial values, `paramValueAt` to read). Browsers without `cancelAndHoldAtTime` (Firefox, including Android) need the current value to emulate a hold, and `AudioParam.value` only refreshes once per render quantum: a fresh gain set to 0 still reads 1, which would turn every fade-in into a click. Tests cover this with `MockAudioContext({ legacyParams: true })`.
 
 ---
 
@@ -98,8 +98,8 @@ new BinauralEngine(options?: {
 
 | Method | Notes |
 |---|---|
-| `start(params?)` | Resumes the context, builds the graph and fades in. Calling it while stopping or paused cancels the teardown and glides to the new params on the same graph. |
-| `stop({ fadeSec? })` | Fades out, then stops and disconnects every node. Resolves when silent. |
+| `start(params?)` | Resumes the context, builds the graph and fades in. Calling it while stopping or paused cancels the teardown and glides to the new params on the same graph. If the context isn't running within `RESUME_TIMEOUT_MS` (500 ms; browsers leave a blocked `resume()` pending forever) or `resume()` rejects, it rejects with `AudioBlockedError`, so show "Tap to start". `noise: { type: 'off' }` keeps the remembered noise volume. |
+| `stop({ fadeSec? })` | Fades out, then stops and disconnects every node, then suspends the context (with `suspendOnPause`) so an idle app doesn't hold the audio session. Resolves when silent. |
 | `pause()` / `resume()` / `toggle()` | Short fade, then `ctx.suspend()`. Resume fades back in. |
 | `rampTo({ beatHz?, carrierHz?, level? }, durationSec, curve)` | Used by the player. `curve`: `'exponential' \| 'linear' \| 'step'`. |
 | `setBeat(hz, glide?)`, `setCarrier(hz, glide?)`, `setLevel(0..1, glide?)`, `setVolume(0..1, glide?)` | All glide, and all clamp to `LIMITS`. |
@@ -170,9 +170,11 @@ player.subscribe(fn); player.on('step' | 'ended' | 'state', fn);
 const store = createStore({ adapter?: PersistenceAdapter, key?: string, initialState? });
 await store.hydrate();          // load + migrate; returns { status: 'empty'|'current'|'migrated'|'future'|'corrupt', ... }
 store.dispatch(action); store.getState(); store.subscribe((state, action) => …); await store.flush();
-store.readOnly                  // true if stored data is from a newer schema; it is never overwritten
+store.readOnly                  // true if stored data is from a newer schema (or corrupt and un-backup-able); never overwritten
 ```
 
+- **Corrupt data is never lost.** If migrate() reports `'corrupt'` (unparseable text, bad version, wrong shape), `hydrate()` first copies the original bytes to `${key}.corrupt-<timestamp>` and returns that key as `outcome.backupKey`, then runs on defaults. If the backup write throws, the store stays `readOnly` so the original is not overwritten.
+- **Reducer validation:** `settings/update` goes through `sanitizeSettingsPatch` (NaN, wrong types and unknown enums are dropped; an all-invalid patch is a no-op). `history/add` rejects non-finite `durationSec`/`startedAt`, and `history/rate` ignores a non-finite feeling.
 - **State (schema v2):** `{ schemaVersion, customPresets, favorites, settings, history, lastPlayed }`.
 - **Settings:**
   - `defaultVolume`
@@ -216,7 +218,7 @@ store.readOnly                  // true if stored data is from a newer schema; i
 ### Headphone / stereo check
 
 - `planStereoCheck(opts)` is pure and returns the timeline: left, then right, by default.
-- `runStereoCheck(ctx, { clock?, onStep?, toneSec, gapSec, frequencyHz=440, volume, edgeSec })` returns `{ steps, totalSec, done, cancel() }`. It routes through the same `ChannelMerger` hard-pan as the engine, and uses soft 80 ms edges so there are no clicks.
+- `await runStereoCheck(ctx, { clock?, onStep?, toneSec, gapSec, frequencyHz=440, volume, edgeSec })` resolves to `{ steps, totalSec, done, cancel() }`. It is async because it resumes a suspended context first (after the engine paused or stopped), and rejects with `AudioBlockedError` if the context won't run. Without that, the `onStep` timers would fire over silence and produce a false "one ear" verdict. Call it from a tap. It routes through the same `ChannelMerger` hard-pan as the engine, and uses soft 80 ms edges so there are no clicks.
 - `interpretStereoCheck(answers)` returns a verdict of `'ok' | 'swapped' | 'mono' | 'one-ear' | 'unsure'`, with calm copy and concrete tips (for example, turn off Mono Audio or Spatial Audio). Swapped channels are reported as fine, because binaural beats work either way round.
 
 ---

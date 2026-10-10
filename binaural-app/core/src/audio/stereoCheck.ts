@@ -1,5 +1,6 @@
 import { systemClock, type Clock } from '../clock';
-import { rampParam, type AudioContextLike, type GainNodeLike, type OscillatorNodeLike } from './webaudio';
+import { AudioBlockedError, RESUME_TIMEOUT_MS } from './engine';
+import { rampParam, setParam, type AudioContextLike, type GainNodeLike, type OscillatorNodeLike } from './webaudio';
 
 export type Ear = 'left' | 'right';
 
@@ -62,14 +63,33 @@ export interface StereoCheckHandle {
  *
  * Uses a ChannelMerger with per-ear gains (not a StereoPanner) so the routing exactly matches
  * how the binaural engine hard-pans its oscillators.
+ *
+ * Async because the context must actually be running first: after the engine pauses (suspendOnPause)
+ * or stops, the context is 'suspended', and the wall-clock onStep callbacks would otherwise fire over
+ * silence (the user answers "none" and gets a false 'one-ear' verdict). Call it from a tap.
+ * Rejects with AudioBlockedError if the context can't be started.
  */
-export function runStereoCheck(
+export async function runStereoCheck(
   ctx: AudioContextLike,
   options: StereoCheckOptions & { clock?: Clock; onStep?: (step: StereoCheckStep, index: number) => void } = {},
-): StereoCheckHandle {
+): Promise<StereoCheckHandle> {
   const o = { ...DEFAULTS, ...options };
   const clock = options.clock ?? systemClock;
   const plan = planStereoCheck(o);
+  if (ctx.state !== 'running') {
+    // Like the engine: resume() may stay pending forever when blocked, or reject; trust only the state.
+    let timer: unknown;
+    await Promise.race([
+      Promise.resolve()
+        .then(() => ctx.resume())
+        .catch(() => undefined),
+      new Promise<void>((r) => {
+        timer = clock.setTimeout(r, RESUME_TIMEOUT_MS);
+      }),
+    ]);
+    if (timer !== undefined) clock.clearTimeout(timer);
+    if (ctx.state !== 'running') throw new AudioBlockedError(ctx.state);
+  }
   const t0 = ctx.currentTime;
 
   const osc: OscillatorNodeLike = ctx.createOscillator();
@@ -85,7 +105,7 @@ export function runStereoCheck(
   left.connect(merger, 0, 0);
   right.connect(merger, 0, 1);
   const out = ctx.createGain();
-  out.gain.setValueAtTime(o.volume * o.volume * 0.5, t0);
+  setParam(out.gain, o.volume * o.volume * 0.5, t0);
   merger.connect(out);
   out.connect(ctx.destination);
 

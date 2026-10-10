@@ -1,251 +1,248 @@
-# Brand direction A: Keel
+# Brand direction A (round 2): Tine
 
-> Angle: **the calm instrument.** Precision, trust, quiet confidence. Keel should feel like a well-made piece of hardware for your mind: one machined dial, an honest readout, nothing extra.
+> Angle: **the calm instrument.** Precision, trust, quiet confidence. A beautiful piece of hardware for your mind.
 > Companion style tile: [`brand-A-board.html`](./brand-A-board.html)
+>
+> **What changed since round 1 (Keel).** The [council](./brand-council.md) liked Keel's rigour but found it a "cockpit" (six decisions on the first screen), emotionally flat ("a log entry, not a feeling"), in a crowded lane (Braun / Teenage Engineering dial UIs) and carrying name risk ("keel over"). Tine keeps the precision and replaces the dial with **one object you already trust to stay true: a tuning fork.** The home screen asks for one decision. The numbers are engraved on the object, not laid out like a dashboard. The emotional promise moves from "precise" to **"something steady to tune to."**
 
 ---
 
 ## 1. Name
 
-### **Keel**
+### **Tine**  (rhymes with *fine*)
 
-A keel is the part of a boat you never see. It sits below the waterline and keeps the boat steady while the sails do whatever the wind asks of them. That is exactly what this product does: **your audio is the sail; Keel is underneath, holding you steady.**
+A tine is one prong of a tuning fork. A fork has two of them, and that is the whole product in one picture: **two tines, two ears, two slightly different tones, and a steady beat in the space between them.**
 
-- One syllable, four letters, easy to say in any accent, hard to misspell.
-- It's a physical, engineered object rather than a wellness word. It fits the "hardware for your mind" angle and doesn't sound like woo to Hannah or Dev.
-- It works as a verb in copy without turning cute: "Keel on." "Even keel."
-- The idiom *on an even keel* ("steady, balanced, not overreacting") describes Sam's and Maya's goal state in plain English. We get it for free and never have to explain it.
+- **The instrument nobody argues with.** Musicians, piano tuners and audiologists have trusted the tuning fork for 300 years because it does one thing and *holds its pitch*. That is precisely the trust Hannah and Dev need, and the sameness Sam needs.
+- **Hardware, not wellness.** It's an engineered steel object, not a mood word. No "neuro", no "zen", no "flow".
+- **Short and calm.** One syllable, four letters, soft ending. Reads well on an icon, in a widget, in a sentence ("Tine is on").
+- **Built-in honesty.** A tuning fork doesn't claim to fix anything. It gives you a reference. You decide what to do with it.
 
-**Availability check (quick web search, Oct 2026):** we found no binaural, focus or sound app called "Keel" on the App Store. The nearby apps are generically named ("Binaural Focus", "ZenFocus", "Hush", "Quell"). "Keel" is a common word, and other unrelated software uses it, so legal needs to run a proper trademark search in Class 9/41/44. A fallback lockup is **Keel: steady sound** / app-store name **"Keel: Focus Layer"**.
+**Availability check (quick web search, Oct 2026: "Tine app iOS focus sound binaural noise").** No focus, sleep, sound or binaural app called Tine came up. Results were unrelated uses of the word. Known conflict: **TINE SA**, Norway's large dairy cooperative, holds the name in food classes. That is a different class and category, but legal must run USPTO / EUIPO / WIPO clearance in **Class 9, 41 and 44** before launch. Store name: **"Tine: Focus Layer"**, which also disambiguates search.
 
 ### Alternates
-| Name | Why it works | Risk |
+| Name | Why it works | Risk / check |
 |---|---|---|
-| **Plumb** | A plumb line hangs true. It suggests steady, centered and precise ("plumb level"). | Reads as "plumbing" to some people. |
-| **Ballast** | Weight carried low so you don't tip over. Strong metaphor for regulation. | Two syllables and a heavier sound. Implies "burden." |
-| **Undertow** | Literally under, with a gentle pull. | Undertow drowns people. The negative connotation is too strong for Sam. Keep it only as an internal codename. |
+| **Ringtrue** | "Rings true": the fork metaphor plus the honesty promise in one word. | Two words fused. Can read as a ringtone app. No app found in a quick search. |
+| **Unison** | Binaural beats are two tones *almost* in unison. A musical, calm word. | Common word, used by several SaaS and finance brands. Generic in search. |
+| **Plumbline** | A plumb line hangs true: steady, centred, physical. | Long. Close to Keel's round-1 alternate "Plumb". |
 
-(Others we considered and rejected: *Undertone* is likely taken and too music-industry; *Hum* is generic; *Bedrock* is overused in SaaS.)
+Rejected: **Sotto** (lovely, means "under" in music, but "Sotto Sounds" is already a sleep/focus app on the App Store), **Ringdown** (the physics word for a gentle decay, but an App Store puzzle game uses it), **Keel** (round 1; "keel over").
 
 ---
 
 ## 2. Tagline
 
-**Primary:** *Steady sound, under everything.*
+**Primary:** *Something steady to tune to.*
 
-Alternates:
-- *Keep your music. Add a keel.*
-- *The quiet layer under your audio.*
-- *On an even keel.* (for sleep and calm campaigns)
+| Use | Line |
+|---|---|
+| Store subtitle (30 char) | *Focus layer under your audio* |
+| Explainer | *Keep your music. Tine plays underneath.* |
+| Honesty line | *It holds its pitch. So do we.* |
+| Sleep / night | *Strike it, then let it ring down.* |
 
 ---
 
 ## 3. Positioning statement
 
-For people whose attention or nervous system needs a steady floor to stand on (ADHD minds, deep-focus workers, sensory-sensitive and autistic people, sleep and health optimizers), **Keel** is the precise, quiet sound layer that plays binaural tones and soft noise **underneath whatever you already listen to**. Players like Brain.fm and Endel make you give up your own music. Generic tone generators look like shareware and talk like horoscopes. Keel keeps your audio and adds a carefully engineered substrate. It is honest about the science and gentle on your senses.
+For people whose attention or nervous system needs a steady floor (ADHD minds, programmers and deep-focus workers, autistic and sensory-sensitive people, sleep and longevity optimizers, meditators and students), **Tine** is a quiet layer of binaural tones and soft noise that plays **underneath whatever you already listen to**. Brain.fm and Endel make you give up your podcast or playlist. Tone generators look like shareware and talk like horoscopes. Apple's Background Sounds is hidden and has no binaural. Tine is one well-made instrument: it never interrupts your audio, it holds the sound you saved exactly as you saved it, it shows you the real numbers, and it tells you plainly what the science does and doesn't say.
 
 ## 4. Brand promise
 
-**We never take over your audio, never surprise your senses, and never tell you more than the evidence says.**
+**Tine holds its pitch.** It does exactly what it says, the same way every time, underneath everything else.
 
-That breaks down into three operational promises we can test:
-1. **Under, never over.** Keel never pauses, ducks or fights other audio. If mixing fails, we say so on screen.
-2. **No surprises.** Every start fades in and every stop fades out. Your saved sound never changes without you. No confetti, no unrequested haptics, no nags.
-3. **Straight answers.** Real Hz on the readout, links to the research (including the null results), no medical claims.
+Three promises we can test:
+1. **Under, never over.** Tine never pauses, ducks or fights your audio. If mixing breaks, the screen says so in one sentence.
+2. **True every time.** A fork you save never changes, including across app updates. Every start fades in and every stop rings down. No surprise sounds, haptics, confetti or nags.
+3. **Engraved, not advertised.** The real numbers are on the object. The research, including null and negative results, is one tap away. No medical claims, ever.
 
 ---
 
-## 5. Personality
+## 5. Personality and voice
 
-Keel is a **precision instrument made by people who use it**. Think of a good field recorder, a Braun clock or a well-made sailing compass: serious, quiet, warm to the touch, never showing off.
+Tine is **a well-made instrument in the hands of someone kind**. Think of a piano tuner's fork in a felt-lined case, a good bench vise, a field recorder: exact, quiet, warm from use. It speaks like a calm technician who also happens to be a friend: plain, short, a little dry, never cold.
 
 | We are | We are not |
 |---|---|
-| Precise | Clinical |
-| Calm | Sleepy or vague |
-| Candid | Cynical |
-| Warm, a little dry | Cute, bubbly or "bestie" |
-| Confident | Hype-driven |
-| Respectful of the user's mind | Paternal or "fixing" |
+| Exact | Clinical or cold |
+| Steady | Sleepy or vague |
+| Candid | Cynical or smug |
+| Kind | Cute, bubbly, "bestie" |
+| Quietly confident | Hype, "unlock", "hack" |
+| Respectful of every brain | Fixing, diagnosing, pitying |
 
 ### Voice rules
-1. **Say what the thing does, in plain words.** "Plays a 14 Hz binaural beat under your audio." Not "activates your focus state."
-2. **Numbers are allowed in the open.** Show Hz, minutes and levels. Tuners read numbers as respect, and the rest can ignore them.
-3. **Short sentences. Sentence case. No exclamation marks.** (One exception: never.)
-4. **Talk about the design, never about the outcome.** "Made with ADHD and autistic people in mind." Never "helps your ADHD."
-5. **No guilt, no score.** Totals, not streaks. "Welcome back" means nothing more than hello.
-6. **Literal over clever.** Sam reads literally. Every label should mean exactly what it says.
+1. **Literal first.** Every label means exactly what it says. Start, Stop, Save, Noise only. The metaphor lives in the object and in at most one line per screen, never in a control label. (Sam.)
+2. **Numbers are engraved, not shouted.** Hz and minutes appear small and exact on the fork. Anyone can ignore them; tuners can read them. (Dev, Priya, Hannah.)
+3. **Sentence case. Short sentences. No exclamation marks.**
+4. **Talk about design, never outcomes.** "Made with ADHD and autistic people in mind." Never "helps your ADHD."
+5. **Totals, not scores.** No streaks, no "you missed", no "don't lose your progress".
+6. **Feeling in the verbs.** Round 1 read like a log file. Tine uses the instrument's own verbs, *ring*, *hold*, *ring down*, so a status line can be exact and warm at once.
 
 ### Copy: do / don't
-
 | Situation | Do | Don't |
 |---|---|---|
-| App store subtitle | Binaural tones and soft noise, under your own audio. | Unlock your brain's hidden potential |
-| Primary button | Start | Begin your journey |
+| Store subtitle | Focus layer under your audio | Unlock your brain's hidden potential |
+| Primary button | Start  /  Stop | Begin your journey  /  End session |
 | Intent names | Focus, Calm, Unwind, Sleep, Steady | Laser Mode, Zen Zone, Dream Portal |
-| Readout caption | L 196 Hz / R 210 Hz: a 14 Hz beat | Beta waves activated |
-| Session ended | Stopped after 52 minutes. Faded out over 20 seconds. | Amazing session! You crushed it! |
-| Weekly summary | 4 sessions this week, 3 h 10 min in total. | You broke your 6-day streak |
-| Returning after a gap | Welcome back. Your last setting is ready. | We missed you. Don't lose your progress |
-| Paywall | Free: the layer, all five intents, timer. Keel+: schedules, experiments, sync. We remind you 3 days before any charge. | Start your FREE trial now (cancel anytime*) |
-| Health language | Many people find a steady background sound makes it easier to settle into work. | Clinically proven to improve focus by 37% |
+| Fork engraving | 14 Hz, L 196 / R 210 | Beta waves activated |
+| While playing | Ringing under your audio. | Your brain is entering focus mode |
+| Session ended | Rang for 52 minutes. Rang down over 20 seconds. | Amazing session! You crushed it! |
+| Weekly total | Tine rang for 4 h 10 min this week. | You broke your 6-day streak |
+| Returning after weeks | Your fork is where you left it. | We missed you. Don't lose your progress |
+| Saved fork | Saved as "Desk". It won't change unless you change it. | Preset saved! |
+| Paywall | Free: the layer, all five forks, timer, noise only. Tine Case: schedules, your own forks, experiments, sync. We remind you 3 days before any charge. | Start your FREE trial now (cancel anytime*) |
+| Health language | Many people find a steady background sound makes it easier to settle into work. | Clinically proven to boost focus by 37% |
 
-### Onboarding copy (exactly two screens, then sound)
+### Onboarding (two screens, then sound)
 
 **Screen 1**
 > **Keep what you're listening to.**
-> Keel plays a quiet layer of tones and noise under your music, podcast or video. It never pauses them.
-> [Put on headphones]  ·  *Skip, use noise only*
+> Tine plays a quiet layer of tones and soft noise underneath your music, podcast or video. It never pauses them.
+> [Check headphones]  *Skip: noise only for now*
 
-**Screen 2: the headphone check (see below)**
+**Screen 2: the headphone check** (below). Then the home screen, Focus fork already in hand. **Start** plays sound within 10 seconds of first launch. No account, no quiz, no paywall.
 
-Then the dial appears with Focus pre-selected. A single **Start** plays sound within 10 seconds of first launch. No account, no quiz, no paywall.
+### The headphone prompt (the "two tines" check)
 
-### The headphone prompt
-
-> **Headphones on?**
-> Binaural beats need a different tone in each ear, so they only work with stereo headphones.
+> **One tone for each ear.**
+> Binaural beats need stereo headphones: a slightly different tone in each ear.
 > [Play left]  [Play right]
-> *Left heard* ✓  *Right heard* ✓
-> **Stereo confirmed.** You're set.
+> Left heard. Right heard.
+> **Stereo confirmed.** Both tines ring.
 
-Fallback states:
-- **Phone speaker:** "Your phone speaker plays both tones together, so the beat disappears. Keel will play noise only until headphones connect."
-- **Mono Audio on:** "Mono Audio is on in Accessibility settings. It merges left and right, so the beat can't form. [Open settings] or [Use noise only]."
-- **Spatial audio / head tracking:** "Spatial audio moves sound around your head, which blurs the beat. For best results turn it off for Keel. [How]"
-- **One earbud:** "We only hear one ear. Add the other earbud, or switch to noise only."
+On screen the fork's left tine lights in Glacier when the left tone plays, the right in Quince for the right tone. Hearing and seeing the two sides makes the mechanism obvious without a diagram.
+
+Fallback states (one sentence, one fix, no alarm colour):
+- **Phone speaker:** "The phone speaker blends both tones, so the beat disappears. Tine will play noise only until headphones connect."
+- **Mono Audio on:** "Mono Audio is on in Accessibility settings. It merges left and right, so the beat can't form. [Open Settings] [Use noise only]"
+- **Spatial Audio / head tracking:** "Spatial Audio moves sound around your head and blurs the beat. Turn it off for Tine in Control Center. [Show me how]"
+- **One earbud:** "Only one side is connected. Add the other earbud, or switch to noise only."
+- **Bluetooth call mode:** "Your headphones are in call mode, which is mono. Tine will switch back to binaural when the call ends."
 
 ### Empty states
+- **The case, nothing saved:** "Your case is empty. Shape a fork you like and tap Save. It stays exactly as you left it."
+- **Totals, first day:** "Nothing yet. Time with Tine shows here as plain totals. There are no streaks."
+- **Experiment, not started:** "Want to know if beats help you, or just the noise? Run a two-week comparison. Tine picks beats or noise only at random and you rate each session. Your results stay on this phone."
+- **Schedule:** "No schedule. Tine only plays when you start it."
+- **Other audio:** "Nothing else is playing. Tine works on its own too."  (We never claim to know *what* is playing. iOS doesn't tell us.)
 
-- **No saved settings yet:** "Nothing saved. Turn the dial to a setting you like and hold Save. It stays exactly as you left it."
-- **Sessions log, first day:** "No sessions yet. They'll show up here as plain totals. No streaks."
-- **Experiments (n-of-1), not started:** "Want to know if it works for you? Run a two-week comparison: some sessions with beats, some with noise only, rated by you. Your results stay on this phone."
-- **Schedule empty:** "No schedule. Keel only plays when you start it."
-
-### Honest-science note (the "What we know" sheet)
+### Honest-science note: "What a tuning fork can and can't do"
 
 > **What we know, and what we don't.**
-> Binaural beats are a perceptual effect. Play 196 Hz in one ear and 210 Hz in the other, and your brainstem hears a 14 Hz pulse. That part is well established.
-> Whether that pulse changes how you focus, relax or sleep is less clear. Some reviews find small effects on anxiety and attention. Others find no effect, and one large study found beats made some tasks slightly harder. The steadiest evidence is for plain noise, especially for people with ADHD, which is why every Keel setting has a noise bed and can run as noise only.
-> So treat Keel as an experiment you run on yourself. If it helps, great. If it doesn't, turn the beat off and keep the noise, or don't use it.
-> Keel is not a medical device and doesn't treat any condition. If you have epilepsy or a seizure disorder, talk to a doctor first. Don't use Sleep while driving.
+> Binaural beats are a real perceptual effect. Play 196 Hz in one ear and 210 Hz in the other, and your brainstem hears a 14 Hz pulse. That part is well established.
+> Whether that pulse changes focus, calm or sleep is much less clear. Some reviews find small effects on anxiety and attention. Others find none, and one large study found beats made some tasks slightly harder. The steadiest evidence is for plain background noise, especially for people with ADHD. That is why every fork has a noise bed and can run as noise only.
+> So treat Tine as an instrument, not a treatment. Try it, rate it, keep what helps.
+> Tine is not a medical device and does not treat any condition. If you have epilepsy or a seizure disorder, ask a doctor first. Don't use Sleep while driving. Keep the volume moderate.
 > [Read the studies (6)]
 
 ---
 
 ## 6. Core metaphor and the novel interaction
 
-### Metaphor: the waterline
+### Metaphor: the fork and the case
+- **The fork** is the session. Two tines, left and right. The beat frequency is engraved **in the gap between the tines**, because that's literally where it comes from: the difference between the two. The carrier frequencies sit on each tine in that ear's colour. One glance teaches the mechanism.
+- **The case** is your library. A felt-lined case holds five standard forks (Focus 14 Hz, Calm 10 Hz, Unwind 8 Hz, Sleep 3 Hz, Steady: noise only) and any forks you make. Forks in a case never go out of tune: **saved settings never drift and never change across updates.** That is Sam's sameness promise, made physical.
+- **Under the line.** Above the fork, a thin hairline reads "Your audio" or "Nothing else playing". Tine always sits below it.
 
-The whole UI is organized around one horizontal line, **the waterline**.
-- **Above the line:** whatever you are already listening to. Keel shows only "Other audio playing" or "Nothing else playing", because iOS doesn't reveal app names and we won't pretend otherwise.
-- **Below the line:** Keel. The dial, the readout and the depth.
+### The interaction: hold, ring, ring down
+1. **One decision.** Home shows a single fork. The last one you used is already in hand. Swipe sideways to take another from the case. That's the only choice on the first screen. (Fixes Maya's "cockpit".)
+2. **Hold to strike.** Hold the fork's stem for one second. A single soft halo opens around the tines as the tone fades in over 8 seconds. It's a deliberate doorway into work, and it can't start by accident. **Tap to start** is a setting, and VoiceOver / Switch Control get a direct "Start" action.
+3. **Depth appears only while ringing.** Once sound is on, a slim rail beside the fork sets how far under your audio Tine sits: **Surface, Under, Deep**. A lockable ceiling keeps it from ever getting loud. Depth is remembered per fork.
+4. **Drift or Steady**, engraved on the fork's base. *Drift* lets beat and noise wander slowly inside a narrow band so ADHD brains don't habituate. *Steady* keeps it identical, every time.
+5. **Ring down.** Stop, or a timer, or Sleep's 30-minute descent, fades the sound out and the halo closes over the same duration. Motion and sound are the same event.
+6. **The spec card.** Tap the engraving to flip the fork over: exact L/R carriers, beat, noise colour and level, Drift range, fade times, and "Edit a copy". Editing always makes a copy, so the original stays true.
 
-That one line explains the product without words: *Keel is the thing underneath.* It also shows up in the logo, the icon, the widget and the Live Activity.
+**Away from the app.** Because a mixing app can't own iOS Now Playing controls, the fork appears as a Live Activity (two tines, beat, Stop), a Control Center control, a Lock Screen widget, a Watch complication, Shortcuts / App Intents and, on Android, the media-playback notification. The silhouette is identical everywhere.
 
-### The novel interaction: the Dial and Depth
-
-1. **The Dial (intent selector).** One large machined dial with five detents: **Focus, Calm, Unwind, Sleep, Steady**. Each detent is a click you can feel through a light haptic tick (off by default for sensory-sensitive mode). Turning the dial changes the intent. The center readout shows the real numbers (e.g. **14 Hz** with "L 196 / R 210"). There are no menus and no tiles. It's one physical-feeling control, like the volume knob on good hi-fi gear.
-2. **Press and hold to start: "setting the keel."** A 1.2 second hold draws a single ring around the dial, and the tone fades in under your audio as the ring closes. This is the ritual doorway Maya needs ("I'm working now"), and it's deliberate, so it never starts by accident (Sam). A tap starts it instantly for people who don't want the ritual (setting: *Hold to start / Tap to start*).
-3. **Depth (relative volume).** A single vertical slider beside the waterline sets how far *under* your audio Keel sits, labeled by position rather than percentage: **Surface → Under → Deep**. Users think "how much under the music," not "volume 34%." A hard ceiling can be locked (Sam).
-4. **Drift / Steady.** One switch. *Drift* lets the beat and noise wander slowly inside a narrow band, so ADHD users don't habituate. *Steady* locks everything identical, every time.
-
-Away from the app, the same dial appears as a Control Center control, a Lock Screen widget and a Live Activity: a thin waterline with a tiny dial position and a stop button.
+**Self-experiment ("Blind test").** Tine Case lets you run 14 days where each session randomly plays beats + noise or noise only, labelled only "Fork A" or "Fork B". You rate each with one tap. At the end: your own chart, with a plain note on sample size. Hannah's and Dev's favourite feature, and the most honest marketing we'll ever have.
 
 ---
 
-## 7. Color
+## 7. Colour
 
-The palette is taken from instruments used at sea and in the studio: blued steel, anodized aluminium, brass, and the sea-glass green of an old indicator lamp. Two channel colors carry meaning: **Left is Sea-glass, Right is Brass.** Where they meet (the beat readout, the active ring), they combine. Color always encodes something; it is never decoration.
+Materials, not moods: **gunmetal steel** for the fork, **graphite felt** for the case, and two lamp colours for the ears. Left is **Glacier** (cool), right is **Quince** (warm). The pair is distinguishable with all common colour-vision types, and it never stands alone: every L/R also has a letter and a position. Colour only encodes meaning (left, right, ringing). There's **no red** anywhere. Warnings use Quince, an icon and words.
 
-Dark is the default (Priya's night use, Sam's low-stimulus need). Contrast targets: body text ≥ 7:1, UI controls ≥ 3:1, and nothing pure white on pure black (glare for sensory-sensitive users).
+Contrast: body text ≥ 7:1, controls ≥ 3:1, no pure white on pure black (glare and halation for sensory-sensitive and astigmatic users).
 
-### Dark ("Night watch"), default
+### Dark: "Case" (default)
 | Token | Hex | Use |
 |---|---|---|
-| `--deep` | `#141C21` | App background (blued steel, not black) |
-| `--hull` | `#1C262C` | Raised surfaces: dial body, sheets |
-| `--rule` | `#2C3940` | Hairlines, the waterline, dial ticks |
-| `--ink` | `#D9E1DE` | Primary text (≈12:1 on deep) |
-| `--ink-2` | `#8C9C9C` | Secondary text, units |
-| `--seaglass` | `#7DB5AC` | Left channel, active state, focus ring |
-| `--brass` | `#D5A55A` | Right channel, the beat readout, Start |
+| `--case` | `#1E2126` | Background, graphite felt |
+| `--lining` | `#272B31` | Raised surfaces, sheets |
+| `--groove` | `#363B43` | Hairlines, the "under" line, rails |
+| `--steel` | `#DADDE2` | Primary text, the fork (≈11.9:1) |
+| `--steel-2` | `#959BA6` | Secondary text, units (≈5.8:1) |
+| `--glacier` | `#8EC3D4` | Left ear, focus ring |
+| `--quince` | `#E0BE6E` | Right ear, Start, notices |
 
-
-There is deliberately **no red** in the palette. Warnings (mono audio, phone speaker) use `--brass` plus an icon and plain words. Alarm colors raise arousal, which is the opposite of the job.
-
-### Light ("Day deck")
+### Light: "Bench"
 | Token | Hex | Use |
 |---|---|---|
-| `--deep` | `#E4E7E3` | Background (cool aluminium, not cream) |
-| `--hull` | `#F2F3F0` | Raised surfaces |
-| `--rule` | `#C3CAC7` | Hairlines, waterline |
-| `--ink` | `#17242A` | Primary text |
-| `--ink-2` | `#56666A` | Secondary text |
-| `--seaglass` | `#2F7A70` | Left channel, active |
-| `--brass` | `#9A6A1C` | Right channel, beat readout |
+| `--case` | `#E6E7E3` | Background, brushed aluminium bench (grey-green, not cream) |
+| `--lining` | `#F4F4F1` | Raised surfaces |
+| `--groove` | `#C9CCC6` | Hairlines, rails |
+| `--steel` | `#1F242B` | Primary text, the fork (≈12.6:1) |
+| `--steel-2` | `#59606B` | Secondary text (≈5.1:1) |
+| `--glacier` | `#2B7189` | Left ear (≈4.4:1: icons, tines and large text only) |
+| `--quince` | `#8A6414` | Right ear (≈4.3:1: icons, tines and large text only) |
 
-### Night mode (Sleep intent after sunset)
-The UI automatically dims to `--deep #0F1417` with `--ink #A9B3AE`, and both channel colors drop 30% in luminance. Warm, low-blue, low-contrast. Nothing on screen goes above ~40 cd/m² at default brightness.
+### Night: "Ringdown" (Sleep fork, or after sunset)
+`--case #131518`, `--steel #A3A8B0`, `--glacier #5F8794`, `--quince #9C8550`. Low blue, low luminance, halo off by default. Nothing on screen exceeds roughly 40 cd/m² at default brightness.
 
 ---
 
 ## 8. Typography (Google Fonts)
 
-- **Geologica** (variable: weight 100–900, plus *sharpness* and *cursive* axes). The single family for the whole brand. It has the engineered, slightly technical feel of instrument lettering, with humanist warmth and very clear tabular figures.
-  - Readout numerals: Geologica 200 (Light), sharpness 0, tabular figures, 88–120 px. The Hz value is the hero type.
-  - Headlines: Geologica 500, tight tracking (−1%).
-  - UI and body: Geologica 400 at 16/24 px, 15 px minimum.
-  - Small units (Hz, min, L/R): Geologica 500 at 13 px, normal case, +2% tracking. No all-caps labels anywhere.
-- **Atkinson Hyperlegible Next** for **Legible mode** (Settings → Text). It's designed for low-vision readers and is also loved by many dyslexic and autistic users. Swapping is a single token.
+Two families, clearly distinct roles: an engraver's sans for the instrument, a reading serif for the human voice.
 
-Type scale (1.25 major third, base 16): 13 / 16 / 20 / 25 / 31 / 39 / 61 (heading) / 96 (readout).
+- **Sofia Sans** (variable, 1–1000 weight) with its **Semi Condensed** and **Condensed** widths. The instrument.
+  - Engraving and readouts: *Sofia Sans Semi Condensed* 300–400, tabular figures, slight positive tracking, like stamped steel. The beat number is the largest type in the app (64–96 px), set light, never bold.
+  - UI labels and body: *Sofia Sans* 400/600, 16/24 px, 15 px minimum. Sentence case only. No all-caps labels anywhere.
+- **Newsreader** (optical sizes 6–72, italics). The voice. Used for one sentence per screen at most: onboarding headlines, empty states, the science sheet, the weekly note. It brings warmth and a sense that a person wrote this, which round 1 lacked.
+- **Atkinson Hyperlegible Next** replaces both in **Legible mode** (Settings, Text). One token swap.
+
+Scale (perfect fourth, 1.333, base 16): 12 / 16 / 21 / 28 / 38 / 50 / 67 / 89. Line length ≤ 62 characters for Newsreader body, line-height 1.55. Sofia Sans body at 1.5.
 
 ---
 
 ## 9. Motion principles
 
-1. **Motion follows sound.** Nothing moves unless the sound is changing. The fade-in ring and the slow drift needle move *because* the audio is fading or drifting.
-2. **Breath tempo.** The fastest ambient motion is one cycle per 6 seconds (about 10 breaths a minute). The UI never visualizes the actual 14 Hz beat, which would mean flicker, a seizure risk and sensory noise.
-3. **Ease out, never bounce.** One curve: `cubic-bezier(.2,.0,.0,1)` (decelerate). No springs, no overshoot, no parallax.
-4. **Detents are instant.** Turning the dial snaps to a detent in 120 ms. Mechanical, not floaty.
-5. **Reduce Motion is respected automatically**, and Keel also has its own "Still" switch: rings appear without sweeping, drift shows as a number change only.
-6. **One orchestrated moment:** the hold-to-start ring. That's the only animation we spend.
+1. **Motion is sound made visible.** Nothing moves unless the audio is changing. The halo opens because the tone is fading in; it closes because the tone is ringing down. Same duration, same curve.
+2. **Breath tempo, never beat tempo.** The slowest ambient motion is a 6-second cycle; we never animate at the beat frequency (no flicker, no seizure risk, no visual noise). Drift is shown as the engraving shifting a few tenths of a Hz every few seconds, nothing more.
+3. **One curve.** A single ease for everything: `cubic-bezier(.2, 0, 0, 1)`. Fades follow the audio's equal-power curve.
+4. **Instruments don't bounce.** No springs, no overshoot, no parallax, no confetti. Swiping between forks in the case moves 1:1 with the finger and settles in 180 ms.
+5. **Reduced Motion is a first-class mode.** With Reduce Motion (or Tine's own "Still" setting, on by default when the system asks for less motion), the halo becomes a static ring that changes opacity, and every transition becomes a 120 ms cross-fade.
+6. **Haptics are opt-in.** One soft tick when a fork settles in the case, one when the strike completes. Off by default.
+
+---
 
 ## 10. Iconography
 
-- 24 px grid, **1.5 px stroke**, round caps and joins, drawn as if *engraved*: open forms, no fills except to show state (a filled dot = on).
-- Built from the brand's few shapes: circle (dial), horizontal line (waterline), short vertical tick (detent).
-- Intent glyphs are geometric, not literal: Focus = a single vertical tick above the line; Calm = a shallow arc; Unwind = two arcs descending; Sleep = a dot below the line; Steady = two parallel lines. No moons, no lotuses, no brains, no lightning bolts.
-- System icons use SF Symbols / Material Symbols (Outlined, weight 300) so they feel native.
-
-## 11. Logo
-
-**The mark:** a circle (the dial and the boat seen end-on) cut by a horizontal waterline, with a narrow keel fin dropping from the line to the bottom of the circle. It reads as a keel, a plumb bob and a dial pointer at once. It works at 16 px as just a circle with a line and a tick.
-
-**Wordmark:** "keel" in lowercase Geologica 500 with slightly opened tracking. Lowercase is quieter and friendlier, and the double e echoes left and right.
-
-**App icon:** the mark in sea-glass and brass on `--deep`, with no gradient. The fin is brass (the beat), the waterline sea-glass.
+- **The mark:** a tuning fork drawn as one continuous 2-unit stroke: stem, U-shaped yoke, two tines. The **right tine is slightly shorter** than the left. Two lengths, two pitches, one beat. It's the only "clever" thing in the identity, and it's a true one.
+- **App icon:** the fork in Steel on Case, tines in Glacier and Quince. A **Plain** icon option (all Steel) for screen-sharing at work.
+- **UI icons:** 24 px grid, 1.75 px stroke, round caps, no fills except the active state. Shapes are drawn from the fork: the halo (ring) for playing, a single tine for "one earbud", two tines crossed for "mono", the yoke for "headphones".
+- **No** brains, lotuses, waves-as-decoration, moons with stars, sparkles or glowing orbs. The only wave allowed is a real plot of the session envelope on the spec card.
 
 ---
 
-## 12. How each persona's needs are met
+## 11. How each persona's needs are met
 
-| Persona | Core need | Latent need | How Keel meets it |
+| Persona | Core needs | Latent needs | How Tine answers |
 |---|---|---|---|
-| **Maya** (ADHD, "the restarter") | One tap to sound; keep her podcast | A ritual doorway; no guilt; novelty without choosing | Dial opens on last intent, ready to start. Hold-to-start is the doorway ("setting the keel"). *Drift* adds slow variation. Totals, not streaks: "Welcome back. Your last setting is ready." |
-| **Dev** (programmer, "the tuner") | Exact parameters; mixes; offline; no account | Respect; reversibility; self-experiment | Real Hz on the readout (L/R/beat). Every preset editable, with a "Reset to default" diff. n-of-1 Experiments with local data. No account, no trackers, said plainly. Shortcuts and keyboard-friendly on iPad and Mac. |
-| **Sam** (autistic, "the regulator") | Predictable sound; slow fades; volume ceiling; calm UI | Sameness as safety; agency; no surprise UI | *Steady* intent and switch lock a saved sound forever (we version presets and never change saved ones). 10 s fade-in. Locked Depth ceiling. No confetti, no unasked haptics, no launch sound. "Still" mode. Literal labels. Grown-up visual language. |
-| **Priya** (longevity, "the protocol builder") | Schedules; sleep-safe fade; Health integration | Beauty as quality signal; evidence literacy | Schedules by time of day. "Evening descent" glides Unwind → Sleep under an audiobook, then fades out. Night mode is dim and warm. Mindful minutes go to Health. "What we know" sheet with citations. Aluminium-and-brass craft that sits next to Oura. |
-| **Leo** (student, "the grinder") | Works under YouTube and lectures; free; pomodoro | Progress without pressure; permission to rest | Free tier is the whole layer. Timer with "Take 5": Keel rises to Surface and a soft chime plays, with no nag. Left/right check catches broken or mono earbuds. Gentle weekly totals. |
-| **Hannah** (skeptic) | Honest evidence; noise only; no claims | Being right and still getting value; social safety | Noise-only mode is a first-class setting, not a fallback. "What we know" cites null and negative results. A blinded A/B experiment. The design looks like a measurement tool, so it's safe to have open at work. |
-| **Meditator** | Theta/alpha bed under another app; bell | No UI noise | Calm and Unwind sit under Insight Timer or Waking Up. 30 s fade-out. Interval bell optional. |
+| **Maya**, ADHD restarter | One tap to sound, works with Spotify, keeps going in background | No guilt; novelty without choosing; a ritual doorway; not treated as broken | One fork in hand, one decision. Hold-to-strike is the doorway into work. Drift supplies novelty she doesn't have to pick. "Your fork is where you left it" after a gap. Totals, never streaks. Copy is about design, never about fixing her. |
+| **Dev**, tuner | Exact parameters, mixes with anything, offline, no account | Respect for intelligence; control and reversibility; n-of-1; privacy | Carriers and beat engraved on the fork, spec card one tap away. "Edit a copy" keeps originals true and shows the diff. Blind test with his own chart. Local-first, no account, Shortcuts and URL scheme. |
+| **Sam**, regulator | Predictability, gentle fades, volume ceiling, calm visuals, literal words | Sameness as safety; agency; no surprise UI; not infantilized; hyper and hypo at once | "It holds its pitch": saved forks never change, even across updates. Lockable Depth ceiling, 8-second fade-in, no haptics or sound on launch, Still mode. Literal labels; the metaphor stays on the object. Surface-to-Deep range covers both needing near-silence and wanting a dense sound floor. |
+| **Priya**, protocol builder | Schedules, sleep-safe fades, Health integration, evidence | Control over her biology; evidence literacy; beauty as quality; fewer tools | Scheduled forks (morning Focus, evening Unwind), Sleep's 30-minute ring-down, Ringdown night palette, mindful minutes to Apple Health / Health Connect. A steel-and-felt object that looks like it belongs next to her Oura. The science sheet treats her as an adult. |
+| **Leo**, student | Mixes with YouTube and lecture apps, free, timers, earbud check | Belonging; progress without pressure; permission to rest | The whole layer is free. "Two tines" headphone check catches broken or mono earbuds. Pomodoro-style timer that rings down for breaks ("Rest. Tine is quieter for 5 minutes."). Weekly "Tine rang for 12 h" total. Belonging comes from shareable fork settings ("my exam-week fork") rather than a social feed, which keeps the no-account promise. |
+| **Hannah**, skeptic | Honest evidence, noise only, no claims | Proven right and still getting value; social safety; watching the experiment | "What we know" sheet with the negative results. Steady is a first-class noise-only fork, not a downgrade. Plain icon and an instrument aesthetic she'd be fine having on screen at work. Blind test gives her an n-of-1 with honest caveats. |
+| **Meditator** (secondary) | Gentle bed under another app's guided session, bell or interval timer | Practice support, not a hack | Calm and Unwind forks sit under Insight Timer or Waking Up. Interval tone uses the fork's own "ting" at low level. No UI noise during sessions. |
 
 ---
 
-## 13. What makes this direction distinct
-
-- **It's an object, not an atmosphere.** Competitors sell moods (gradients, nature photography, glowing orbs). Keel sells an *instrument*: one dial, one line, honest numbers.
-- **The waterline explains the product visually** in a way no competitor can copy without becoming a layer themselves.
-- **Two channel colors with meaning** (Left = sea-glass, Right = brass) teach the binaural mechanism every time you look at the screen, without a tutorial.
-- **Honesty is styled as precision.** Showing exact Hz and citing the null results is the same move as engraving the scale on a dial. It reads as quality rather than as a disclaimer.
+## 12. Risks we're watching
+- **Lane crowding** (the council's main concern with round 1). Tine's defence is that the object is a *specific* instrument with a true story (two tines = binaural), not a generic hi-fi knob. If the board reads as "another Braun dial", the direction has failed.
+- **Emotional ceiling.** "Something steady to tune to" and the instrument verbs (ring, hold, ring down) carry the warmth. Watch Maya's reaction in testing.
+- **Name.** "Tine" may be mispronounced as "teen" (it's Norwegian/Danish for "Tina"). The store listing and first launch both show the fork, which disambiguates. Trademark clearance is required because of TINE SA.
+- **Metaphor creep.** One fork reference per screen at most. None in Settings, the paywall, errors or the science sheet's headings.

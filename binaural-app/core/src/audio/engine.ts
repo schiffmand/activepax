@@ -14,7 +14,9 @@ import {
 import { generateNoise } from './noise';
 import {
   holdParam,
+  paramValueAt,
   rampParam,
+  setParam,
   type AudioBufferLike,
   type AudioBufferSourceNodeLike,
   type AudioContextLike,
@@ -116,6 +118,11 @@ export const WORST_CASE_PEAK = TONE_HEADROOM + 0.9 * NOISE_HEADROOM;
 export const GAIN_STEP_SEC = 0.03;
 /** Fade used by dispose() while audible. */
 export const DISPOSE_FADE_SEC = 0.03;
+/**
+ * How long start()/resume() wait for ctx.resume() before giving up with AudioBlockedError.
+ * Browsers keep resume() *pending* (not rejected) when autoplay policy blocks the context.
+ */
+export const RESUME_TIMEOUT_MS = 500;
 /** A tiny floor used when ramping gains "to zero" so exponential math never sees 0. */
 const SILENT = 0.0001;
 
@@ -244,8 +251,9 @@ export class BinauralEngine {
     if (!this.graph) {
       return { leftHz: this.state.leftHz, rightHz: this.state.rightHz, beatHz: this.state.beatHz, carrierHz: this.state.carrierHz };
     }
-    const leftHz = this.graph.oscL.frequency.value;
-    const rightHz = this.graph.oscR.frequency.value;
+    const t = this.now();
+    const leftHz = paramValueAt(this.graph.oscL.frequency, t);
+    const rightHz = paramValueAt(this.graph.oscR.frequency, t);
     return { leftHz, rightHz, beatHz: rightHz - leftHz, carrierHz: (leftHz + rightHz) / 2 };
   }
 
@@ -283,6 +291,16 @@ export class BinauralEngine {
     this.emitter.emit('state', this.getState());
   }
 
+  /**
+   * Volume to remember for a noise change. Non-finite means "unchanged"; for type 'off' a 0 is ignored
+   * too, so "noise off" never zeroes the remembered volume (turning noise back on must be audible).
+   */
+  private nextNoiseVolume(type: NoiseType | 'off', volume: number | undefined): number {
+    const v = fin(volume, this.state.noise.volume);
+    if (type === 'off' && v <= 0) return this.state.noise.volume;
+    return clamp(v, 0, 1);
+  }
+
   /** Unnarrowed read (status can change across awaits). */
   private currentStatus(): EngineStatus {
     return this.state.status;
@@ -314,7 +332,19 @@ export class BinauralEngine {
         /* a failed suspend leaves the context running — fine */
       }
     }
-    if (ctx.state !== 'running') await ctx.resume();
+    if (ctx.state === 'running') return true;
+    // resume() can stay pending forever when blocked (no user gesture), or reject (closed context):
+    // race it against a timeout on the injected clock, then trust only the resulting state.
+    let timer: TimerHandle | undefined;
+    await Promise.race([
+      Promise.resolve()
+        .then(() => ctx.resume())
+        .catch(() => undefined),
+      new Promise<void>((r) => {
+        timer = this.clock.setTimeout(r, RESUME_TIMEOUT_MS);
+      }),
+    ]);
+    if (timer !== undefined) this.clock.clearTimeout(timer);
     return ctx.state === 'running';
   }
 
@@ -381,21 +411,23 @@ export class BinauralEngine {
     oscL.type = 'sine';
     oscR.type = 'sine';
     const { leftHz, rightHz } = earFrequencies(this.state.carrierHz, this.state.beatHz);
-    oscL.frequency.setValueAtTime(leftHz, t);
-    oscR.frequency.setValueAtTime(rightHz, t);
+    setParam(oscL.frequency, leftHz, t);
+    setParam(oscR.frequency, rightHz, t);
 
     const merger = ctx.createChannelMerger(2);
     oscL.connect(merger, 0, 0); // left input
     oscR.connect(merger, 0, 1); // right input
 
     const toneGain = ctx.createGain();
-    toneGain.gain.setValueAtTime(TONE_HEADROOM, t);
+    // setParam (tracked) rather than setValueAtTime: a fresh param's .value still reads its default (1)
+    // until the next render quantum, so the hold-emulation fallback must not trust it (see webaudio.ts).
+    setParam(toneGain.gain, TONE_HEADROOM, t);
     const levelGain = ctx.createGain();
-    levelGain.gain.setValueAtTime(this.state.level, t);
+    setParam(levelGain.gain, this.state.level, t);
     const volumeGain = ctx.createGain();
-    volumeGain.gain.setValueAtTime(volumeToGain(this.state.volume), t);
+    setParam(volumeGain.gain, volumeToGain(this.state.volume), t);
     const fadeGain = ctx.createGain();
-    fadeGain.gain.setValueAtTime(0, t);
+    setParam(fadeGain.gain, 0, t);
 
     merger.connect(toneGain);
     toneGain.connect(levelGain);
@@ -470,7 +502,7 @@ export class BinauralEngine {
     source.buffer = this.getNoiseBuffer(ctx, type);
     source.loop = true;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, t);
+    setParam(gain.gain, 0, t);
     source.connect(gain);
     gain.connect(g.levelGain);
     source.start(t);
@@ -535,8 +567,12 @@ export class BinauralEngine {
     const tone = sanitizeTone(fin(params.beatHz, this.state.beatHz), fin(params.carrierHz, this.state.carrierHz));
     const volume = clamp(fin(params.volume, this.state.volume), 0, 1);
     const level = clamp(fin(params.level, this.state.level), 0, 1);
+    // 'off' keeps the remembered noise volume, so a later setNoise({ type }) is audible again.
     const noise = params.noise
-      ? { type: params.noise.type, volume: clamp(fin(params.noise.volume, this.state.noise.volume), 0, 1) }
+      ? {
+          type: params.noise.type,
+          volume: this.nextNoiseVolume(params.noise.type, params.noise.volume),
+        }
       : this.state.noise;
 
     const running = await this.ensureRunning(ctx);
@@ -549,7 +585,7 @@ export class BinauralEngine {
 
     if (this.graph) {
       // Already have a graph (playing, paused or mid-stop): glide to new params and fade back up.
-      this.state = { ...this.state, ...tone, volume, level, noise };
+      this.state = this.makeState(this.state.status, tone.beatHz, tone.carrierHz, volume, level, noise);
       this.applyAll(this.opts.glideSec);
     } else {
       this.state = this.makeState(this.state.status, tone.beatHz, tone.carrierHz, volume, level, noise);
@@ -577,15 +613,42 @@ export class BinauralEngine {
       this.teardown();
       this.patch({ status: 'idle' });
       this.emitter.emit('stopped', this.getState());
+      await this.suspendIfIdle(this.ctx);
       return;
     }
-    rampParam(this.graph.fadeGain.gain, 0, this.ctx.currentTime, fade, 'linear');
+    const ctx = this.ctx;
+    rampParam(this.graph.fadeGain.gain, 0, ctx.currentTime, fade, 'linear');
     this.patch({ status: 'stopping' });
-    await this.afterSec(fade, () => {
+    await this.afterSec(fade, async () => {
       this.teardown();
       this.patch({ status: 'idle' });
       this.emitter.emit('stopped', this.getState());
+      await this.suspendIfIdle(ctx);
     });
+  }
+
+  /**
+   * After stop(): don't leave the context rendering silence (battery; on iOS it keeps the audio session
+   * active). Uses the same `suspending` bookkeeping as pause() so a following start() awaits it.
+   */
+  private async suspendIfIdle(ctx: AudioContextLike): Promise<void> {
+    if (!this.opts.suspendOnPause || this.disposed || this.state.status !== 'idle' || ctx.state !== 'running') return;
+    await this.trackedSuspend(ctx);
+  }
+
+  /** ctx.suspend() recorded in `suspending`; if a start()/resume() raced it, make sure we end up running. */
+  private async trackedSuspend(ctx: AudioContextLike): Promise<void> {
+    const p = ctx.suspend();
+    this.suspending = p;
+    try {
+      await p;
+    } finally {
+      if (this.suspending === p) this.suspending = undefined;
+    }
+    const now = this.currentStatus();
+    if ((now === 'playing' || now === 'stopping') && ctx.state !== 'running') {
+      await ctx.resume();
+    }
   }
 
   /** Fade out quickly and suspend; the graph is kept so resume() is instant. */
@@ -607,18 +670,7 @@ export class BinauralEngine {
     this.emitter.emit('paused', this.getState());
     await this.afterSec(this.opts.pauseFadeSec, async () => {
       if (!this.opts.suspendOnPause || this.state.status !== 'paused' || ctx.state !== 'running') return;
-      const p = ctx.suspend();
-      this.suspending = p;
-      try {
-        await p;
-      } finally {
-        if (this.suspending === p) this.suspending = undefined;
-      }
-      // resume()/start() raced the in-flight suspend: make sure we didn't leave them silent.
-      const now = this.currentStatus();
-      if ((now === 'playing' || now === 'stopping') && ctx.state !== 'running') {
-        await ctx.resume();
-      }
+      await this.trackedSuspend(ctx);
     });
   }
 
@@ -713,9 +765,11 @@ export class BinauralEngine {
   }
 
   setNoise(noise: Partial<NoiseSetting>, fadeSec = 1.5): void {
+    const type = noise.type ?? this.state.noise.type;
     const next: NoiseSetting = {
-      type: noise.type ?? this.state.noise.type,
-      volume: clamp(fin(noise.volume, this.state.noise.volume), 0, 1),
+      type,
+      // Switching off keeps the remembered volume so switching back on is audible.
+      volume: this.nextNoiseVolume(type, noise.volume),
     };
     this.patch({ noise: next });
     if (this.graph && this.state.status !== 'idle') this.applyNoise(next, Math.max(0, fin(fadeSec, 1.5)));
@@ -730,7 +784,7 @@ export class BinauralEngine {
     holdParam(g.oscR.frequency, t);
     holdParam(g.levelGain.gain, t);
     const f = this.getCurrentFrequencies();
-    this.patch({ beatHz: f.beatHz, carrierHz: f.carrierHz, level: g.levelGain.gain.value });
+    this.patch({ beatHz: f.beatHz, carrierHz: f.carrierHz, level: paramValueAt(g.levelGain.gain, t) });
   }
 
   /**

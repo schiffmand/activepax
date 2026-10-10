@@ -11,7 +11,7 @@ import {
   STORAGE_KEY,
 } from '../src/store/store';
 import { SCHEMA_VERSION, audioProfile, defaultState, prefersReducedMotion, type SessionRecord } from '../src/store/schema';
-import { detectVersion, migrate } from '../src/store/migrations';
+import { detectVersion, isUnparseable, migrate } from '../src/store/migrations';
 import { localStorageAdapter, memoryAdapter, type StorageLike } from '../src/store/persistence';
 import { createCustomPreset, BUILT_IN_PRESETS } from '../src/presets';
 
@@ -65,6 +65,32 @@ describe('reducer', () => {
     expect(s.favorites).toEqual(['calm', 'sleep']);
     for (let i = 0; i < 40; i++) s = reducer(s, { type: 'favorite/toggle', id: `f${i}` });
     expect(s.favorites).toHaveLength(24);
+  });
+
+  it('settings/update sanitises the patch: NaN, wrong types and unknown enums are dropped', () => {
+    const s0 = defaultState();
+    const bad = reducer(s0, {
+      type: 'settings/update',
+      patch: { defaultVolume: NaN, theme: 'neon', sensoryMode: 'yes', defaultTimerSec: -5 } as never,
+    });
+    expect(bad).toBe(s0); // nothing valid -> no-op (same reference, no persist)
+    const mixed = reducer(s0, { type: 'settings/update', patch: { defaultVolume: 7, theme: 'dark', reducedMotion: 'sideways' } as never });
+    expect(mixed.settings.defaultVolume).toBe(1);
+    expect(mixed.settings.theme).toBe('dark');
+    expect(mixed.settings.reducedMotion).toBe(s0.settings.reducedMotion);
+    expect(Number.isNaN(mixed.settings.defaultVolume)).toBe(false);
+  });
+
+  it('history/add rejects non-finite durations/timestamps; history/rate ignores non-finite feelings', () => {
+    const s0 = defaultState();
+    expect(reducer(s0, { type: 'history/add', record: rec({ durationSec: NaN }) })).toBe(s0);
+    expect(reducer(s0, { type: 'history/add', record: rec({ durationSec: Infinity }) })).toBe(s0);
+    expect(reducer(s0, { type: 'history/add', record: rec({ startedAt: NaN }) })).toBe(s0);
+    const s1 = reducer(s0, { type: 'history/add', record: rec({ id: 'a' }) });
+    const rated = reducer(s1, { type: 'history/rate', id: 'a', feeling: 4 });
+    expect(rated.history[0]!.feeling).toBe(4);
+    expect(reducer(rated, { type: 'history/rate', id: 'a', feeling: NaN })).toBe(rated);
+    expect(reducer(rated, { type: 'history/rate', id: 'a', feeling: null }).history[0]!.feeling).toBeNull();
   });
 
   it('updates settings and clamps volume', () => {
@@ -205,6 +231,46 @@ describe('migrations', () => {
     expect(migrate(42).status).toBe('corrupt');
     expect(migrate({ schemaVersion: -3 }).status).toBe('corrupt');
   });
+
+  it('rejects non-integer / NaN / negative versions (non-JSON adapters can produce NaN)', () => {
+    for (const v of [NaN, 1.5, -0.5, -2, Infinity]) {
+      const out = migrate({ schemaVersion: v });
+      expect(out.status, String(v)).toBe('corrupt');
+      if (out.status === 'corrupt') expect(out.error).toMatch(/Invalid schema version/);
+    }
+    const notObj = migrate('hello');
+    expect(notObj.status === 'corrupt' && notObj.error).toMatch(/not an object/);
+  });
+
+  it('v1 migration skips null / primitive / garbage sessions instead of failing the whole document', () => {
+    const out = migrate({
+      version: 1,
+      favorites: ['calm', 7, null, 'focus'],
+      volume: 0.6,
+      sessions: [
+        null,
+        42,
+        'x',
+        [],
+        { start: 'yesterday', seconds: 60 },
+        { start: NaN, seconds: 60 },
+        { start: 5000, seconds: -1 },
+        { start: 1000, seconds: 900, preset: 'focus', beatHz: 14 },
+        { start: 2000, seconds: 300 },
+      ],
+    });
+    expect(out.status).toBe('migrated');
+    expect(out.state.favorites).toEqual(['calm', 'focus']);
+    expect(out.state.settings.defaultVolume).toBe(0.6);
+    expect(out.state.history.map((h) => h.startedAt)).toEqual([1000, 2000]);
+    expect(out.state.history[0]).toMatchObject({ presetId: 'focus', durationSec: 900, band: 'beta' });
+  });
+
+  it('v0 migration ignores non-string favourites', () => {
+    const out = migrate({ favorites: ['calm', { x: 1 }, 3], volume: 0.4 });
+    expect(out.status).toBe('migrated');
+    expect(out.state.favorites).toEqual(['calm']);
+  });
 });
 
 describe('persistence adapters', () => {
@@ -246,7 +312,11 @@ describe('persistence adapters', () => {
     expect(() => b.remove!('k')).not.toThrow();
 
     data.set('bad', '{not json');
-    expect(a.load('bad')).toBeNull();
+    // Unparseable text is reported (not swallowed as "empty") so it can be backed up.
+    const bad = a.load('bad');
+    expect(bad).toEqual({ __unparseable: '{not json' });
+    expect(isUnparseable(bad)).toBe(true);
+    expect(migrate(bad).status).toBe('corrupt');
   });
 
   it('localStorage adapter without any storage is inert', () => {
@@ -323,6 +393,54 @@ describe('createStore', () => {
     expect((await store.hydrate()).status).toBe('empty');
     store.dispatch({ type: 'favorite/toggle', id: 'calm' });
     await expect(store.flush()).resolves.toBeUndefined();
+  });
+
+  it('backs up unparseable stored text before anything can overwrite it', async () => {
+    const data = new Map<string, string>([[STORAGE_KEY, '{"schemaVersion":2,"favorites":["ca']]); // truncated write
+    const storage: StorageLike = { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v), removeItem: (k) => void data.delete(k) };
+    const adapter = localStorageAdapter(storage);
+    const store = createStore({ adapter });
+    const outcome = await store.hydrate();
+    expect(outcome.status).toBe('corrupt');
+    const backupKey = outcome.status === 'corrupt' ? outcome.backupKey : undefined;
+    expect(backupKey).toMatch(new RegExp(`^${STORAGE_KEY}\\.corrupt-\\d+$`));
+    expect(store.readOnly).toBe(false);
+    // The app keeps working and persisting...
+    store.dispatch({ type: 'favorite/toggle', id: 'calm' });
+    await store.flush();
+    expect((adapter.load(STORAGE_KEY) as { favorites: string[] }).favorites).toContain('calm');
+    // ...but the original bytes survive under the backup key.
+    expect(adapter.load(backupKey!)).toBe('{"schemaVersion":2,"favorites":["ca');
+  });
+
+  it('backs up structurally corrupt (parseable) data too', async () => {
+    const adapter = memoryAdapter({ [STORAGE_KEY]: { schemaVersion: 1.5, customPresets: ['precious'] } });
+    const store = createStore({ adapter });
+    const outcome = await store.hydrate();
+    expect(outcome.status).toBe('corrupt');
+    store.dispatch({ type: 'favorite/toggle', id: 'calm' });
+    await store.flush();
+    const backupKey = outcome.status === 'corrupt' ? outcome.backupKey! : '';
+    expect(adapter.load(backupKey)).toEqual({ schemaVersion: 1.5, customPresets: ['precious'] });
+  });
+
+  it('stays read-only (never overwrites) when corrupt data cannot be backed up', async () => {
+    const saved: string[] = [];
+    const store = createStore({
+      adapter: {
+        load: () => ({ __unparseable: '{oops' }),
+        save: (k) => {
+          saved.push(k);
+          throw new Error('quota');
+        },
+      },
+    });
+    const outcome = await store.hydrate();
+    expect(outcome.status).toBe('corrupt');
+    expect(store.readOnly).toBe(true);
+    store.dispatch({ type: 'favorite/toggle', id: 'calm' });
+    await store.flush();
+    expect(saved.every((k) => k.includes('.corrupt-'))).toBe(true);
   });
 
   it('works with no adapter at all', async () => {

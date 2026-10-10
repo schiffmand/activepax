@@ -1,234 +1,234 @@
-# Brand direction B: Tealight
+# Brand direction B (round 2): Tuck
 
-> Angle: **the warm companion.** Tealight is emotional and human. It's a small ritual that meets you wherever you are and never makes you feel guilty. It shouldn't feel like a tool you operate. It should feel like a small light you leave on beside you while you work, read, ride the train or fall asleep.
+> Angle: **the warm companion.** Emotional and human. It's a small, gentle ritual that meets you wherever you are, and you never have to feel guilty about it. Tuck is a soft layer of sound that you pull up under whatever you're already listening to, and set down again whenever you like.
 > Companion style tile: [`brand-B-board.html`](./brand-B-board.html)
+>
+> **What changed since round 1 (Tealight).** The [council](./brand-council.md) picked Tealight for an idea nobody else in the category owns: **company, not power**. Tuck keeps that idea and every must-change from council §11. What it drops is the *symbol*. A candle had to be policed: a metaphor budget, fire-safety copy, "flicker" trouble, and Dev and Hannah feeling embarrassed on a shared screen. Tuck replaces the symbol with a *material*. A soft layer you tuck in is literally what the product does (sound **under** sound), so the metaphor and the mechanism are the same thing. That leaves nothing to explain away and nothing that's unsafe to imply. The Depth control, which Tealight had to graft on from Keel, becomes the main gesture: you set how far you pull the layer up. Tealight stays as alternate #1.
 
 ---
 
 ## 1. Name
 
-### **Tealight**
+### **Tuck**
 
-A tealight is the smallest, humblest candle there is. Nobody makes a fuss about it. You light one, put it *under* something (a teapot warmer, an oil burner, a dish of water), and it quietly keeps what's above it warm for hours. That's this product, almost word for word. **Your podcast, playlist or lecture is the pot. Tealight sits underneath and keeps it warm.**
+To tuck is to put something soft and safe *under* something else: a blanket under a chin, a note under a door, a napkin under a collar. It's also what someone who cares about you does at the end of the day: "Let me tuck you in." The product does exactly that. **Your podcast, playlist or lecture stays on top, and Tuck goes underneath.**
 
-- It's a familiar, domestic, slightly cosy word. It sounds human, not clinical (unlike "neuro-", "brain-", "-wave") and not mystical (unlike chakra, solfeggio, "frequency healing").
-- The name already contains the main gestures: you *light* it, it *burns* for a while, it *goes out* gently, and you can light another one any time. A candle that has gone out isn't a failure. That's the zero-guilt promise in a single object.
-- It reads as a companion, not a coach. A tealight doesn't judge you. It just keeps you company. Maya and Leo both describe "body doubling" (working better with someone nearby). A small light in the room is the gentlest version of that.
-- It works in copy without straining: "Light one." "Your light is on." "Leave a light on under that lecture." "It went out after 52 minutes."
+- **The verb is the product.** "Tuck some brown noise under this lecture." "I'm tucked in." "Untuck." People can use the name as an instruction without being taught it.
+- **Warm, not clinical, not mystical.** No "neuro", "brain", "wave", "zen" or "frequency". It's a small domestic word with an act of care inside it.
+- **No guilt built in.** You can't fail to tuck something. There's nothing to keep burning or keep up. You pull it up when you need it, and it waits for you otherwise.
+- **Short and sturdy.** One syllable, four letters. It works on an icon, a widget or a Live Activity ("Tuck: Focus, 24 min"), and it sounds plain enough for Dev to have it open on a pairing call.
+- **Sensory-safe imagery.** A blanket and a weighted layer are what Sam's own words reach for ("brown noise is my weighted blanket"). It's the language of regulation, not stimulation.
 
-**Availability check (quick web search, Oct 2026):** we found no app called "Tealight" in the focus, sleep, sound or binaural space on the App Store. The results were all generic sound apps ("Soundscape", "focusSound", "ClearMind", "Quietude"). It's a common noun, so legal still needs a trademark search in Class 9/41/44. If a store listing needs disambiguation, use **"Tealight: Sound Under Sound"**.
+**Availability check (quick web search, Oct 2026: "Tuck app iOS sleep focus sounds", "Tuck app App Store sleep noise binaural").** We found no App Store or Play app called Tuck in sleep, focus, sound or binaural. The nearby results were FocuSound, Quietude, Soundscape, Hygge Sleep Sounds, Ooooo and FlowNoise. **Known nearby use:** "Tuck" was a sleep-product review website (Tuck Sleep), which has since been folded into Sleep Foundation. It's in the same broad space but isn't an app, so legal must check Class 9/41/44 clearance before launch. Store name: **"Tuck: Sound Under Your Audio"** (the subtitle carries the search intent). We also checked **Roomtone**, a lovely film term for the ambient sound laid under dialogue, and rejected it: *Roomtone: Ambient Machine* is a live App Store app.
 
-*Rejected during the check:* **Pilot Light** was my first choice (a pilot light is the small flame that is always on underneath). But a search surfaced an existing "Pilot Light" nervous-system audio app, which is too close.
+**New competitors the check turned up** (add these to `competitors.md`): **Ooooo** (free binaural tones plus noise that "can be combined with music") and **FlowNoise** ("binaural beats blend seamlessly with your favorite music"). Both are utilitarian. Neither has a warm or honest brand, which supports this direction.
 
 ### Alternates
 
 | Name | Why it works | Risk |
 |---|---|---|
-| **Keepwarm** | The "keep warm" setting on a kettle or rice cooker: low, steady, always there. Clearly companionable. | Two words fused together. Could read as a heating product. |
-| **Lowlight** | A small lamp left on in the corner, low and kind. It also hints at keeping things *low* (volume, stimulation). | "Lowlights" means the worst moments in sports. Near "Lowlights" hair-dye search noise. |
-| **Beside** | Says the body-doubling idea directly: "something beside you." Gentle, and the preposition *is* the product. | Abstract. Hard to own in search, and no object to draw. |
+| **Tealight** | The round-1 winner. A small light under the pot, with "company, not power" already proven with the council. | A candle and fire metaphor that needs constant guardrails. A common noun with generic search results. |
+| **Lining** | The soft inner layer of a coat: under everything, never seen, always warm. It also carries "silver lining" without saying it. | Abstract and passive as a verb. No app found in a quick search. |
+| **Nearby** | The body-doubling idea in one word: "something nearby while you work". | Very generic in search, and used by many location features. Only usable as "Nearby Sound". |
 
 ---
 
 ## 2. Tagline
 
-**A little light under whatever you're listening to.**
+**Primary:** *Tuck a little sound under whatever you're playing.*
 
-Short-form alternates for the store and social:
-- *Keep your music. Add a little warmth underneath.*
-- *Company for your attention.*
-- *Light one. Begin.* (onboarding and widget)
+| Use | Line |
+|---|---|
+| Store subtitle (30 char) | *Sound under your audio* |
+| Brand line | *Company for your attention.* (kept from round 1, the council's favourite) |
+| Short social | *Keep your playlist. Tuck something soft under it.* |
+| Widget, idle | *Pull up when you're ready.* |
 
 ---
 
 ## 3. Positioning statement
 
-For people whose attention or nervous system needs a little help to settle (people with ADHD, autistic and sensory-sensitive people, deep-focus workers, students, and anyone building a calmer evening), **Tealight** is a soft layer of binaural tones and gentle noise that plays *underneath* the audio you already love. Unlike focus-music services that make you give up your podcast or playlist, and unlike tone generators that look like lab equipment or sell miracles, Tealight never interrupts what you're listening to, never scolds you for a missed day, and tells you honestly what the science does and doesn't say.
+For people whose attention or nervous system needs a little help to settle (people with ADHD, autistic and sensory-sensitive people, programmers and deep-focus workers, students, sleep and longevity optimizers, and meditators), **Tuck** is a soft layer of binaural tones and gentle noise that plays **underneath the audio you already chose**. Focus-music services make you give up your podcast. Tone generators look like lab equipment or sell miracles. Tuck asks how you're arriving, not what you should achieve. It never interrupts your audio and never counts what you missed. It shows you exactly what it's playing, and it tells you honestly that the science is mixed.
+
+---
 
 ## 4. Brand promise
 
-**We'll keep you company, and we'll never make you feel bad for coming back.**
+**Whatever state you arrive in, there's a soft layer ready, and nothing to make up for.**
 
-In practice this is four concrete commitments that both the product and marketing have to keep:
-1. **Your audio comes first.** We never pause it, duck it or fight it. If mixing fails, we say so straight away.
-2. **No guilt, ever.** No streaks, no "you missed a day", no comeback notifications. Totals only go up.
-3. **Gentle on your senses.** Everything fades in and fades out. Nothing pops, flashes or surprises you.
-4. **The truth about the science.** Evidence is mixed, and we say so with links. It's your experiment to run.
+Four commitments sit behind it, and each one is checkable in the product:
+1. **Your audio stays on top.** We never pause, duck or fight it. If mixing breaks, we say so plainly.
+2. **Nothing to keep up with.** No streaks, no "you missed a day", no nudges to come back. Only gentle totals.
+3. **It's the same every time unless you ask.** Saved layers never change silently. Every start fades in and every stop fades out.
+4. **We tell you what it is and what we know.** The exact Hz values are one tap away, and so is the evidence, including the null and negative results.
 
 ---
 
 ## 5. Personality and voice
 
-**Personality:** a kind friend who's good with their hands. Warm, calm, a bit wry, and never in a hurry. Think of the person who quietly puts a cup of tea next to you and goes back to their book, not the one who asks how you're feeling.
+**Personality:** a friend who sits with you while you work. Calm, warm, a bit dry, literal when it matters. It notices how you are without making a fuss. It's never a coach, never a guru and never a cheerleader.
 
 | We are | We are not |
 |---|---|
-| Warm, plainspoken | Cutesy, gushing, exclamation-heavy |
-| Gently wry | Sarcastic, meme-y |
-| Literal and clear (Sam reads exactly what we write) | Vague, metaphor stacked on metaphor |
-| Honest about uncertainty | Clinical, *or* mystical |
-| On your side | A coach, a cheerleader, or a scoreboard |
+| Warm and plain | Gushing, cute, baby-talk |
+| On your side ("whenever you're ready") | Motivational ("crush it", "unlock") |
+| Honest about uncertainty | Clinical, or certain about the science |
+| Literal when something matters (ears, volume, billing) | Metaphor all the way down |
+| Quiet | Celebratory (confetti, badges, exclamation marks) |
 
 **Voice rules**
-- Write in the second person and present tense. Keep sentences short, and use a full stop rather than an exclamation mark.
-- Use the candle metaphor **at most once per screen**, and plain words for everything else. The metaphor is seasoning, not the meal. (On the Settings and Science screens it's dropped entirely.)
-- Name modes by what you're doing (*Focus, Calm, Unwind, Sleep, Steady*), not by frequency bands. Hz values sit one tap away, written precisely.
-- Never refer to a diagnosis in product copy. We design *with* ADHD and autistic people in mind. We never promise outcomes *for* them.
+1. **Describe the design, never the outcome.** Say "a 14 Hz beat over brown noise". Don't say "boosts focus".
+2. **The metaphor gets one line per screen at most, and it always sits next to the literal word.** "Tucked in" is followed by "Sound on, 24 min". There's no metaphor at all on Settings, Science, Billing, errors or the headphone warnings.
+3. **Name feelings, not failures.** "Scattered" and "Too much" are allowed. "Distracted", "unproductive" and "behind" are not.
+4. **Sentence case, no exclamation marks, no emoji in the UI.**
+5. **Plain-labels mode** (for Sam) puts the literal label on screen everywhere: "Pull up to start sound", "Volume under your audio: medium".
 
-### Do / don't examples
+### Do and don't
 
 | Moment | Do | Don't |
 |---|---|---|
-| **Onboarding 1** | "Keep listening to whatever you like. Tealight plays a soft layer underneath it." | "Welcome to your journey to a better brain! 🧠✨" |
-| **Onboarding 2** (the only other screen) | "Hold the light to begin. It fades in slowly, and so does everything else here." | "Let's personalise your experience! Answer 7 quick questions." |
-| **Main button, idle** | "Hold to light" | "START SESSION", "Unlock focus" |
-| **Main button, running** | "Lit for 14 min. Tap to soften, hold to let it go out." | "Great job! Keep going to hit your goal!" |
-| **Session end** | "It went out after 52 minutes. Nice to have the company." | "Session complete! 🔥 3-day streak!" |
-| **Returning after 3 weeks** | "Hello again. Your light's where you left it." | "We missed you! You've lost your 12-day streak." |
-| **Empty state: history** | "Nothing here yet. When you've lit a few, you'll see how much time they kept you company. No scores, just totals." | "No data. Start tracking to unlock insights!" |
-| **Empty state: saved mixes** | "Found a sound you love? Save it and it'll stay exactly the same, update after update." | "Create your first custom preset now!" |
-| **Headphone prompt** | "Tealight works best with both ears. We'll play a soft tone on the left, then on the right." → "Heard both? You're all set." | "⚠️ HEADPHONES REQUIRED for brainwave entrainment!" |
-| **Headphone check fails** | "Only one side came through. That happens with one earbud, Mono Audio or the phone speaker. The noise layer still works fine. Use it on its own for now?" [Use noise only] [Check again] | "Error: binaural effect unavailable." |
-| **Mixing failure** | "Spotify paused when the light came on. That shouldn't happen. Tap here and we'll fix the audio settings." | "Something went wrong." |
-| **Upgrade** | "Tealight is free to use, and it stays that way. Plus adds schedules, experiments and sync, for $3 a month. We'll remind you 3 days before any charge." | "Unlock PREMIUM to reach your full potential!" |
-| **Rest / break** | "Five minutes off. The light will dim while you're away." | "Don't break your focus!" |
+| **Onboarding 1** (of 2) | "Tuck plays a soft layer of sound under your podcast, music or videos. Your audio keeps playing on top." Button: **Try it now** | "Welcome to your focus journey! Let's personalise your brain profile." |
+| **Onboarding 2** | "Pull the layer up from the bottom to start. Pull it down to stop. That's it. Everything else can wait." Button: **Start sound** | "Choose your goals (select 3)" or a quiz, an account wall, or a paywall before sound |
+| **Arrival question** (home) | "Evening. How are you arriving?" Chips: Scattered, Wound up, Too much, Heavy-eyed, Just working. Under the selected chip: "That's Focus: a 14 Hz beat over soft brown noise." | "What do you want to achieve today?" |
+| **Empty state** (no saved layers) | "Nothing saved yet. When a layer feels right, hold it to keep it exactly as it is." | "You haven't created any mixes! Get started now." |
+| **Returning after weeks away** | "Hello again. Your layer's where you left it." | "We missed you! Your 12-day streak was reset." |
+| **Weekly note** (opt-in) | "Tuck kept you company for 3 h 40 m this week, across 6 sessions." | "You focused 20% less than last week." |
+| **Headphone prompt** | "Quick ear check before we start. The beat only happens when each ear gets its own tone, so it needs stereo headphones. Tap the side you hear." | "Headphones required for brainwave entrainment." |
+| **Speaker or Mono Audio** | "This is playing through the phone speaker, so both ears hear the same thing and there's no beat. Noise only still helps cover the room. Use noise only?" | A red error, or silently carrying on |
+| **Spatial Audio on** | "Spatial Audio seems to be on. It blends the two ears together, which hides the beat. You can turn it off in Control Center, or carry on with noise only. Both are fine." | "Disable Spatial Audio to continue." |
+| **Mixing failure** | "Another app took over the sound, so your layer stopped. Pull up to start again. Your audio wasn't changed." | "Oops! Something went wrong." |
+| **Stopping** | "Set down after 52 min. Eased off over 20 seconds." | "Great session! You earned a badge." |
+| **Billing** | "Your trial ends on 14 Nov. We'll remind you 3 days before. Cancel here, in two taps." | "Don't lose your progress! Upgrade now." |
 
-### Honest-science note (the "What we know" sheet, verbatim draft)
+### Honest-science note (the "What we know" sheet, first screen)
 
-> **What we know, and what we don't.**
-> Play one tone in your left ear and a slightly different one in your right, and your brain hears a slow third "beat". That part is well established.
-> Whether that beat changes your brainwaves, focus or mood is **genuinely unsettled**. Some studies find small benefits for attention, anxiety and sleep. Others find nothing, and one large study found beats made some tasks slightly *harder*. The best evidence we have is actually for soft background **noise**, and it suggests a small benefit for people who find it hard to stay on task.
-> So we built Tealight to make it easy to find out what works *for you*: beats, noise, both, or neither. Your results stay on your phone.
-> Tealight isn't a medical device or a treatment for any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don't use Sleep while driving.
-> [Read the studies (6)] [Try a blind experiment]
+> **What we know, plainly.**
+> Binaural beats are two slightly different tones, one in each ear. Your brain hears the difference as a slow beat. Some studies find small effects on attention, anxiety and how relaxed people feel. Others find none, and one large study found beats made a task *harder*. Whether brainwaves really "sync" to the beat isn't established.
+> The best evidence is actually for the noise: soft background noise gives a small benefit on lab tasks for people with ADHD or a lot of inattention, and little or none for others.
+> So Tuck doesn't promise anything. It gives you a calm layer, lets you run it with or without the beat, and helps you see what works for you. It isn't a medical device and doesn't treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first.
+> *[Read the studies]* *[Try a blind comparison]*
 
 ---
 
-## 6. The core metaphor and novel interaction: *light it, leave it, let it go out*
+## 6. The core metaphor and novel interaction: *arrive, pull up, set down*
 
-The whole app is **one small flame at the bottom of the screen, sitting under a quiet line that names what's playing above it.** It's the layered-audio idea made visible: *your audio on top, the light underneath.*
+### The metaphor: a layer, not a symbol
+The screen is split the same way your listening is. **The top is your audio's space**. It holds a short line that says honestly, "Your audio keeps playing above". We never show a track or podcast name, because the OS doesn't tell us and we won't pretend. **The bottom is the layer**: a soft, woven band of Felt that you pull up from the bottom edge. Its top edge is turned down to show a strip of apricot lining, with a running stitch underneath. It's a blanket folded back for you. The brand mark is the same object.
 
-```
-┌──────────────────────────────┐
-│ under  Hidden Brain · podcast│  ← your audio, above (read-only, dim)
-│                              │
-│                              │
-│            Focus             │  ← intent, one word, big and soft
-│      Calm   Unwind   Sleep   │  ← swipe sideways to change (no grid)
-│                              │
-│              ╭╮              │
-│             ╭╯╰╮             │  ← the flame: left half wick-blue,
-│             ╰──╯             │     right half saffron (= L and R ear)
-│          ═══════════         │  ← the wax pool: remaining time
-│         Hold to light        │
-│                              │
-│  Kept you company 3 h 40 m   │  ← totals only, never a streak
-└──────────────────────────────┘
-```
+### Interaction 1: "How are you arriving?" (meets you where you are)
+Most apps ask for a goal ("Focus 25 min"). Tuck asks for a **state**, in plain feeling words: *Scattered, Wound up, Too much, Heavy-eyed, Just working*. Each word maps openly to one of the five shared intents, and the mapping is written on screen:
 
-**The signature gestures**
-1. **Hold to light (the ritual doorway).** Press and hold the cup for about 1.2 seconds, the length of a slow breath out. A wick catches and the flame rises over about 8 seconds as the sound fades in (Steady users can set 10–20 seconds). It's a deliberate, physical "now I'm starting" moment for Maya, and it can't happen by accident, so it's never a jump-scare for Sam. A single tap shows a hint ("Hold to light") instead of starting.
-2. **Cup your hands (soften).** Tap a lit flame and it lowers, as if you'd cupped your hands around it. The layer drops to 40% for a call, a barista or a tricky paragraph. Tap again to restore it.
-3. **The wax pool is the timer.** Pick a burn time (25 min, 50, 90, or "until I stop"). The pool of melted wax under the flame quietly shrinks. You see time passing without a countdown ticking at you. Exact minutes appear on tap or in Voice Over.
-4. **It goes out gently.** At the end, the flame lowers over 30 seconds and the sound fades over the same 30 seconds. One thin curl of smoke appears (a still image under Reduce Motion), then: *"It went out after 52 minutes."* To stop early, hold the flame and it goes out. Nothing in the app is ever "cancelled" or "failed".
-5. **Flicker or Still (Drift / Steady).** In **Flicker**, the flame sways very slowly and the sound drifts subtly inside its range, which gives Maya variety without choosing. In **Still**, the flame is perfectly motionless and the sound is locked bit-for-bit. That's Sam's sameness-as-safety, and the visual tells you which mode you're in at a glance.
-6. **Two halves of one flame.** The mark and the live flame are split down the middle: **wick-blue on the left, saffron on the right**, the two ears. When the headphone check passes, the halves meet and become one flame. That moment *is* the binaural explanation, with no diagram needed. If the check fails, the flame stays whole but single-colour (noise only), which is honest and still warm.
-7. **Other lights (opt-in, anonymous).** For Leo's "study with me" belonging: an optional line, "1,204 other lights are on right now," aggregated server-side with no accounts and no profiles. It's off by default and switched on in one tap. This is body doubling without surveillance.
+| You say | Tuck plays (shown literally) | Why |
+|---|---|---|
+| Scattered | **Focus**: 14 Hz beat, brown noise, gentle drift | Stimulation that stops the hunt for more (Maya, Leo) |
+| Just working | **Focus**, steady and quieter, or your saved layer | For people who don't want to talk about feelings (Dev) |
+| Wound up | **Unwind**: 10 Hz alpha over pink noise | Shifting from wired to calm (Priya) |
+| Too much | **Steady**: the saved layer, locked, 10 s fade-in, volume capped, no drift | A floor under the noise (Sam) |
+| Heavy-eyed | **Sleep** ("Evening descent": alpha toward theta over 30 min, then silence), or **Calm** in daytime | Sleep and NSDR (Priya, meditators) |
 
-Each intent has its own flame silhouette, so people learn modes by shape and not by Hz: **Focus** is tall and narrow, **Calm** is rounded, **Unwind** leans low, **Sleep** is a low ember glow, and **Steady** is a perfect still teardrop.
+It's one tap and optional. It remembers your last answer ("Same as last time?"), and in Settings it can be switched to show intent names directly (Focus, Calm, Unwind, Sleep, Steady) for people who'd rather not be asked. Nothing is recorded about your feelings unless you opt into the self-experiment.
+
+### Interaction 2: pull up to start (the ritual, and the Depth control)
+- **Pull the layer up to start.** Sound fades in over 8 s as the band settles. The gesture is the doorway Maya asked for: a physical "I'm starting now".
+- **How high you pull it is the Depth**, with three detents: **Barely** (quiet, well under your audio), **Tucked** (default), **Wrapped** (fuller, with more noise). This puts council must-change #7 into the main gesture, and the ceiling can be locked.
+- **Pull it down to set it down.** It fades out over 20 s. There's no "end session?" dialog and no rating unless you've opted in.
+- **Tap alternatives always exist.** There's a **Start sound** button, a VoiceOver action, Shortcuts, the widget, Control Center (iOS 18+), the Live Activity and the Android notification. The pull is the ritual, never the gate.
+
+### Interaction 3: "Hold to keep" (sameness on request)
+Long-press the layer to **keep it exactly as it is**: saved, versioned, and never changed by an update without a "what changed" diff and a reset. Sam's "the one sound, locked forever" becomes a single gesture.
+
+### Spec card (one tap from any state)
+Tap **What's playing**. It shows a big tabular readout, **14 Hz**, with **L 200 / R 214** in Heather and Lichen, plus noise colour, level, drift on or off, and time left. The rigour is never more than one tap away from the warmth.
 
 ---
 
 ## 7. Colour palette
 
-The whole palette comes from one scene: **a tealight burning in a dim room at dusk.** It has the brown warmth of the room, the saffron of the flame, and the small blue at the root of a real candle flame. It's deliberately *not* cream and terracotta, not purple wellness gradient, and not steel-and-brass (that's direction A).
+The palette is wool and textile colours: dyed with plants, worn soft, never neon. It's dark-first. There's no purple, no cream, no terracotta and no pure black or white. Left and right ears always get the same two colours (Heather and Lichen) everywhere: the ear check, the spec card, the stitch in the mark.
 
-### Evening (dark, the default)
+### Night wool (default)
+| Token | Name | Hex | Use | Contrast on Loden |
+|---|---|---|---|---|
+| `--bg` | Loden | `#1C211C` | Background | — |
+| `--surface` | Felt | `#272E27` | The layer, cards | — |
+| `--surface-2` | Seam | `#323A31` | Raised surfaces, notices | — |
+| `--line` | Seam line | `#3B443A` | Borders, hairlines | — |
+| `--ink` | Fleece | `#ECE7DA` | Primary text | 13.3:1 |
+| `--ink-2` | Thread | `#AEB2A0` | Secondary text | 7.5:1 (6.4:1 on Felt) |
+| `--left` | Heather | `#9DB2D6` | Left ear | 7.6:1 |
+| `--right` | Lichen | `#CFCB86` | Right ear | 9.8:1 |
+| `--lining` | Apricot lining | `#EBB89A` | The turned-down edge and the mark only | (Loden on it 9.2:1) |
 
-| Token | Hex | Use |
-|---|---|---|
-| `--room` | `#2E2320` | App background. Cocoa brown, clearly a colour, not "near-black" |
-| `--room-raised` | `#3A2D29` | Sheets, cards, the cup |
-| `--line` | `#4E3F39` | Dividers, the wax pool outline |
-| `--wax` | `#F1E7DE` | Primary text (≈12.5:1 on room) |
-| `--wax-dim` | `#BCA79C` | Secondary text (≈6.3:1) |
-| `--flame` | `#F5B941` | Saffron. The flame's right half, the lit state, primary action |
-| `--wick` | `#93A8E8` | Periwinkle. The flame's left half, focus rings, links |
-| `--glow` | `rgba(245,185,65,.14)` | The only gradient in the system: a soft radial glow behind a lit flame |
+**Night luminance cap (Sleep and Heavy-eyed):** the UI drops to Thread-on-Loden only, with the lining at 40% and no white text, aiming for ≈40 cd/m² at default brightness. Priya's "dim, warm night UI".
 
-### Daylight (light)
+### Day wool
+| Token | Name | Hex | Use | Contrast on Linen |
+|---|---|---|---|---|
+| `--bg` | Linen | `#E7E8E0` | Background (grey-green, not cream) | — |
+| `--surface` | Muslin | `#F3F3EC` | The layer, cards | — |
+| `--surface-2` | Seam | `#DCDED3` | Raised, notices | — |
+| `--line` | Seam line | `#CCD0C3` | Borders | — |
+| `--ink` | Loden ink | `#212820` | Primary text | 12.3:1 |
+| `--ink-2` | Thread | `#545C50` | Secondary text | 5.6:1 |
+| `--left` | Heather, deep | `#43618F` | Left ear | 5.1:1 |
+| `--right` | Lichen, deep | `#5E5D18` | Right ear | 5.6:1 |
+| `--lining` | Lining | `#D9997C` | Fold and mark only, never text | — |
 
-| Token | Hex | Use |
-|---|---|---|
-| `--room` | `#E9E7EE` | Background. Pale window-grey with a cool cast (not cream) |
-| `--room-raised` | `#F7F6F9` | Sheets, cards |
-| `--line` | `#CFCBD6` | Dividers |
-| `--wax` | `#2E2320` | Primary text (cocoa, ≈13:1) |
-| `--wax-dim` | `#5F5059` | Secondary text |
-| `--flame` | `#A86A00` | Saffron, darkened for text and icons on light (≈4.6:1). The flame illustration still uses `#F5B941` |
-| `--wick` | `#4659A8` | Periwinkle, darkened (≈5.9:1) |
-
-### Low glow (automatic for Sleep and Unwind after sunset)
-
-| Token | Hex | Use |
-|---|---|---|
-| `--room` | `#1F1715` | Deeper, redder room |
-| `--wax` | `#B9998A` | Text, deliberately lower contrast (≈6:1) |
-| `--flame` | `#C9893A` | Dimmed ember |
-| `--wick` | *(removed)* | No blue at night. The flame becomes a single ember colour |
-
-Rules: one glow per screen, behind the flame. No other gradients. No pure white and no pure black anywhere. Saffron is reserved for "lit" so it always means *sound is on*.
+**Rules:** there is no red anywhere. Warnings use Seam, an icon and plain words. The lining is never used for text or buttons. The layer's twill texture is two 45° hairline weaves at 7–9% opacity, and it switches off under Increase Contrast and Reduce Transparency.
 
 ---
 
 ## 8. Typography (Google Fonts)
 
-- **Young Serif** (one weight, 400). Display only: the intent word ("Focus"), session-end lines, the wordmark. Its soft, slightly old-fashioned book serifs with round terminals give it a voice like a handwritten label on a jar, warm and human. We never use it below 22 px or for UI.
-- **Lexend** (variable, 300–600). Everything else. Lexend was designed to reduce visual stress and improve reading fluency, and its wide letterforms read calmly. That fits Maya, Sam and Leo, and it gives Hannah a design rationale she'll respect. Hz readouts use `font-variant-numeric: tabular-nums` so values don't jitter as they change.
-- **Legible mode** (Settings → Text) swaps Young Serif for Lexend 500 everywhere, for anyone who finds serifs busy.
+| Role | Face | Settings | Why |
+|---|---|---|---|
+| The voice: greetings, state names, the arrival question | **Literata** (variable, opsz 7–72) | 400, opsz high for 24–32 px; italic for asides | A low-contrast book serif built for long reading on screens. It feels like a note from a person, not a high-contrast fashion display. |
+| The work: UI, labels, numbers, settings, science | **Atkinson Hyperlegible Next** | 400 body, 500 numbers, 700 buttons; `tnum` for Hz and time | Designed by the Braille Institute for low-vision legibility. Literal-reader friendly, and its distinct letterforms help Sam and anyone reading tired. |
 
-Type scale (1.25, base 16): 13 / 16 / 20 / 25 / 31 / 39 / 56 (intent word).
-Body is 16/26. Sentence case everywhere, and no all-caps labels. Line length stays under 60 characters on the Science sheet.
+**Scale (4-step, 1.25 ratio from 16 px):** 16 body / 20 lead / 25 layer state / 29 to 32 greeting. 16 px is the minimum, everywhere. Line-height is 1.5 for sans and 1.15 to 1.3 for serif display. No all caps, no tracked-out labels, no monospace. **Legible mode** swaps Literata for Atkinson 500 throughout.
 
 ---
 
 ## 9. Motion principles
 
-1. **Breath-paced, never faster.** The only ambient motion is the flame in Flicker mode, which sways on a 10-second cycle (6 breaths a minute) with a ±2° lean and ±3% height. That's it.
-2. **Motion follows sound.** Visual fades last exactly as long as audio fades: 8 s to light, 30 s to go out, 1.2 s to soften. The eye and the ear always agree.
-3. **One moment of ceremony.** The wick catching on "hold to light" is the single orchestrated animation in the app. Everything else is a plain cross-fade of 200 ms or less.
-4. **Reduce Motion is honoured automatically, and Still mode is the same as Reduce Motion.** The flame becomes a static illustration, fades become instant opacity changes, and the smoke curl becomes a still image.
-5. **No surprise feedback.** No confetti, no bounce, no shake. Haptics are off by default, and when they're on there's a single soft tick on light and on going out.
-6. **Nothing moves on launch.** The app opens to a still scene. The first motion only ever comes from your own hold.
+1. **Motion follows sound.** Things move only when the sound changes. The layer rises over **1.4 s** as the sound fades in over 8 s, sinks over **2 s** when set down, and is otherwise **completely still**.
+2. **One curve, no bounce.** `cubic-bezier(.22,.8,.3,1)` for everything. No springs, no overshoot, no parallax.
+3. **Never draw the beat.** Nothing pulses at the beat frequency or anywhere near it, and nothing flickers. This is a photosensitivity rule as well as an honesty rule.
+4. **Breath-paced at most, off by default.** An optional "breathing layer" rises and falls once every 10 s (6 breaths a minute) for Calm and Sleep. It's opt-in.
+5. **Reduce Motion is a plain 600 ms cross-fade.** Audio fades are unchanged, because those are about ears, not eyes.
+6. **No surprise feedback.** No confetti, no launch sound, no haptics unless they're switched on (then a single soft tick at each depth detent).
 
 ---
 
 ## 10. Iconography
 
-- **Style:** 1.75 px rounded strokes on a 24 px grid, round caps and joins, slightly soft corners (2 px). Drawn with a gentle hand rather than geometric precision, as if traced from the logo's flame.
-- **Core set:** cup (home), flame (lit), cupped hands (soften), wax pool (timer), two dots L / R (headphones), leaf-curl of smoke (ended), open book (science), little jar (saved mixes), clock face (schedule), two small flames (other lights).
-- **Colour:** icons are `--wax-dim` at rest. The flame icon is the only one that ever turns saffron, and only while sound is on.
-- **Never:** brains, brainwave squiggles, lotuses, chakras, crescent moons with stars, sparkles, lightning bolts.
-- **App icon:** the split flame (blue | saffron) sitting in a shallow cup on the cocoa room colour. There's no wordmark on the icon.
+- **Grid and stroke:** 24 px grid, 1.75 px stroke, round caps and joins, drawn as if in thread. Fills are used only for "on" states.
+- **Set:** Tuck in (a square with a turned-down hem and a stitch), Ear check (headphones), Depth (two rails with a stitch), Drift (one soft wave), Steady (a straight line held between two stops), What we know (a page with lines), plus Timer, Keep (a pin through fabric), Noise only (no stitch).
+- **Never:** brains, lightbulbs, lotus, moons with stars, sine-wave "brainwaves", sparkles, flames, lightning.
+- **App icon:** the mark on Felt (Night) or Muslin (Day). There's also an optional **plain icon**: an outline in Thread on Loden, with no colour. It's for people who'd rather the app read as a tool on a shared screen (council must-change #12).
 
 ---
 
 ## 11. How each persona's core and latent needs are met
 
-| Persona | Core need | How Tealight meets it | Latent need | How Tealight meets it |
-|---|---|---|---|---|
-| **Maya** (ADHD, the restarter) | One tap to sound, works with Spotify | Opens to one object. Hold to light, sound within 2 s. Never pauses her audio | Freedom from guilt, a ritual doorway, novelty without choosing, not being treated as broken | No streaks, only "kept you company" totals. "Hello again" with no lost progress. *Hold to light* is a physical doorway. Flicker mode drifts the sound for variety. Copy never mentions ADHD outcomes |
-| **Dev** (programmer, the tuner) | Precise parameters, offline, no account | Tap the flame for "L 200 Hz / R 214 Hz → 14 Hz beat, brown noise −18 dB". Editable presets. Works offline, no sign-in | Respect for his intelligence, n-of-1 experiments, privacy | The "What we know" sheet with citations. Blind A/B experiment. Local-first data. The plain spec card sits right behind the friendly face |
-| **Sam** (autistic, the regulator) | Predictability, gentle fades, volume cap | Long fades everywhere. A hold-to-start that can't fire by accident. A hard volume ceiling. Still mode locks the mix bit-for-bit | Sameness as safety, no surprise UI, not infantilised, both hyper- and hypo-sensitivity | Saved mixes "stay exactly the same, update after update". No modals, haptics or confetti. Adult, bookish visual language. Noise density goes from whisper to dense in one slider |
-| **Priya** (longevity, protocol builder) | Schedules, sleep-safe behaviour, Health integration | Scheduled lights (e.g. "Evening descent, 21:30"). Sleep fades to silence. Logs mindful minutes to Apple Health / Health Connect | Beauty as a quality signal, evidence literacy, fewer, better tools | A quiet, crafted aesthetic, closer to an object you'd keep on a shelf than an app. Low glow night palette with no blue light. An honest evidence page she can quote |
-| **Leo** (student, the grinder) | Mix with YouTube or lectures, free, pomodoro | Free core layer. The wax pool works as a pomodoro timer. Headphone check for cheap earbuds | Belonging, progress without pressure, permission to rest | Opt-in "1,204 other lights are on". "12 hours of company this week". Breaks are "the light dims while you're away", not failure |
-| **Hannah** (the skeptic) | Honest evidence, noise-only, no claims | "What we know" sheet including null and negative results. Noise-only mode is first-class | Being proven right *and* still getting value, social safety | Copy agrees with her ("genuinely unsettled"). Blind self-experiment. Grown-up design that doesn't look like woo in a shared office |
-| **Meditator** (secondary) | A theta bed under another app's guided session | Unwind under Insight Timer or Waking Up, with a 30 s fade-out | Stillness, no UI noise | Still mode plus Low glow: a single unmoving ember on a dark room |
+| Persona | Core needs, met by | Latent needs, met by |
+|---|---|---|
+| **Maya** (ADHD, "the restarter") | One pull from intention to sound. No account or paywall before sound, and two onboarding screens. Mixes with Spotify and podcasts. Lock-screen and widget control. | **Freedom from guilt:** no streaks, "Hello again. Your layer's where you left it." **A ritual:** pulling up the layer. **Novelty without choosing:** Drift, and a different arrival word gives a different layer. **Not broken:** she names a feeling ("Scattered"), never a deficit. |
+| **Dev** (deep work, "the tuner") | The spec card one tap away (L/R Hz, beat, noise, level). Editable, versioned presets. Offline, no account, Shortcuts and URL actions. | **Respect:** "Describe the design, never the outcome." **Control and reversibility:** "Hold to keep" plus a what-changed diff. **n-of-1:** the blind A/B. **Social safety:** "Just working" skips the feelings, and there's a plain icon. |
+| **Sam** (autistic, "the regulator") | **Too much → Steady**: the locked layer, 10 s fade-in, capped volume, no drift, no animation. Plain-labels mode. Reduce Motion respected. | **Sameness as safety:** Hold to keep, so it never changes silently. **Agency:** Depth detents and a lockable ceiling. **No surprise UI:** no confetti, haptics or launch sound. **Not infantilized:** textile colours, a book serif, adult copy. **Hyper/hypo:** Barely to Wrapped on one gesture. |
+| **Priya** (sleep and longevity, "the protocol builder") | **Heavy-eyed → Evening descent** with a sleep fade to silence. Schedulable layers by time of day. Apple Health / Health Connect mindful minutes. | **Evidence literacy:** "What we know" with null results. **Beauty as a quality signal:** an Aesop-like textile palette, Literata. **Night UI:** a luminance cap. **Fewer, better tools:** one gesture and one sheet. |
+| **Leo** (student, "the grinder") | Mixes under YouTube and lectures at 1.5x. A generous free tier (the whole layer). A pomodoro option ("Take 5": the layer drops to Barely, plus one soft chime). The ear check for cheap earbuds. | **Permission to rest:** breaks are a depth, not a stop. **Progress without pressure:** weekly "kept you company" totals. **Belonging:** an optional anonymous "others tucked in right now" count. It's opt-in, off by default, uses no account and only a rotating token, and is cut if it can't ship to that standard. |
+| **Hannah** (skeptic, "prove it") | **Noise only** as a first-class mode. The honest-science sheet on first open. No health claims anywhere. | **Being right and still getting value:** the copy agrees the science is mixed. **The experiment:** "Try a blind comparison" (Session A or B). **Social safety:** a plain icon, a serious palette, no woo imagery. |
+| **Meditator** (secondary) | Calm and Sleep layers under a third-party guided track. A very gentle fade. An interval bell. | No UI noise. The breathing layer is optional and off by default. |
 
 ---
 
-## 12. Why this direction (vs. the category)
+## 12. Why this direction, and the risks we're watching
 
-- Every competitor sells **power**: "unlock", "boost", "hack", neural this, AI that. Tealight sells **company**, and that's the feeling the personas are actually missing when they reach for background sound. (Body doubling, "brown noise is my weighted blanket", "I just need *something* in the background.")
-- A candle is one of the oldest focus and calm technologies people have. It's universal, it isn't spiritual, and it isn't medical. It needs no explanation.
-- The split flame makes the *one technical requirement* (two ears, two tones) into the brand's most memorable visual. Teaching the headphone requirement becomes a moment of delight instead of a warning.
+**Why it wins:** it keeps the one emotional position nobody in the category owns (company, not power) and makes the brand's main object identical to the product's mechanism (a layer under). That removes round 1's biggest liabilities: the fire contradiction, a metaphor that needed a budget, the flicker trigger, and screen-share embarrassment. Tine (A) sells precision through a tool. Tuck sells being looked after, with precision one tap behind it.
+
+**Risks**
+- **Too cosy for Dev and Hannah.** Mitigation: "Just working", the plain icon, a spec card one tap away, and the metaphor limited to one line per screen.
+- **"Tuck" as a common verb in search.** Mitigation: the store name "Tuck: Sound Under Your Audio" and owned phrases ("tuck it under", "tucked in").
+- **The arrival question could feel intrusive.** Mitigation: it's one tap, optional, has "Same as last time?", can be switched to plain intent names, and is never stored unless you opt in.
+- **The pull gesture vs. accessibility.** Mitigation: a Start sound button, a VoiceOver action, Switch Control, widgets and Shortcuts all reach the same state.

@@ -74,15 +74,61 @@ export interface AudioContextLike {
   removeEventListener?(type: 'statechange', listener: () => void): void;
 }
 
+/**
+ * The last automation segment the helpers below scheduled on each param.
+ *
+ * Why: `AudioParam.value` is only refreshed once per render quantum, so right after scheduling
+ * (e.g. a fresh gain set to 0) it still reports the stale default (1). Browsers without
+ * cancelAndHoldAtTime (Firefox, incl. Android) need the current value to emulate a hold, and reading
+ * `.value` there turns a fade-in from 0 into an instant jump to 1 (a click). Tracking what we scheduled
+ * lets us compute the true value instead. Params never touched by these helpers fall back to `.value`.
+ */
+interface Segment {
+  startTime: number;
+  startValue: number;
+  endTime: number;
+  endValue: number;
+  curve: 'linear' | 'exponential' | 'step';
+}
+
+const segments = new WeakMap<AudioParamLike, Segment>();
+
+function segmentValueAt(s: Segment, t: number): number {
+  if (t >= s.endTime || s.endTime <= s.startTime) return s.endValue;
+  if (t <= s.startTime) return s.startValue;
+  const frac = (t - s.startTime) / (s.endTime - s.startTime);
+  if (s.curve === 'exponential' && s.startValue > 0 && s.endValue > 0) {
+    return s.startValue * Math.pow(s.endValue / s.startValue, frac);
+  }
+  return s.startValue + (s.endValue - s.startValue) * frac;
+}
+
+/**
+ * Best estimate of a param's value at `time`: computed from the tracked schedule when the helpers
+ * scheduled it, else `param.value`.
+ */
+export function paramValueAt(param: AudioParamLike, time: number): number {
+  const s = segments.get(param);
+  return s ? segmentValueAt(s, time) : param.value;
+}
+
+/** setValueAtTime that is also tracked (use this for every initial value on engine-owned params). */
+export function setParam(param: AudioParamLike, value: number, time: number): void {
+  if (!Number.isFinite(value) || !Number.isFinite(time)) return;
+  param.setValueAtTime(value, time);
+  segments.set(param, { startTime: time, startValue: value, endTime: time, endValue: value, curve: 'step' });
+}
+
 /** Freeze a param at its current value at `time`, cancelling later automation. */
 export function holdParam(param: AudioParamLike, time: number): void {
+  const v = paramValueAt(param, time);
   if (typeof param.cancelAndHoldAtTime === 'function') {
     param.cancelAndHoldAtTime(time);
   } else {
-    const v = param.value;
     param.cancelScheduledValues(time);
     param.setValueAtTime(v, time);
   }
+  segments.set(param, { startTime: time, startValue: v, endTime: time, endValue: v, curve: 'step' });
 }
 
 /**
@@ -101,15 +147,18 @@ export function rampParam(
   if (!Number.isFinite(target)) return;
   if (!Number.isFinite(durationSec)) durationSec = 0;
   if (!Number.isFinite(now)) return;
+  const from = paramValueAt(param, now);
   holdParam(param, now);
   if (curve === 'step' || durationSec <= 0) {
-    param.setValueAtTime(target, now);
+    setParam(param, target, now);
     return;
   }
   const end = now + durationSec;
-  if (curve === 'exponential' && target > 0 && param.value > 0) {
+  if (curve === 'exponential' && target > 0 && from > 0) {
     param.exponentialRampToValueAtTime(target, end);
+    segments.set(param, { startTime: now, startValue: from, endTime: end, endValue: target, curve: 'exponential' });
   } else {
     param.linearRampToValueAtTime(target, end);
+    segments.set(param, { startTime: now, startValue: from, endTime: end, endValue: target, curve: 'linear' });
   }
 }

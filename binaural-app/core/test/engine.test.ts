@@ -6,6 +6,7 @@ import {
   GAIN_STEP_SEC,
   NOISE_HEADROOM,
   TONE_HEADROOM,
+  RESUME_TIMEOUT_MS,
   WORST_CASE_PEAK,
   gainToDb,
   gainToVolume,
@@ -13,7 +14,7 @@ import {
   volumeToGain,
   type EngineState,
 } from '../src/audio/engine';
-import { MockAudioContext, MockBufferSource, MockGain, MockOscillator, flushMicrotasks, type MockNode } from './mockAudio';
+import { MockAudioContext, MockBufferSource, MockParam, MockGain, MockOscillator, flushMicrotasks, type MockNode } from './mockAudio';
 import { makeRig } from './helpers';
 
 function graph(ctx: MockAudioContext) {
@@ -153,6 +154,15 @@ describe('fades', () => {
     expect(rig.engine.getState().status).toBe('playing');
     expect(g.fadeGain.gain.value).toBeCloseTo(1);
     expect(rig.engine.getCurrentFrequencies().beatHz).toBeCloseTo(6);
+    // Derived state must follow too (UIs show band and ear frequencies).
+    expect(rig.engine.getState()).toMatchObject({ beatHz: 6, band: 'theta', leftHz: 197, rightHz: 203 });
+  });
+
+  it('start() with new params on a playing graph recomputes band and ear frequencies', async () => {
+    const rig = makeRig({ initial: { beatHz: 10, carrierHz: 200 } });
+    await rig.engine.start();
+    await rig.engine.start({ beatHz: 40, carrierHz: 300 });
+    expect(rig.engine.getState()).toMatchObject({ beatHz: 40, carrierHz: 300, band: 'gamma', leftHz: 280, rightHz: 320 });
   });
 
   it('stop() when idle is a no-op', async () => {
@@ -428,5 +438,200 @@ describe('events', () => {
     const s = rig.engine.getState();
     s.noise.type = 'white';
     expect(rig.engine.getState().noise.type).toBe('off');
+  });
+});
+
+describe('blocked / hanging resume()', () => {
+  async function settle<T>(p: Promise<T>): Promise<{ v?: T; e?: unknown; done: boolean }> {
+    const out: { v?: T; e?: unknown; done: boolean } = { done: false };
+    p.then(
+      (v) => Object.assign(out, { v, done: true }),
+      (e: unknown) => Object.assign(out, { e, done: true }),
+    );
+    await flushMicrotasks(10);
+    return out;
+  }
+
+  it('start() rejects with AudioBlockedError when resume() never settles (autoplay policy)', async () => {
+    const rig = makeRig({}, { deferResume: true });
+    const errors: Error[] = [];
+    rig.engine.on('error', (e) => errors.push(e));
+    const r = await settle(rig.engine.start());
+    expect(r.done).toBe(false);
+    rig.clock.advance(RESUME_TIMEOUT_MS - 1);
+    await flushMicrotasks(10);
+    expect(r.done).toBe(false);
+    rig.clock.advance(1);
+    await flushMicrotasks(10);
+    expect(r.done).toBe(true);
+    expect(r.e).toBeInstanceOf(AudioBlockedError);
+    expect(errors[0]).toBeInstanceOf(AudioBlockedError);
+    expect(rig.engine.getState().status).toBe('idle');
+    expect(rig.clock.pending()).toBe(0);
+  });
+
+  it('start() rejects with AudioBlockedError (not a raw error) when resume() rejects', async () => {
+    const rig = makeRig({}, { resumeRejects: true });
+    await expect(rig.engine.start()).rejects.toBeInstanceOf(AudioBlockedError);
+  });
+
+  it('a resume() that settles before the timeout starts normally and leaves no timer behind', async () => {
+    const rig = makeRig({}, { deferResume: true });
+    const r = await settle(rig.engine.start());
+    rig.ctx.settleResume();
+    await flushMicrotasks(10);
+    expect(r.done).toBe(true);
+    expect(r.e).toBeUndefined();
+    expect(rig.engine.getState().status).toBe('playing');
+    expect(rig.clock.pending()).toBe(0);
+  });
+
+  it('resume() after pause also times out into AudioBlockedError', async () => {
+    const rig = makeRig({ pauseFadeSec: 0.1 });
+    await rig.engine.start();
+    const p = rig.engine.pause();
+    await rig.advance(0.3);
+    await p;
+    expect(rig.ctx.state).toBe('suspended');
+    rig.ctx.opts.deferResume = true;
+    const r = await settle(rig.engine.resume());
+    rig.clock.advance(RESUME_TIMEOUT_MS);
+    await flushMicrotasks(10);
+    expect(r.e).toBeInstanceOf(AudioBlockedError);
+    expect(rig.engine.getState().status).toBe('paused');
+  });
+});
+
+describe('stop() releases the audio session', () => {
+  it('suspends the context after a faded stop', async () => {
+    const rig = makeRig({ fadeInSec: 0.5, fadeOutSec: 0.5 });
+    await rig.engine.start();
+    await rig.advance(0.5);
+    const p = rig.engine.stop();
+    await rig.advance(1);
+    await p;
+    expect(rig.engine.getState().status).toBe('idle');
+    expect(rig.ctx.state).toBe('suspended');
+    // and a later start() resumes it
+    await rig.engine.start();
+    expect(rig.ctx.state).toBe('running');
+    expect(rig.engine.getState().status).toBe('playing');
+  });
+
+  it('suspends after an immediate stop too, but not with suspendOnPause: false', async () => {
+    const rig = makeRig({ suspendOnPause: false, fadeOutSec: 0.2 });
+    await rig.engine.start();
+    const p = rig.engine.stop();
+    await rig.advance(0.5);
+    await p;
+    expect(rig.ctx.state).toBe('running');
+
+    const rig2 = makeRig({ pauseFadeSec: 0.1 }, { deferSuspend: true });
+    await rig2.engine.start();
+    // stop while the context is already suspended by pause: nothing more to do
+    const pp = rig2.engine.pause();
+    await rig2.advance(0.3);
+    rig2.ctx.settleSuspend();
+    await pp;
+    await rig2.engine.stop();
+    expect(rig2.ctx.state).toBe('suspended');
+    expect(rig2.engine.getState().status).toBe('idle');
+  });
+
+  it('start() racing the post-stop suspend still ends up audible', async () => {
+    const rig = makeRig({ fadeOutSec: 0.2 }, { deferSuspend: true });
+    await rig.engine.start();
+    const p = rig.engine.stop();
+    await rig.advance(0.5);
+    expect(rig.ctx.suspendCalls).toBe(1);
+    const s = rig.engine.start();
+    rig.ctx.settleSuspend();
+    await flushMicrotasks(10);
+    await s;
+    await p;
+    expect(rig.engine.getState().status).toBe('playing');
+    expect(rig.ctx.state).toBe('running');
+  });
+});
+
+describe('noise volume survives programs without a noise bed', () => {
+  it("start({ noise: off }) keeps the remembered volume, so setNoise({ type }) is audible", async () => {
+    const rig = makeRig({ initial: { noise: { type: 'off', volume: 0.4 } } });
+    await rig.engine.start({ noise: { type: 'off', volume: 0 } });
+    expect(rig.engine.getState().noise).toEqual({ type: 'off', volume: 0.4 });
+    rig.engine.setNoise({ type: 'pink' });
+    expect(rig.engine.getState().noise).toEqual({ type: 'pink', volume: 0.4 });
+    expect(rig.ctx.of('bufferSource')).toHaveLength(1);
+    rig.engine.setNoise({ type: 'off', volume: 0 });
+    expect(rig.engine.getState().noise.volume).toBe(0.4);
+  });
+});
+
+describe('browsers without cancelAndHoldAtTime and with a lagging AudioParam.value (Firefox)', () => {
+  const legacy = { legacyParams: true };
+
+  it('the mock really emulates the stale .value and missing cancelAndHoldAtTime', () => {
+    const ctx = new MockAudioContext(legacy);
+    const g = ctx.createGain();
+    expect(typeof (g.gain as MockParam).cancelAndHoldAtTime).not.toBe('function');
+    g.gain.setValueAtTime(0, 0);
+    expect(g.gain.value).toBe(1); // stale default until the next render quantum
+    ctx.tick(0.01);
+    expect(g.gain.value).toBe(0);
+  });
+
+  it('fades in from silence without a click', async () => {
+    const rig = makeRig({ fadeInSec: 2 }, legacy);
+    await rig.engine.start();
+    const { fadeGain } = graph(rig.ctx);
+    expect(fadeGain.gain.valueAt(0)).toBe(0);
+    expect(fadeGain.gain.valueAt(0.01)).toBeLessThan(0.01);
+    expect(fadeGain.gain.valueAt(1)).toBeCloseTo(0.5);
+    expect(fadeGain.gain.valueAt(2)).toBeCloseTo(1);
+  });
+
+  it('noise fades in from silence without a click', async () => {
+    const rig = makeRig({ fadeInSec: 1 }, legacy);
+    await rig.engine.start({ noise: { type: 'pink', volume: 1 } });
+    const src = rig.ctx.of<MockBufferSource>('bufferSource')[0]!;
+    const noiseGain = src.connections[0]!.dest as MockGain;
+    expect(noiseGain.gain.valueAt(0)).toBe(0);
+    expect(noiseGain.gain.valueAt(0.5)).toBeCloseTo(NOISE_HEADROOM / 2);
+    // and a colour switched on mid-play also starts from 0
+    await rig.advance(1.5);
+    rig.engine.setNoise({ type: 'white' }, 1);
+    const fresh = rig.ctx.of<MockBufferSource>('bufferSource')[1]!.connections[0]!.dest as MockGain;
+    expect(fresh.gain.valueAt(rig.ctx.currentTime)).toBe(0);
+  });
+
+  it('stop mid fade-in ramps down from the real current value (no jump up to full)', async () => {
+    const rig = makeRig({ fadeInSec: 2, fadeOutSec: 1 }, legacy);
+    await rig.engine.start();
+    await rig.advance(1, 1000); // one coarse "render quantum": .value refreshed once at t=1
+    rig.ctx.tick(0.0); // no refresh between scheduling and reading
+    const { fadeGain } = graph(rig.ctx);
+    const p = rig.engine.stop();
+    const t = rig.ctx.currentTime;
+    expect(fadeGain.gain.valueAt(t)).toBeCloseTo(0.5, 2);
+    expect(fadeGain.gain.valueAt(t + 0.5)).toBeCloseTo(0.25, 2);
+    await rig.advance(1.5);
+    await p;
+  });
+
+  it('pause/resume and glides stay continuous', async () => {
+    const rig = makeRig({ fadeInSec: 0.5, pauseFadeSec: 0.4, glideSec: 1, suspendOnPause: false }, legacy);
+    await rig.engine.start({ beatHz: 10, carrierHz: 200 });
+    await rig.advance(1);
+    const g = graph(rig.ctx);
+    rig.engine.setBeat(20, 1);
+    // A glide must start where the oscillator currently is.
+    expect(g.oscL.frequency.valueAt(rig.ctx.currentTime)).toBeCloseTo(195);
+    expect(g.oscR.frequency.valueAt(rig.ctx.currentTime)).toBeCloseTo(205);
+    const p = rig.engine.pause();
+    expect(g.fadeGain.gain.valueAt(rig.ctx.currentTime)).toBeCloseTo(1);
+    await rig.advance(0.5);
+    await p;
+    await rig.engine.resume();
+    expect(g.fadeGain.gain.valueAt(rig.ctx.currentTime)).toBeCloseTo(0);
   });
 });

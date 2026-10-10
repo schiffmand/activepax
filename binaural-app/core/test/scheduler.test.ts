@@ -3,7 +3,7 @@ import { ProgramPlayer, type SessionSummary } from '../src/scheduler';
 import { getBuiltInProgram, presetToProgram, type Program } from '../src/programs';
 import { getBuiltInPreset } from '../src/presets';
 import { makeRig } from './helpers';
-import type { MockOscillator, MockGain } from './mockAudio';
+import type { MockBufferSource, MockOscillator, MockGain } from './mockAudio';
 
 function setup(opts: { fadeOutSec?: number } = {}) {
   const rig = makeRig({ fadeInSec: 1, fadeOutSec: opts.fadeOutSec ?? 1, pauseFadeSec: 0.2 });
@@ -193,5 +193,20 @@ describe('ProgramPlayer', () => {
   it('getState when idle is sane', () => {
     const { player } = setup();
     expect(player.getState()).toMatchObject({ status: 'idle', programId: null, elapsedSec: 0, endsAtSec: null, remainingSec: null });
+  });
+
+  it('a program without a noise bed does not zero the noise volume (noise can be turned on afterwards)', async () => {
+    const { rig, player } = setup();
+    const arrive = getBuiltInProgram('arrive')!;
+    expect(arrive.start.noise).toBeUndefined();
+    await player.play(arrive);
+    expect(rig.engine.getState().noise.type).toBe('off');
+    expect(rig.engine.getState().noise.volume).toBeGreaterThan(0);
+    rig.engine.setNoise({ type: 'pink' }, 0.5);
+    const sources = rig.ctx.of<MockBufferSource>('bufferSource');
+    expect(sources).toHaveLength(1);
+    const g = sources[0]!.connections[0]!.dest as MockGain;
+    await rig.advance(1, 250);
+    expect(g.gain.value).toBeGreaterThan(0.01);
   });
 });

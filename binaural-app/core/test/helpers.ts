@@ -1,6 +1,6 @@
 import { createManualClock, type ManualClock } from '../src/clock';
 import { BinauralEngine, type EngineOptions } from '../src/audio/engine';
-import { MockAudioContext, flushMicrotasks } from './mockAudio';
+import { MockAudioContext, flushMicrotasks, type MockContextOptions } from './mockAudio';
 
 export interface Rig {
   ctx: MockAudioContext;
@@ -10,8 +10,8 @@ export interface Rig {
   advance(sec: number, stepMs?: number): Promise<void>;
 }
 
-export function makeRig(opts: Partial<EngineOptions> = {}): Rig {
-  const ctx = new MockAudioContext();
+export function makeRig(opts: Partial<EngineOptions> = {}, ctxOpts: MockContextOptions = {}): Rig {
+  const ctx = new MockAudioContext(ctxOpts);
   const clock = createManualClock(1_700_000_000_000);
   const engine = new BinauralEngine({ context: ctx, clock, ...opts });
   return {
