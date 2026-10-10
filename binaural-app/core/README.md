@@ -75,6 +75,10 @@ Because each gain has a single owner, the user's volume, the program's envelope 
 
 Parameter changes go through `rampParam`: cancel-and-hold at the current value, then an exponential ramp for frequencies (perceptually even) or a linear ramp for gains. So there is no zipper noise and no jumps, even when a new glide interrupts one already running. The helpers also track what they scheduled on each param (`setParam` for initial values, `paramValueAt` to read). Browsers without `cancelAndHoldAtTime` (Firefox, including Android) need the current value to emulate a hold, and `AudioParam.value` only refreshes once per render quantum: a fresh gain set to 0 still reads 1, which would turn every fade-in into a click. Tests cover this with `MockAudioContext({ legacyParams: true })`.
 
+Every hold ends with an explicit `setValueAtTime(v, now)` anchor, on every browser (round 3, audio B1). `cancelAndHoldAtTime` only inserts a hold when it cuts through a running automation event; once the param's last event has finished it inserts nothing, and the next ramp would interpolate from that old event (Stop after a long session became a cut, and level changes clicked). The mock's `cancelAndHoldAtTime` follows the spec, `test/fade.test.ts` covers Stop after 60 s and 25 min and a level change after 12 s, and `node tools/ramp-check.mjs` renders the same cases in Chromium's `OfflineAudioContext`.
+
+A beat of exactly 0 Hz (`SHAM_BEAT_HZ`) is accepted by the engine: the same carrier in both ears, the control arm of a blind comparison. Presets still validate to `LIMITS.beatHz.min`.
+
 ---
 
 ## API

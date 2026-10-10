@@ -67,7 +67,7 @@ export function firstPickLine(chip: ChipId, labels: Labels): string {
   return labels === 'plain' ? `This is the layer for ${name}. It isn’t a treatment.` : `This is what we play when you pick ${name}. It isn’t a treatment.`;
 }
 
-/** Morning, Afternoon, Evening, or nothing between midnight and 04:00 (the line then reads "Tuck"). */
+/** Morning, Afternoon, Evening, or nothing between midnight and 04:00 (no greeting line at all then). */
 export function greetingFor(hour: number): string | null {
   if (hour >= 4 && hour < 12) return 'Morning.';
   if (hour >= 12 && hour < 18) return 'Afternoon.';
@@ -90,8 +90,9 @@ export function elapsedWords(sec: number): string {
   return r ? `${h}${nb}h${nb}${r}${nb}min` : `${h}${nb}h`;
 }
 
+/** Totals use the same rule as a single session (round 4, N4): whole minutes, rounded down. */
 export function durationWords(sec: number): string {
-  const m = Math.round(sec / 60);
+  const m = minutes(sec);
   const nb = '\u00A0';
   if (m < 60) return `${m}${nb}min`;
   const h = Math.floor(m / 60);
@@ -116,9 +117,12 @@ export const copy = {
   /** The status line during Take 5 and during a Cycles break. */
   statusBreak: (l: Labels, min = 5) => (l === 'plain' ? `Break, ${min} min.` : min === 5 ? 'Five minutes off.' : `${min} minutes off.`),
   /** The felt during Take 5: where the break goes, no countdown. */
-  takeFiveFelt: (l: Labels) => (l === 'plain' ? 'Break ends at 5 min' : 'Back in 5 min'),
+  takeFiveFelt: (l: Labels) => (l === 'plain' ? 'Break, 5 min' : '5 min at Quiet'),
+  /** Round 3 (Leo): "Back in 5 min … then it fades out" read as a contradiction. Say what happens, in order. */
   takeFiveSub: (l: Labels, chime: boolean) =>
-    l === 'plain' ? `Level Quiet.${chime ? ' One chime at the end.' : ''}` : `At Quiet.${chime ? ' One soft chime at the end, then it fades out.' : ' Then it fades out.'}`,
+    l === 'plain'
+      ? `Level Quiet.${chime ? ' One chime,' : ''} then it fades out and offers another round.`
+      : `${chime ? 'A soft chime, then it fades' : 'Then it fades'} and asks if you want another round.`,
   vary: (l: Labels) => (l === 'plain' ? 'Vary: applies from your next session. A different noise each time.' : 'Vary: from your next session, a different noise bed each time.'),
   homeSame: (l: Labels) => (l === 'plain' ? 'Last layer:' : 'Same as last time?'),
   homeFirst: (l: Labels) => (l === 'plain' ? 'Pick a layer.' : 'How are you arriving?'),
@@ -152,3 +156,6 @@ export function readoutText(l: Layer): string {
   if (!l.binaural) return `Noise only · ${l.noise.type} ${Math.round(l.noise.volume * 100)}%`;
   return `${hz(l.beatHz)} Hz`;
 }
+
+/** Only when a session was actually playing: it faded out because the headphones went (Home notice and the sheet). */
+export const HP_DISCONNECTED_MID = 'Headphones disconnected, so Tuck faded out. Start plays noise only until they’re back.';

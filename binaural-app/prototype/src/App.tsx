@@ -1,5 +1,5 @@
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { session } from './audio/session';
 import { LEVELS } from './tuck/layers';
 import { store } from './tuck/store';
@@ -51,12 +51,7 @@ export function App() {
                 </Device>
               </div>
             </div>
-            <aside className={wide ? 'justify-self-start w-[340px] max-h-[92vh] overflow-y-auto scroll-soft pr-1' : 'w-full max-w-[520px]'} aria-label="Prototype controls">
-              <p className="text-[1rem] font-bold text-[#AEB2A0] mb-3 px-1">Prototype controls</p>
-              <div className="tuck-theme" data-theme="night">
-                <DemoControls />
-              </div>
-            </aside>
+            <ControlsPanel wide={wide} />
           </div>
         ) : (
           <div className="relative h-[100dvh] w-full">
@@ -65,6 +60,53 @@ export function App() {
         )}
       </div>
     </MotionConfig>
+  );
+}
+
+/**
+ * Prototype controls beside the phone. On a short desktop window the panel scrolls; a sticky cue at its bottom
+ * says there's more (round 3: it was cut off at "Run the…" with no sign it scrolled).
+ */
+function ControlsPanel({ wide }: { wide: boolean }) {
+  const ref = useRef<HTMLElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !wide) return setMore(false);
+    const update = () => setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 8);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [wide]);
+  return (
+    <aside ref={ref} className={wide ? 'relative justify-self-start w-[340px] max-h-[92vh] overflow-y-auto scroll-soft pr-1' : 'w-full max-w-[520px]'} aria-label="Prototype controls">
+      <div>
+        <p className="text-[1rem] font-bold text-[#AEB2A0] mb-3 px-1">Prototype controls</p>
+        <div className="tuck-theme" data-theme="night">
+          <DemoControls />
+        </div>
+      </div>
+      {more && (
+        <div className="sticky bottom-0 -mt-16 h-16 flex items-end justify-center pb-1 pointer-events-none" style={{ background: 'linear-gradient(to bottom, transparent, #121612 70%)' }}>
+          <button
+            type="button"
+            className="pointer-events-auto min-h-10 px-4 rounded-full text-[0.9375rem] font-medium text-[#E9E4D6] bg-[#272E27] border border-[#3A423A]"
+            onClick={() => ref.current?.scrollBy({ top: 320, behavior: 'smooth' })}
+            data-testid="controls-more"
+          >
+            More controls below ↓
+          </button>
+        </div>
+      )}
+    </aside>
   );
 }
 

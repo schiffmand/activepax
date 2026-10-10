@@ -133,15 +133,23 @@ export function setParam(param: AudioParamLike, value: number, time: number): vo
   segments.set(param, { startTime: time, startValue: value, endTime: time, endValue: value, curve: 'step' });
 }
 
-/** Freeze a param at its current value at `time`, cancelling later automation. */
+/**
+ * Freeze a param at its current value at `time`, cancelling later automation.
+ *
+ * Always ends with an explicit `setValueAtTime(v, time)` anchor. `cancelAndHoldAtTime` only inserts a
+ * hold when it cuts through an active automation event; once the param's last event has finished it
+ * inserts nothing, and the next ramp would then interpolate from that old event's time and value
+ * (an instant jump: Stop after a long session cut 27 dB in a second, and level changes clicked).
+ * The explicit anchor makes every following ramp start from `v` at `time` on every engine.
+ */
 export function holdParam(param: AudioParamLike, time: number): void {
   const v = paramValueAt(param, time);
   if (typeof param.cancelAndHoldAtTime === 'function') {
     param.cancelAndHoldAtTime(time);
   } else {
     param.cancelScheduledValues(time);
-    param.setValueAtTime(v, time);
   }
+  param.setValueAtTime(v, time);
   segments.set(param, { startTime: time, startValue: v, endTime: time, endValue: v, curve: 'step' });
 }
 

@@ -6,6 +6,7 @@
  * data and hands them to the real core engine via presetToProgram / ProgramPlayer. Nothing here touches audio.
  */
 import {
+  SHAM_BEAT_HZ,
   bandFor,
   earFrequencies,
   presetToProgram,
@@ -27,7 +28,8 @@ export const LEVEL_VOLUME: Record<LevelName, number> = { quiet: 0.16, medium: 0.
 export const LEVEL_LABEL: Record<LevelName, string> = { quiet: 'Quiet', medium: 'Medium', full: 'Full' };
 /** tokens.json → layer.restHeight (px above the bottom safe area). */
 /** Round 2: raised by 40 to 70 px so the felt (stitch, time, timer) is the playing screen's centre, not a dead band above it. */
-export const LAYER_HEIGHT = { idle: 300, quiet: 400, medium: 470, full: 540 } as const;
+/** Round 4: playing heights raised (Medium +60) so the top band holds only the status, the name and one line. */
+export const LAYER_HEIGHT = { idle: 300, quiet: 450, medium: 530, full: 580 } as const;
 
 export interface Layer {
   id: string;
@@ -103,7 +105,7 @@ export const BUILT_IN_LAYERS: readonly Layer[] = Object.freeze([
 ]);
 
 export const INTENT_ORDER: readonly IntentId[] = ['focus', 'calm', 'unwind', 'sleep', 'steady'];
-export const INTENT_SHORT: Record<IntentId, string> = { focus: 'Focus', calm: 'Calm', unwind: 'Unwind', sleep: 'Sleep', steady: 'Steady' };
+export const INTENT_SHORT: Record<IntentId, string> = { focus: 'Focus', calm: 'Calm', unwind: 'Unwind', sleep: 'Evening descent', steady: 'Steady' };
 
 export function builtInLayer(id: string): Layer | undefined {
   return BUILT_IN_LAYERS.find((l) => l.id === id);
@@ -112,6 +114,16 @@ export function builtInLayer(id: string): Layer | undefined {
 /** A noise-only twin of a layer ("More layers" and the headphone fallbacks). */
 export function noiseOnlyOf(l: Layer): Layer {
   return { ...l, id: `${l.id}~noise`, name: `${l.name}, noise only`, binaural: false, noise: l.noise.type === 'off' ? { type: 'brown', volume: 0.3 } : l.noise };
+}
+
+/**
+ * The control arm of a blind comparison: the same carrier in both ears (a 0 Hz beat, core SHAM_BEAT_HZ),
+ * at the same tone level, with the same noise. It sounds like the layer (same hum, same bed) and differs only
+ * in the beat, so the two arms can't be told apart by timbre. Round 3 audio B4: a noise-only arm could.
+ * Held still (no drift, no journey); it keeps the layer's id so the comparison's bookkeeping is unchanged.
+ */
+export function shamOf(l: Layer): Layer {
+  return { ...l, beatHz: SHAM_BEAT_HZ, binaural: true, journey: undefined, driftHz: 0, motion: 'hold' };
 }
 
 /** Evening descent as a core Program: 8 → 4 → 2 Hz over 30 min, then 15 min low, then a 60 s fade to silence. */
@@ -185,6 +197,19 @@ export const ears = (l: Pick<Layer, 'beatHz' | 'carrierHz'>) => {
   const { leftHz, rightHz } = earFrequencies(l.carrierHz, l.beatHz);
   return { left: round1(leftHz), right: round1(rightHz) };
 };
+
+/**
+ * The numbers the readout shows, always self-consistent (R − L = the beat shown). A journey shows where the
+ * sound is right now while it plays, and its start values otherwise (round 4: "7.8 Hz · L 136 / R 144").
+ */
+export function readoutNumbers(l: Layer, live: { beatHz: number; carrierHz: number } | null): { beat: number; left: number; right: number } {
+  if (!l.journey || !live) {
+    const e = ears(l);
+    return { beat: l.beatHz, left: e.left, right: e.right };
+  }
+  const e = ears(live);
+  return { beat: round1(e.right - e.left), left: e.left, right: e.right };
+}
 
 export function round1(v: number): number {
   return Math.round(v * 10) / 10;

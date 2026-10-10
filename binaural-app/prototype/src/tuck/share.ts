@@ -1,6 +1,6 @@
 /**
  * The shareable layer card: exact numbers and a link that opens the same layer in Tuck. No claims,
- * no personal data. Format: ?layer=<beat>,<carrier>,<noise>,<noise %>,<motion>,<beat on 1|0>,<name>
+ * no personal data. Format: ?layer=<beat>,<carrier>,<noise>,<noise %>,<motion>,<beat on 1|0>,<name>[&note=<a word from the sharer>]
  */
 import { validateTone } from '@core';
 import { ears, hz, type Layer, type Motion } from './layers';
@@ -16,10 +16,21 @@ export function shareText(l: Layer): string {
 }
 
 /** The full link (copied, never shown raw). Brand §1: the domain is tuckapp. */
-export function shareLink(l: Layer): string {
+export function shareLink(l: Layer, note = ''): string {
   const motion = l.motion === 'hold' ? 'hold' : 'drift';
   const v = [hz(l.beatHz), hz(l.carrierHz), l.noise.type, Math.round(l.noise.volume * 100), motion, l.binaural ? 1 : 0, encodeURIComponent(l.name)].join(',');
-  return `https://tuckapp.com/l?layer=${v}`;
+  const n = cleanNote(note);
+  return `https://tuckapp.com/l?layer=${v}${n ? `&note=${encodeURIComponent(n)}` : ''}`;
+}
+
+/**
+ * The sharer's optional word of context ("for reading"). It's the only personal field and it's opt-in:
+ * letters, digits, spaces and apostrophes, at most 24 characters. Anything else is dropped, never "fixed".
+ */
+export const NOTE_MAX = 24;
+export function cleanNote(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return raw.replace(/[^\p{L}\p{N} '’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX);
 }
 
 /** What the share sheet shows instead of the raw query. */

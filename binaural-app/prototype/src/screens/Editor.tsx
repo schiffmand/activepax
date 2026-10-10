@@ -112,9 +112,16 @@ export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boole
           aria-valuetext={`${hz(d.beatHz)} hertz`}
           data-testid="editor-beat-slider"
         />
-        <p id="beat-ears" className="tnum text-[1.25rem] font-medium flex gap-4" aria-live="polite">
-          <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)} Hz</span>
-          <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)} Hz</span>
+        {/* Never derive ear frequencies from an invalid beat (round 4: 99 Hz showed L 157.5 / R 256.5). */}
+        <p id="beat-ears" className="tnum text-[1.25rem] font-medium flex gap-4" aria-live="polite" data-testid="editor-ears">
+          {errors.length > 0 ? (
+            <span className="text-ink2 text-[1rem] leading-[1.375rem] font-normal">L and R show once the beat is in range.</span>
+          ) : (
+            <>
+              <span className="whitespace-nowrap" style={{ color: 'var(--c-left)' }}>L&nbsp;{hz(e.left)}&nbsp;Hz</span>
+              <span className="whitespace-nowrap" style={{ color: 'var(--c-right)' }}>R&nbsp;{hz(e.right)}&nbsp;Hz</span>
+            </>
+          )}
         </p>
         <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="editor-range">
           {LIMITS.beatHz.min}–45 Hz on the slider, steps of 0.1 Hz. Type any value from {LIMITS.beatHz.min} to {LIMITS.beatHz.max} Hz.

@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from 'react';
 import { session } from '../audio/session';
 import { otherApp } from '../audio/otherApp';
+import { setSwap } from '../audio/hub';
 import { store } from '../tuck/store';
 import type { ChipId } from '../tuck/copy';
 import type { Layer, Motion } from '../tuck/layers';
 
 export type Page = 'home' | 'settings' | 'science' | 'studies' | 'mixing' | 'week' | 'plus' | 'editor' | 'lock' | 'blind';
-export type Sheet = null | 'picker' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete' | 'share' | 'anywhere';
+export type Sheet = null | 'picker' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete' | 'share' | 'anywhere' | 'export';
 export type Headphone = 'stereoOk' | 'speaker' | 'oneEar' | 'callMode' | 'mono' | 'spatial' | 'swapped' | 'disconnected' | 'unknown';
 
 export interface UiState {
@@ -41,10 +42,19 @@ export interface UiState {
   anchor: 'beat' | 'noise' | null;
   /** A layer opened from a shared link, waiting to be saved or played. */
   shared: Layer | null;
+  /** The sharer's optional word of context, from the link (?note=). */
+  sharedNote: string;
+  /** The shared link was this person's first visit (no setup yet): they may well be on a speaker. */
+  sharedNew: boolean;
   /** The idle layer sits lower when Home's top content needs the room (a notice plus the chips). */
   compactIdle: boolean;
   /** The layer's measured minimum height (handle + controls + a little felt). Grows with large text. */
   layerMinH: number;
+  /** Playing: the height Home's top needs (top bar, any pill or notice, status, name, the glance line). The layer
+   *  rests no higher than leaves this visible at default text sizes (round 4: Full covered the glance line). */
+  playTopH: number;
+  /** The export sheet: 'sent' = handed to the browser; 'framed' = in a viewer that may block files; 'failed'. */
+  exportTried: 'sent' | 'framed' | 'failed' | null;
 }
 
 const initial: UiState = {
@@ -68,8 +78,12 @@ const initial: UiState = {
   draft: null,
   anchor: null,
   shared: null,
+  sharedNew: false,
+  sharedNote: '',
   compactIdle: false,
   layerMinH: 0,
+  playTopH: 0,
+  exportTried: null,
 };
 
 class Ui {
@@ -105,6 +119,10 @@ class Ui {
     if (this.s.hourOverride !== null) d.setHours(this.s.hourOverride);
     return d;
   }
+  /** A moment on the prototype's clock (?hour= shifts it), for anything shown or exported: times then agree. */
+  appTime(ms: number): Date {
+    return new Date(ms + (this.now().getTime() - Date.now()));
+  }
   clearToast() {
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.s.toast) this.set({ toast: null });
@@ -127,3 +145,17 @@ export const useOther = () => useSyncExternalStore(otherApp.subscribe, otherApp.
 
 /** Headphone states that stop the beat from forming (noise only is forced unless the user overrides). */
 export const FORCES_NOISE: Headphone[] = ['speaker', 'oneEar', 'callMode', 'mono', 'disconnected'];
+
+/**
+ * Left/right swap follows the setting and the detected route at any time, not only at Start: a route that
+ * turns up swapped mid-session is rewired inside a 50 ms dip (hub.setSwap). Round 3 audio: the swap used to
+ * wait for the next session.
+ */
+export function wantSwap(): boolean {
+  return store.get().prefs.swapChannels || ui.get().headphone === 'swapped';
+}
+const syncSwap = () => setSwap(wantSwap());
+store.subscribe(syncSwap);
+ui.subscribe(syncSwap);
+syncSwap();
+

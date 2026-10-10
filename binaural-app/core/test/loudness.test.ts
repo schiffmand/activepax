@@ -127,6 +127,72 @@ describe('noise loudness', () => {
     expect(out).toBeLessThan(-41);
   });
 
+  // Round 4 (audio A1/A2): match noise only to each built-in layer in integrated loudness (K-weighted), not RMS,
+  // with the layer's own carrier and noise colour. The Beat Off endpoint is the same noise-only target, so A2's
+  // +0.7 dB RMS rise is this match (brown noise needs more RMS than a 200 Hz tone for the same LKFS).
+  const LAYERS = [
+    { id: 'focus', carrier: 207, beat: 14, noise: 'brown', v: 0.25 },
+    { id: 'calm', carrier: 180, beat: 10, noise: 'pink', v: 0.2 },
+    { id: 'unwind', carrier: 160, beat: 6, noise: 'pink', v: 0.25 },
+    { id: 'evening descent (start)', carrier: 140, beat: 8, noise: 'brown', v: 0.35 },
+    { id: 'steady', carrier: 180, beat: 10, noise: 'brown', v: 0.35 },
+    { id: 'long focus', carrier: 220, beat: 16, noise: 'pink', v: 0.2 },
+  ] as const;
+  const layerVsNoiseOnly = (c: (typeof LAYERS)[number]) => {
+    const n = noise(c.noise);
+    const l = sine(c.carrier - c.beat / 2, TONE_HEADROOM);
+    const r = sine(c.carrier + c.beat / 2, TONE_HEADROOM);
+    const layer = lkfs(
+      l.map((b, i) => b + n.l[i]! * noiseVolumeToGain(c.v)),
+      r.map((b, i) => b + n.r[i]! * noiseVolumeToGain(c.v)),
+    );
+    const only = lkfs(scale(n.l, noiseOnlyGain(c.v)), scale(n.r, noiseOnlyGain(c.v)));
+    const rms = (x: Float32Array, y: Float32Array) => 10 * Math.log10((meanSquare(x) + meanSquare(y)) / 2);
+    const layerRms = rms(
+      l.map((b, i) => b + n.l[i]! * noiseVolumeToGain(c.v)),
+      r.map((b, i) => b + n.r[i]! * noiseVolumeToGain(c.v)),
+    );
+    const onlyRms = rms(scale(n.l, noiseOnlyGain(c.v)), scale(n.r, noiseOnlyGain(c.v)));
+    return { lu: only - layer, rmsDb: onlyRms - layerRms };
+  };
+
+  it('every built-in layer: noise only (and Beat Off) is within 1 LU of the layer, K-weighted', () => {
+    for (const c of LAYERS) {
+      const d = layerVsNoiseOnly(c);
+      expect(Math.abs(d.lu), `${c.id}: ${d.lu.toFixed(2)} LU`).toBeLessThan(1);
+    }
+    // The RMS difference the round-4 panel measured on Focus (+0.7 dB) is the loudness match, not an error.
+    const focus = layerVsNoiseOnly(LAYERS[0]);
+    expect(focus.rmsDb).toBeGreaterThan(0);
+    expect(focus.rmsDb).toBeLessThan(1.5);
+  });
+
+  it('true peak (4x oversampled) of the hottest case, brown noise only at Full, stays under -1 dBTP', () => {
+    const FULL = 0.42;
+    const n = noise('brown');
+    const g = noiseOnlyGain(0.35) * volumeToGain(FULL);
+    const x = scale(n.l.subarray(0, SR * 4), g);
+    // 4x oversampling with a 64-tap Hann-windowed sinc (BS.1770-4 Annex 2 style).
+    const taps = 64;
+    let tp = 0;
+    for (let i = taps / 2; i < x.length - taps / 2; i++) {
+      for (let ph = 0; ph < 4; ph++) {
+        let acc = 0;
+        for (let k = -taps / 2 + 1; k <= taps / 2; k++) {
+          const t = k - ph / 4;
+          const sinc = t === 0 ? 1 : Math.sin(Math.PI * t) / (Math.PI * t);
+          const w = 0.5 + 0.5 * Math.cos((Math.PI * t) / (taps / 2));
+          acc += x[i + k]! * sinc * w;
+        }
+        tp = Math.max(tp, Math.abs(acc));
+      }
+    }
+    const dbtp = 20 * Math.log10(tp);
+    expect(dbtp).toBeLessThan(-1);
+    // And it sits where the panel predicted: around -11 dBTP, far from the -1 dBFS ceiling (PEAK_CEILING).
+    expect(dbtp).toBeGreaterThan(-16);
+  });
+
   it('formats dB with a true minus sign', () => {
     expect(formatDb(-12.04)).toBe('−12 dB');
     expect(formatDb(-31.1, 'dBFS')).toBe('−31 dBFS');

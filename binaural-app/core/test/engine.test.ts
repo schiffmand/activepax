@@ -640,3 +640,27 @@ describe('browsers without cancelAndHoldAtTime and with a lagging AudioParam.val
     expect(g.fadeGain.gain.valueAt(rig.ctx.currentTime)).toBeCloseTo(0);
   });
 });
+
+describe('sham beat for a blind comparison (round 3 audio B4)', () => {
+  it('0 Hz plays the same carrier in both ears, at the same tone level as the beat arm', async () => {
+    const beat = makeRig({ initial: { beatHz: 14, carrierHz: 207, volume: 0.5 } });
+    await beat.engine.start();
+    const sham = makeRig({ initial: { beatHz: 0, carrierHz: 207, volume: 0.5 } });
+    await sham.engine.start();
+    const b = graph(beat.ctx);
+    const s = graph(sham.ctx);
+    expect(s.oscL.frequency.value).toBeCloseTo(207);
+    expect(s.oscR.frequency.value).toBeCloseTo(207);
+    expect(b.oscR.frequency.value - b.oscL.frequency.value).toBeCloseTo(14);
+    await beat.advance(10);
+    await sham.advance(10);
+    expect(s.toneGain.gain.value * s.levelGain.gain.value * s.volumeGain.gain.value * s.fadeGain.gain.value).toBeCloseTo(
+      b.toneGain.gain.value * b.levelGain.gain.value * b.volumeGain.gain.value * b.fadeGain.gain.value,
+      6,
+    );
+  });
+  it('other small beats still clamp to the minimum', () => {
+    expect(sanitizeTone(0.1, 200).beatHz).toBe(0.5);
+    expect(sanitizeTone(0, 200).beatHz).toBe(0);
+  });
+});

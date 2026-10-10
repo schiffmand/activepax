@@ -56,7 +56,7 @@ export function SpecCard({
         </div>
         <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] text-ink text-center -mt-3">{blind === 'pending' ? 'A or B' : `Layer ${blind}`}</p>
         <p className="text-[1rem] leading-6 text-ink mt-4 text-center max-w-[34ch] mx-auto">
-          This is a blind comparison. One label has the beat and one is noise only, loudness-matched, at Medium and held still. The numbers stay hidden until you reveal the result, so they
+          This is a blind comparison. One label has the beat. The other plays the same tones with no beat (the same pitch in both ears), at the same level, at Medium and held still. The numbers stay hidden until you reveal the result, so they
           can’t sway you.
         </p>
       </div>
@@ -108,12 +108,13 @@ export function SpecCard({
             <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] tracking-[-0.01em] text-ink" aria-label={`${hz(layer.beatHz)} hertz beat`}>
               {layer.journey ? '8 → 2 Hz' : `${hz(layer.beatHz)} Hz`}
             </p>
-            <p className="tnum text-[1.25rem] leading-7 font-medium mt-2">
-              <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)} Hz</span>
+            <p className="tnum text-[1.25rem] leading-7 font-medium mt-2 flex flex-wrap justify-center">
+              {/* Each ear keeps its label with its value; the line may wrap only at the dot (round 4, N3). */}
+              <span className="whitespace-nowrap" style={{ color: 'var(--c-left)' }}>L&nbsp;{hz(e.left)}&nbsp;Hz</span>
               <span className="text-ink2 mx-3" aria-hidden>
                 ·
               </span>
-              <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)} Hz</span>
+              <span className="whitespace-nowrap" style={{ color: 'var(--c-right)' }}>R&nbsp;{hz(e.right)}&nbsp;Hz</span>
             </p>
             <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="spec-carrier">
               Carrier {hz(layer.carrierHz)} Hz: the pitch both tones sit around.

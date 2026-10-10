@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createCustomPreset } from '@core';
 import { session } from '../audio/session';
 import { CYCLE } from '../audio/session';
@@ -10,7 +10,9 @@ import { FORCES_NOISE, ui, type Headphone } from '../ui/state';
 import { Button, Sheet, Stitch, cx } from '../ui/kit';
 import { IconAB, IconBolt, IconCheck, IconMix, IconPage, IconPlus, IconSettings, IconWeek, IconHeadphones, IconLayer } from '../ui/icons';
 import { DemoControls } from '../demo/DemoControls';
-import { SHARE_LINK_LABEL, shareLink, shareText } from '../tuck/share';
+import { HP_DISCONNECTED_MID } from '../tuck/copy';
+import { NOTE_MAX, SHARE_LINK_LABEL, cleanNote, shareLink, shareText } from '../tuck/share';
+import { copyText, exportFile, inFrame, tryDownload } from '../ui/exporting';
 
 export function Sheets() {
   const t = useTuck();
@@ -41,6 +43,9 @@ export function Sheets() {
       </Sheet>
       <Sheet open={u.sheet === 'anywhere'} onClose={close} title="Start without opening Tuck" reduced={reduced} testid="sheet-anywhere" tall>
         <AnywhereSheet />
+      </Sheet>
+      <Sheet open={u.sheet === 'export'} onClose={close} title="Export" reduced={reduced} testid="sheet-export" tall>
+        <ExportSheet />
       </Sheet>
       <Sheet open={u.sheet === 'demo'} onClose={close} title="Prototype controls" reduced={reduced} testid="sheet-demo" tall>
         <DemoControls compact />
@@ -370,13 +375,16 @@ const HP_FULL: Partial<Record<Headphone, { text: string; actions: ('noise' | 'ch
     how: 'In Control Center, press and hold the volume slider, then turn Spatial Audio off.',
   },
   swapped: { text: 'Your left and right seem swapped. Tuck swaps them back for you, so L 200 still reaches your left ear. The beat is the same either way.', actions: ['ok', 'check'] },
-  disconnected: { text: 'Headphones disconnected, so Tuck faded out.', actions: [] },
+  disconnected: { text: 'No headphones connected, so Start plays noise only. Connect headphones to hear the beat.', actions: [] },
 };
+/** Only when a session was actually playing: it faded out because the headphones went. */
 
 function HeadphonesSheet() {
-  const { u, prefs } = useTuck();
+  const { u, prefs, s } = useTuck();
   const [showHow, setShowHow] = useState(false);
-  const c = HP_FULL[u.headphone];
+  const base = HP_FULL[u.headphone];
+  // Literal: "faded out" only if something was playing and faded out.
+  const c = base && u.headphone === 'disconnected' && s.notice === 'disconnected' ? { ...base, text: HP_DISCONNECTED_MID } : base;
   if (!c) return <p className="text-[1rem] leading-6 text-ink">Stereo headphones are connected. Each ear gets its own tone.</p>;
   const forced = FORCES_NOISE.includes(u.headphone);
   const act = {
@@ -430,9 +438,11 @@ function ShareSheet() {
   const t = useTuck();
   const l = store.findLayer(t.u.draftFrom) ?? t.layer;
   const e = ears(l);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const fallbackRef = useRef<HTMLTextAreaElement>(null);
+  const [note, setNote] = useState('');
   const text = shareText(l);
-  const link = shareLink(l);
+  const link = shareLink(l, note);
   return (
     <div data-testid="share-sheet">
       {/* The card people post: exact numbers, no claims. */}
@@ -463,18 +473,59 @@ function ShareSheet() {
       <p className="text-[1rem] leading-6 text-ink2" data-testid="share-link">
         With a {SHARE_LINK_LABEL} that opens it in Tuck.
       </p>
+      <div className="mt-4">
+        <label htmlFor="share-note" className="block text-[1rem] font-medium text-ink mb-2">
+          A word for them <span className="font-normal text-ink2">(optional)</span>
+        </label>
+        <input
+          id="share-note"
+          type="text"
+          value={note}
+          maxLength={NOTE_MAX}
+          placeholder="for reading"
+          onChange={(e) => {
+            setNote(cleanNote(e.target.value) + (e.target.value.endsWith(' ') ? ' ' : ''));
+            setCopied('idle');
+          }}
+          className="w-full h-12 rounded-[14px] bg-bg px-3 text-[1rem] text-ink border-[1.5px] border-edge placeholder:text-ink2/70"
+          data-testid="share-note"
+        />
+        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">They see it in quotes above the layer. Leave it empty to send the numbers only.</p>
+      </div>
       <Button
         full
         className="mt-4"
         data-testid="share-copy"
-        onClick={() => {
-          void navigator.clipboard?.writeText(`${text} ${link}`).catch(() => undefined);
-          setCopied(true);
+        onClick={async () => {
+          // "Copied" only when the copy really happened; otherwise the text is shown selected to copy by hand.
+          const ok = await copyText(`${text} ${link}`, fallbackRef.current);
+          setCopied(ok ? 'copied' : 'failed');
         }}
       >
-        {copied ? 'Copied' : 'Copy text and link'}
+        {copied === 'copied' ? 'Copied' : 'Copy text and link'}
       </Button>
-      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">The link opens this exact layer in Tuck. It carries the numbers only: no name of yours, no account, nothing about how you use it.</p>
+      <div role="status" aria-live="polite" data-testid="share-copy-status">
+        {copied === 'failed' && (
+          <>
+            <p className="text-[1rem] leading-6 text-ink mt-3">Copy didn’t work here. The text is selected below: copy it yourself.</p>
+            <label htmlFor="share-fallback" className="sr-only">Text and link to copy</label>
+          </>
+        )}
+      </div>
+      <textarea
+        id="share-fallback"
+        ref={fallbackRef}
+        readOnly
+        value={`${text} ${link}`}
+        rows={3}
+        aria-hidden={copied !== 'failed'}
+        tabIndex={copied === 'failed' ? 0 : -1}
+        onFocus={(e) => e.currentTarget.select()}
+        className={cx('w-full rounded-[14px] bg-bg border-[1.5px] border-edge px-3 py-2 text-[0.875rem] leading-5 text-ink resize-none', copied === 'failed' ? 'mt-2' : 'sr-only')}
+        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+        data-testid="share-fallback"
+      />
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">The link opens this exact layer in Tuck. It carries the numbers, and your word if you add one: no name of yours, no account, nothing about how you use it.</p>
     </div>
   );
 }
@@ -502,6 +553,95 @@ function AnywhereSheet() {
         ))}
       </dl>
       <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">In this prototype these are described, not wired: phones add them from Settings and the Shortcuts app.</p>
+    </div>
+  );
+}
+
+// ───────────────────────────── export ─────────────────────────────
+
+/**
+ * The file itself, always on screen, so an export can never end in nothing. Copy all is the one action;
+ * saving a file is offered as a text link with honest wording about what this viewer allows.
+ */
+function ExportSheet() {
+  const { u } = useTuck();
+  const f = exportFile();
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [retried, setRetried] = useState(false);
+  useEffect(() => {
+    setCopy('idle');
+    setRetried(false);
+  }, [f]);
+  if (!f) return null;
+  const lines = f.body.split('\n').length;
+  const kb = new Blob([f.body]).size / 1024;
+  const size = kb < 1 ? `${new Blob([f.body]).size} bytes` : `${kb.toFixed(1)} kB`;
+  const status =
+    u.exportTried === 'sent' && !retried
+      ? <>Sent <span className="whitespace-nowrap">{f.name}</span> to your browser’s downloads. It’s also here to copy.</>
+      : retried
+        ? 'If no file appeared, this viewer blocks downloads. Copy it instead.'
+        : u.exportTried === 'framed'
+          ? <>This viewer can’t save files, so here is <span className="whitespace-nowrap">{f.name}</span> to copy.</>
+          : <>This browser couldn’t save the file, so here is <span className="whitespace-nowrap">{f.name}</span> to copy.</>;
+  return (
+    <div data-testid="export-sheet">
+      <p className="text-[1rem] leading-6 text-ink" role="status" aria-live="polite" data-testid="export-status">
+        {status}
+      </p>
+      <p className="tnum text-[1rem] text-ink2 mt-1">
+        {f.what} · <span className="whitespace-nowrap">{f.name}</span> · {lines} line{lines === 1 ? '' : 's'}, {size}
+      </p>
+      <label htmlFor="export-text" className="sr-only">
+        {f.name}
+      </label>
+      <textarea
+        id="export-text"
+        ref={ref}
+        readOnly
+        value={f.body}
+        rows={8}
+        wrap="off"
+        spellCheck={false}
+        onFocus={(e) => e.currentTarget.select()}
+        className="mt-3 w-full rounded-[14px] bg-bg border-[1.5px] border-edge px-3 py-2 text-[0.875rem] leading-5 text-ink font-mono resize-none"
+        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', minHeight: '10rem' }}
+        data-testid="export-text"
+      />
+      <Button
+        full
+        className="mt-3"
+        data-testid="export-copy"
+        onClick={async () => {
+          const ok = await copyText(f.body, ref.current);
+          setCopy(ok ? 'copied' : 'failed');
+        }}
+      >
+        {copy === 'copied' ? 'Copied' : 'Copy all'}
+      </Button>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3 min-h-[1.375rem]" role="status" aria-live="polite" data-testid="export-copy-status">
+        {copy === 'copied'
+          ? <>Copied {lines} line{lines === 1 ? '' : 's'}. Paste it into a file named <span className="whitespace-nowrap">{f.name}</span>.</>
+          : copy === 'failed'
+            ? 'Copy didn’t work here. The text is selected: copy it yourself.'
+            : ''}
+      </p>
+      {u.exportTried !== 'sent' && !retried && (
+        <Button
+          variant="text"
+          className="mt-1"
+          data-testid="export-save"
+          onClick={() => {
+            tryDownload(f);
+            setRetried(true);
+            // The status line changed, so the button stops claiming "Copied" (round 4, N8).
+            setCopy('idle');
+          }}
+        >
+          {inFrame() ? 'Try saving it as a file anyway' : 'Try saving it again'}
+        </Button>
+      )}
     </div>
   );
 }

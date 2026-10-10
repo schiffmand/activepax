@@ -77,6 +77,22 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
           options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABEL[l] }))}
         />
         <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)}>Use headphones. On a phone, this is Spotify, a podcast or a lecture; Tuck never sees its name.</p>
+        <div className="mt-3 grid">
+        <DemoBtn
+          compact={compact}
+          testid="demo-activation"
+          onClick={async () => {
+            // The aha in five seconds: your audio above, Tuck under it, and the quiet line it earns after 10 minutes.
+            ui.set({ sheet: null });
+            if (!session.isActive()) startSound();
+            if (!otherApp.get().playing) await otherApp.play();
+            setTimeout(() => session.previewActivation(), 1500);
+          }}
+        >
+          Show the activation moment
+        </DemoBtn>
+        </div>
+        <p className={cx('text-[1rem] leading-[1.375rem] mt-2', sub)}>Starts both sounds and shows the line Tuck earns after 10 minutes under your audio: “Stayed under your audio for 10 min”.</p>
       </section>
 
       <section className={card} aria-label="Headphones">

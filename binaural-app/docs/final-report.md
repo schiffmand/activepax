@@ -1,7 +1,7 @@
 # Tuck: final report (incubation, v0.2)
 
 **Date:** 10 Oct 2026 · **Status:** prototype complete, ready for a native TestFlight MVP
-**Build:** `prototype/dist/index.html` (one self-contained file, about 820 kB, works from `file://`) · **Core:** 174 tests passing, typecheck clean · **Screens:** 46 captures in [`screens/`](./screens/)
+**Build:** `prototype/dist/index.html` (one self-contained file, about 820 kB, works from `file://`) · **Core:** 181 tests passing, typecheck clean, plus a real-browser ramp check (`node tools/ramp-check.mjs`) · **Screens:** 60 captures in [`screens/`](./screens/)
 
 ---
 
@@ -29,7 +29,7 @@ Full personas: [`personas.md`](./personas.md).
 | Persona | Insight | What it changed |
 |---|---|---|
 | **Maya**, ADHD knowledge worker | Starting is the hard part. Streaks and "come back" nags read as punishment, and she's been burned by trial billing. | One-decision Home ("Same as last time?"). One tap from the intro to the first sound. **Start without opening Tuck** (Control Center, Shortcuts automation "when Spotify opens", Lock Screen widget). Weekly totals, never streaks. Take 5 / Another 25 min. Vary for novelty without having to choose. |
-| **Dev**, programmer in deep work | Allergic to pseudoscience. Wants exact parameters, no account, and n-of-1 evidence. | Engraved readout (`14 Hz · L 200 / R 214`) that flips to a spec card with dBFS levels and the envelope plot. Edit a copy. A free **blind comparison** (beat vs loudness-matched noise only, A/B, numbers hidden). |
+| **Dev**, programmer in deep work | Allergic to pseudoscience. Wants exact parameters, no account, and n-of-1 evidence. | Engraved readout (`14 Hz · L 200 / R 214`) that flips to a spec card with dBFS levels and the envelope plot. Edit a copy. A free **blind comparison** (beat vs a sham with the same tones and no beat, A/B, numbers hidden). Exports that never fail silently: the file is always shown to copy. |
 | **Sam**, autistic / sensory-sensitive | Needs sameness and predictability: no sudden sounds, no motion, literal words. | Saved layers are frozen ("It won't change unless you change it."). Long perceptual (dB) fades. A lockable level ceiling. Sensory mode (compact text, no greeting, reduced motion). Plain labels. The metaphor never appears on a control. |
 | **Priya**, sleep & longevity optimizer | Wants a protocol, evidence literacy and integrations, with nothing bright at night. | Evening descent (8 → 2 Hz over 30 min, then a fade). Dim wool theme after 21:00. One daily schedule. Free Health mindful minutes. A private log with next-morning sleep notes. "What we know" includes null and negative results. |
 | **Leo**, student | Uses cheap earbuds, 1.5× lectures and pomodoros, and has little money. | The ear check catches mono, one-ear and swapped earbuds. Cycles (25 + 5 at Quiet). The whole layer is free. |
@@ -44,7 +44,7 @@ Full personas: [`personas.md`](./personas.md).
 5. **Headphones are a first-class state.** An ear check runs in onboarding and is always available from the Menu. Speaker, one earbud, call mode, Mono and disconnected fall back to loudness-matched noise only, shown as a calm one-line pill. The Mono/Spatial verdict reports what it observed and offers "Show me where" and "I've changed it, check again".
 6. **One noise law, everywhere** (from round 2's ship-blocker). Noise % is linear amplitude relative to the beat: 100% equals the beat's loudness and 25% is −12 dB. Noise only is matched to the layer it replaces. The same law applies in core, the prototype, Swift and Kotlin, and `loudness.test.ts` guards it.
 7. **Nothing to keep up with.** No streaks, no goals you can fail, no badges. Activation is marked once, quietly: "Stayed under your audio for 10 min".
-8. **Accessibility as a feature.** All text is in rem. At 200% text the layer grows, its middle scrolls with a soft edge fade, and Start / Stop stay pinned. Every control has keyboard support and a visible focus ring. Reduce Motion and Reduce Transparency are honoured.
+8. **Accessibility as a feature.** All text is in rem. At 200% text the layer grows, its middle scrolls with a soft edge fade, Start / Stop stay pinned, the top indicator stays one line, and a More cue shows when the top content runs under the layer. Every control has keyboard support and a visible focus ring. Reduce Motion and Reduce Transparency are honoured.
 9. **Visual identity.** Wool palette (moss/charcoal by day, warm dim wool at night). Literata for display text and Atkinson Hyperlegible Next for UI. The "stitch", a blue left half and a yellow right half with the beat in the gap, is the only motif.
 
 ## 4. Council score history
@@ -53,12 +53,19 @@ Full personas: [`personas.md`](./personas.md).
 |---|---|---|---|
 | 1 | **6.95** | 6.5 | Maya (ADHD knowledge worker) 7 · Dev (programmer in deep work) 7.5 · Sam (autistic / sensory-sensitive) 6.5 · Priya (longevity / sleep optimizer) 6.5 · Leo (student) 7 · Hannah (skeptic) 7.5 · Apple Design Award-level product designer 7 · Accessibility & neurodiversity UX specialist 7.5 · Audio engineer 6.5 · Growth / product strategist 6.5 |
 | 2 | **7.3** | 5.5 | Maya 7.5 · Dev 8 · Sam 7.5 · Priya 7.5 · Leo 7.5 · Hannah 7.5 · Product designer (ADA bar) 7.5 · Accessibility & neurodiversity UX 7.5 · Audio engineer **5.5** · Growth / product strategist 7 |
+| 3 | **7.85** | 6.5 | Maya 8 · Dev 8 · Sam 8 · Priya 8 · Leo 8.5 · Hannah 8 · Product designer (ADA bar) 8 · Accessibility & neurodiversity UX 8 · Audio engineer **6.5** · Growth / product strategist 7.5 |
+| 4 | **8.5** | 8.0 | Maya 8.5 · Dev 8.5 · Sam **8** · Priya 8.5 · Leo 9 · Hannah 8.5 · Product designer (ADA bar) 8.5 · Accessibility & neurodiversity UX **8** · Audio engineer 9 · Growth / product strategist 8.5 |
+| 5 | *not yet scored* | | Target: average ≥ 8.7 and every reviewer ≥ 8. The round-4 fixes are in [`reviews/round-4-response.md`](./reviews/round-4-response.md). |
 
-**Reading the trend.** Nine of the ten reviewers rose or held. The audio engineer fell from 6.5 to 5.5 because measuring the real output exposed a ship-blocker: the noise bed sat at −67 dBFS RMS, 36 dB under the tones, so noise only and the speaker fallback were effectively silent.
+**Round 4 trend.** For the first time every reviewer is at 8 or above and nothing is a ship-blocker. The audio engineer went from 6.5 to 9 after measuring the ramp fix end to end. What held the mean at 8.5 was the top of Home. At default text size the playing layer covered the "Started at…" line at Full, with any headphone pill and on a shared layer, and drew a **More** pill on top of it. At 200% that pill floated over the words it was meant to reveal (Sam and accessibility, both 8). The second theme was numbers that disagreed: the journey readout mixed a live beat with static ears ("7.8 Hz · L 136 / R 144"), the same session read 43 min and 44 min, and the editor derived L / R from an invalid beat. All are fixed at the cause in round 5 ([`reviews/round-4-response.md`](./reviews/round-4-response.md)). The layer now rests no higher than leaves Home's measured top visible, and the More cue exists only at accessibility sizes, in its own reserved row. There is one self-consistent readout helper, one minute rule (listening time up to Stop, rounded down), and every built-in layer's noise only is pinned within 0.3 LU (K-weighted) of the layer it replaces.
+
+**Reading the round-3 trend.** Round 3 put all six customers at 8 or above for the first time ("I'd keep it"); Leo reached 8.5. Two reviewers held the minimum down. The audio engineer (6.5) measured a new ship-blocker in core's shared ramp code: `cancelAndHoldAtTime` inserts no anchor once a param's last event has finished, so every Stop and level change after a long still period started with a jump (about −27 dB within a second after 49 s; a click on Medium → Quiet). Growth (7.5) found every Export button silent inside the sandboxed published viewer, and a blind comparison whose arms could be told apart by ear. All three are fixed in round 4: an explicit anchor after every hold (with spec-faithful mock tests and a real-browser `OfflineAudioContext` check, `tools/ramp-check.mjs`), an Export sheet that always shows the file to copy and says what happened, and a sham control arm (same carrier in both ears, 0 Hz beat, same level). Measured in the built page after the fix: Stop after 20 s fades 0.1 dB in its first 50 ms and is −20 dB at +10 s; Medium → Quiet glides with no step. (A Beat On ↔ Off row reported here was withdrawn in round 4: it was driven through `session.setBinaural()`, which Home's sync effect undoes, so it measured a no-op. The round-4 panel's UI-driven measurement, −30.8 → −30.1 dBFS with the tones gone, is the record.)
+
+**Round 2 trend.** Nine of the ten reviewers rose or held. The audio engineer fell from 6.5 to 5.5 because measuring the real output exposed a ship-blocker: the noise bed sat at −67 dBFS RMS, 36 dB under the tones, so noise only and the speaker fallback were effectively silent.
 
 That was fixed after round 2 ([`reviews/round-2-response.md`](./reviews/round-2-response.md)). Measured in the built page, Focus at Medium now has the beat at −31 dBFS and the noise at −43 dBFS, and noise only lands at −30 dBFS, within 1 dB of the layer it replaces. The round-2 bugs (B1–B13) and the council's must-fixes were all closed in the same pass.
 
-No round 3 was run after these fixes, so the scores above don't include them. Re-scoring with the audio engineer should be the first gate before an external test.
+Round 3 re-scored the build with these fixes in (row 3).
 
 ## 5. What's real vs mocked
 
@@ -68,7 +75,7 @@ No round 3 was run after these fixes, so the scores above don't include them. Re
 | Loudness-matched white / pink / brown noise beds (core `generateNoise`, RMS-normalised, seamless loops) | **Headphone routes** (speaker, one earbud, call, Mono, Spatial, swapped, disconnected) are set by hand. Native apps read them from the audio route. |
 | Programs and journeys (Evening descent), timers, Cycles, Take 5, Drift / Vary / Hold, all driven by core's `ProgramPlayer` | **Lock Screen / Live Activity, Control Center, Shortcuts, widget.** Drawn and described, not wired. |
 | The ear check (a real stereo test with verdict logic from core `interpretStereoCheck`) | **Apple Health / Health Connect writes, schedules firing in the background, sync**: UI only. |
-| Persistence (core store, localStorage, migrations, corrupt-data backup), saved layers, private log with CSV/JSON export, the blind comparison with computed averages | **Tuck Plus purchase.** Price and trial are shown (a proposal), but there is no StoreKit / Play Billing. |
+| Persistence (core store, localStorage, migrations, corrupt-data backup), saved layers, private log with CSV/JSON export (an Export sheet with the file to copy, so it works even where downloads are blocked), the blind comparison with computed averages | **Tuck Plus purchase.** Price and trial are shown (a proposal), but there is no StoreKit / Play Billing. |
 | Shareable layer links (`?layer=…`) that open and play the shared layer | **Time**: a warp clock and "Skip ahead" compress sessions, and `?hour=` fakes the time of day. Sample week data is labelled "Sample data" on screen. |
 | Native engines (Swift / Kotlin), written in full against current APIs | **Never compiled or run on a device** (see `native/README.md`). |
 
@@ -119,7 +126,7 @@ The price undercuts Brain.fm ($99.99) and Endel (about $60) on purpose. It's a p
 | **Platform behaviour.** Some apps (calls, a few video apps) take exclusive audio. OEMs vary on Android. Spatial Audio can't be turned off from inside an app on iOS. | Detect the state and say so plainly ("When it can't mix"). The ear check catches Spatial and Mono. Test on the top 10 Android OEMs. |
 | **Trademark / ASO.** "Tuck" collides with Tuck Sleep's history and "tummy tuck" search noise. | Legal clearance before public use, with Lining as the named fallback. Own phrases ("sound under music", "brown noise under podcast"), and use negative keywords. |
 | **Medical-claim drift** in marketing or App Review (ADHD, insomnia). | Guardrails in brand §14 and core copy tests. Testimonials describe experience, never outcomes. |
-| **Hearing safety and battery.** | Output stays at least 16 dB under full scale with low default levels and a ceiling. Battery is measured in week 1. |
+| **Hearing safety and battery.** | Output peaks at −10 dBTP or lower (the hottest case, brown noise only at Full; a layer at Medium peaks near −23 dBFS), under a stated −1 dBTP ceiling, with low default levels and a lockable level ceiling. Battery is measured in week 1. |
 
 **Validation plan**
 
@@ -135,7 +142,8 @@ The price undercuts Brain.fm ($99.99) and Endel (about $60) on purpose. It's a p
 
 ## 9. Final pass (this release)
 
-- `core`: `npm test` passes all 174 tests and `npm run typecheck` is clean. `prototype`: `npm run build` (tsc + vite single-file) is clean.
-- Captured all 46 screens with the new `tools/shoot-all.mjs` into [`screens/`](./screens/), viewed them as contact sheets, and found no console or page errors.
+- `core`: `npm test` passes all 183 tests and `npm run typecheck` is clean. `prototype`: `npm run build` (tsc + vite single-file) is clean.
+- Captured all 72 screens with `tools/shoot-all.mjs` (round 4 added 14 and round 5 added 12; four run inside a sandboxed iframe like the published viewer) into [`screens/`](./screens/), viewed them as contact sheets, and found no console or page errors.
+- **Round 5 (after the round-4 reviews):** Home's playing top is never covered at default text size (the layer rests no higher than the measured top allows), and the More cue exists only at accessibility sizes, in its own row below the text. The journey readout is self-consistent. One minute rule applies everywhere. A disconnect mid-session is shown on Home. Cycles states its end. Exports use the app's clock and carry `arm` / `beat_hz` after a blind reveal. There is a five-second activation preview in Prototype controls, a headphone check for first-visit share recipients, and per-layer K-weighted loudness and true-peak tests in core. Details are in [`reviews/round-4-response.md`](./reviews/round-4-response.md).
 - **Fixed: the editor's sticky Save footer sliced a line of text in half** as content scrolled under it. `PageShell` footers now have a soft fade (`prototype/src/ui/kit.tsx`).
 - **Fixed: at 200% text, the playing layer clipped text.** The felt's container queries were in px, so the long first-play note was cut mid-line, and Home's top region cut the layer name under the lining. The felt thresholds are now in rem (`styles.css`), so the note gives way to the compact line at large text sizes. A new `useOverflowFade` hook fades the cut edge of the Home top and layer middle scroll regions, and only while they actually overflow (`ui/kit.tsx`, `screens/Home.tsx`). Default-size screens are unchanged.

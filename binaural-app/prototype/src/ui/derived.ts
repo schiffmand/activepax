@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { prefersReducedMotion } from '@core';
 import { localDate, session } from '../audio/session';
-import { builtInLayer, noiseOnlyOf, variedLayer, type Layer, type Motion } from '../tuck/layers';
+import { builtInLayer, shamOf, variedLayer, type Layer, type Motion } from '../tuck/layers';
 import { arrivalFor, chipForLayer, type ChipId, firstPickLine, type Labels } from '../tuck/copy';
 import { store } from '../tuck/store';
 import { FORCES_NOISE, ui, useSession, useStore, useUi } from './state';
@@ -76,14 +76,40 @@ export function selectLayer(id: string) {
   if (session.isActive()) void session.switchLayer(l, { motion: store.get().prefs.lastMotion[l.id] ?? l.motion, binaural: binauralFor(l) });
 }
 
+/** After 21:00 (and before 05:00): Tuck's evening. */
+export const isLateHour = (h: number) => h >= 21 || h < 5;
+
+/**
+ * The idle preselection follows the time of day: after 21:00 it's the layer you last started in the evening,
+ * or Evening descent (the Heavy-eyed chip); in the day, the last layer you played, but never Evening descent.
+ * Round 3: at 21:00 Home still preselected Scattered (Focus). A pinned or shared layer, a picked chip, or a
+ * running session is never overridden.
+ */
+export function preselectForHour() {
+  const { prefs, core } = store.get();
+  const u = ui.get();
+  if (u.shared || u.chip || prefs.pinnedLayerId || session.get().phase !== 'idle') return;
+  if (prefs.blind && !prefs.blind.revealed) return;
+  const h = ui.hour();
+  if (isLateHour(h)) {
+    const id = prefs.lastEveningLayerId && store.findLayer(prefs.lastEveningLayerId) ? prefs.lastEveningLayerId : 'sleep';
+    if (u.selectedId !== id) ui.set({ selectedId: id, motionOverride: null });
+    return;
+  }
+  const last = core.lastPlayed?.id;
+  const day = last && store.findLayer(last) && !store.findLayer(last)!.journey ? last : 'focus';
+  if (u.selectedId !== day && (store.findLayer(u.selectedId)?.journey || u.selectedId === 'sleep')) ui.set({ selectedId: day, motionOverride: null });
+}
+
 export function startSound(layerId?: string) {
   const { prefs } = store.get();
   const u = ui.get();
   let l = store.findLayer(layerId ?? u.selectedId) ?? builtInLayer('focus')!;
+  if (isLateHour(ui.hour()) && !l.id.includes('~') && prefs.lastEveningLayerId !== l.id) store.setPrefs({ lastEveningLayerId: l.id });
   let motion: Motion = l.motionLocked ? 'hold' : u.motionOverride ?? prefs.lastMotion[l.id] ?? l.motion;
   const timer = prefs.timerByLayer[l.id] ?? null;
   let binaural = binauralFor(l);
-  // A blind comparison on this layer: pick A or B (balanced, random), and play the beat or noise only.
+  // A blind comparison on this layer: pick A or B (balanced, random), and play the beat or the sham (no beat).
   let blind: 'A' | 'B' | null = null;
   const b = prefs.blind;
   if (b && !b.revealed && b.layerId === l.id.replace(/~noise$/, '') && (b.plays.A + b.plays.B) < b.days * 3) {
@@ -91,10 +117,12 @@ export function startSound(layerId?: string) {
     blind = diff > 0 ? 'B' : diff < 0 ? 'A' : Math.random() < 0.5 ? 'A' : 'B';
     const beat = blind === b.beatIs;
     const base = store.findLayer(b.layerId) ?? l;
-    l = beat ? base : noiseOnlyOf(base);
-    binaural = beat && binauralFor(base);
+    // The control arm is a sham: the same tones with no beat (same carrier in both ears) and the same noise,
+    // so the arms sound alike and differ only in the beat.
+    l = beat ? base : shamOf(base);
+    binaural = binauralFor(base);
     store.setPrefs({ blind: { ...b, current: blind, plays: { ...b.plays, [blind]: b.plays[blind] + 1 } } });
-    // Both arms play the same way: Medium, held still, loudness-matched (noise only is matched to the layer).
+    // Both arms play the same way: Medium, held still, same tones and noise; only the beat differs.
     motion = 'hold';
   } else if (motion === 'vary') {
     // Vary: a different noise bed this session, chosen for you, within the layer's character.

@@ -227,8 +227,10 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
           : 'The beat only forms when each ear gets its own tone, so it needs stereo headphones.'}
       </p>
 
-      <div className="mt-8 mb-8 flex justify-center" aria-hidden>
-        <Stitch width={240} stroke={4} left={mono ? 'on' : (leftLit as 'on')} right={mono ? 'on' : (rightLit as 'on')} mono={mono} meet={meet} reduced={reduced} />
+      {/* The stitch is the diagram: it takes the free space, so the block sits centred instead of leaving the
+          bottom half empty (round 3, product designer). */}
+      <div className="flex-1 min-h-[88px] max-h-[230px] my-4 flex items-center justify-center" aria-hidden>
+        <Stitch width={320} stroke={5} left={mono ? 'on' : (leftLit as 'on')} right={mono ? 'on' : (rightLit as 'on')} mono={mono} meet={meet} reduced={reduced} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -303,9 +305,11 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
             Start sound
           </Button>
         )}
-        {verdict !== 'ok' && (
+        {/* First run: a way past the check. From the Menu or Settings (already set up, Close is top left), there is
+            nothing to skip; only after a verdict that isn't OK does it offer the mode change, named as one (round 4, N9). */}
+        {verdict !== 'ok' && (from === 'onboarding' || verdict) && (
           <Button variant="text" className="self-center" data-testid="ear-skip" onClick={() => finish({ noiseOnly: true })}>
-            Skip, use noise only
+            {from === 'onboarding' ? 'Skip, use noise only' : 'Use noise only'}
           </Button>
         )}
       </div>

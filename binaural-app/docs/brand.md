@@ -123,7 +123,7 @@ Warm is the default. Plain is what Plain labels and Sensory mode show, and it is
 | Under a chosen chip | That's Focus: a 14 Hz beat over soft brown noise. | Focus: 14 Hz beat, brown noise. |
 | First time each chip is picked | This is what we play when you pick Scattered. It isn't a treatment. | This is the layer for Scattered. It isn't a treatment. |
 | Primary button, idle | **Start sound** | **Start sound** |
-| Handle hint (first idle only) | Pull the top edge up, or tap Start sound. | same |
+| Handle hint (idle, the same words every time) | Pull the top edge up, or tap Start sound. | same |
 | Fading in | Tucking in… | Starting. Fading in over 8 seconds. |
 | Playing, status line | **Tucked in.** | **Sound on.** |
 | Playing, detail | With you for 24 min · Fades out at 50 min | Playing for 24 min · Fades out at 50 min |
@@ -174,7 +174,7 @@ Warm is the default. Plain is what Plain labels and Sensory mode show, and it is
 >
 > So Tuck doesn't promise anything. It gives you a calm layer, lets you run it with or without the beat, and helps you see what works for you.
 >
-> Tuck is not a medical device and doesn't diagnose or treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don't use Sleep while driving. Keep the volume moderate.
+> Tuck is not a medical device and doesn't diagnose or treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don't use Tuck while driving, least of all Evening descent. Keep the volume moderate.
 >
 > [Read the studies (6)] [Try a blind comparison]
 
@@ -216,10 +216,10 @@ The screen is split the same way your listening is. **The top is your audio's sp
 | Scattered | Focus (14 Hz, brown noise, Drift) |
 | Wound up | Calm (10 Hz, pink noise, Drift) |
 | Too much | Your Too-much layer if you've saved one, otherwise Steady (10 Hz, brown noise, Hold, 15 s fade-in) |
-| Heavy-eyed | Evening descent (Sleep) from 18:00, Unwind (6 Hz, pink noise) before 18:00. The line under the chip always says which. |
+| Heavy-eyed | Evening descent from 18:00, Unwind (6 Hz, pink noise) before 18:00. The line under the chip always says which. |
 | Just working | Focus with Hold, at Quiet |
 
-- **"Ask how I'm arriving"** (Settings) is on by default, **off by default in Plain labels and Sensory mode**, and **remembered once you turn it off**: switching modes later never turns it back on. When it is off, the home shows the last layer and the five intent names (Focus, Calm, Unwind, Sleep, Steady) as a single row.
+- **"Ask how I'm arriving"** (Settings) is on by default, **off by default in Plain labels and Sensory mode**, and **remembered once you turn it off**: switching modes later never turns it back on. When it is off, the home shows the last layer and the five intent names (Focus, Calm, Unwind, Evening descent, Steady) as a single row.
 - **The greeting** ("Morning." / "Afternoon." / "Evening.") is optional. It is off in Plain labels and Sensory mode, and can be turned off everywhere (Settings → Home → Greeting). When it's off, the line reads "Tuck" and never changes.
 - Nothing about your feelings is stored unless you opt into the self-experiment. We store only which layer played.
 

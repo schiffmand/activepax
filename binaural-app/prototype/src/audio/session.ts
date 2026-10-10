@@ -4,7 +4,7 @@
  * LayerEngine (core BinauralEngine + noise bed). Emits one snapshot for the UI.
  */
 import { ProgramPlayer, sessionToRecord, AudioBlockedError, type PlayerState } from '@core';
-import { getContext, ensureRunning, playChime, setSwap } from './hub';
+import { getContext, ensureRunning, playChime } from './hub';
 import { otherApp } from './otherApp';
 import { LayerEngine } from './layerEngine';
 import { createWarpClock } from './warpClock';
@@ -56,6 +56,8 @@ export interface SessionSnapshot {
   fadeSec: number;
   stepLabel: string | null;
   beatNow: number | null;
+  /** The carrier right now (journeys glide it), so the readout's L / R match the live beat. */
+  carrierNow: number | null;
   takeFive: { endsAtSec: number } | null;
   cycles: Cycles | null;
   /** During a blind comparison: the label playing (numbers are hidden). */
@@ -86,6 +88,7 @@ const initial: SessionSnapshot = {
   fadeSec: 0,
   stepLabel: null,
   beatNow: null,
+  carrierNow: null,
   takeFive: null,
   cycles: null,
   blind: null,
@@ -124,6 +127,8 @@ class Session {
   private switching = false;
   private driftSeed = 1;
   private driftOffset = 0;
+  /** Listening time when the session was stopped or its end fade began (the fade-out isn't counted). */
+  private heardSec: number | null = null;
 
   get = () => this.snap;
   subscribe = (fn: () => void) => {
@@ -146,8 +151,7 @@ class Session {
 
   /** Start sound (or pull up). Must run from a tap the first time (autoplay policy). */
   async start(layer: Layer, opts: { level: LevelName; motion: Motion; timerMin: number | null; binaural: boolean; cycles?: boolean; blind?: 'A' | 'B' | null; keepLevel?: boolean }) {
-    const prefs = store.get().prefs;
-    setSwap(prefs.swapChannels);
+    // Left/right swap is kept in sync with the setting and the route by ui/state.ts (wantSwap).
     const ok = await ensureRunning();
     if (!ok) {
       this.set({ notice: 'blocked' });
@@ -166,7 +170,12 @@ class Session {
         minEndFadeSec: 3,
         switchGlideSec: 4,
         onSessionEnd: (s) => {
-          if (s.durationSec >= 30) store.core.dispatch({ type: 'history/add', record: sessionToRecord(s) });
+          // One minute count everywhere (round 4: 43 min on the session end, 44 on This week): listening time up to
+          // Stop or the timer's fade, rounded down. The fade-out itself is reported separately, in seconds.
+          const heard = this.heardSec ?? s.durationSec;
+          this.heardSec = null;
+          const rec = { ...s, durationSec: Math.min(s.durationSec, heard) };
+          if (rec.durationSec >= 30) store.core.dispatch({ type: 'history/add', record: sessionToRecord(rec) });
         },
       });
       this.offPlayer = [this.player.subscribe((s) => this.onPlayer(s))];
@@ -241,8 +250,10 @@ class Session {
       remainingSec: s.remainingSec,
       stepLabel: s.stepLabel,
       beatNow: s.status === 'playing' || s.status === 'ending' ? s.current.beatHz : null,
+      carrierNow: s.status === 'playing' || s.status === 'ending' ? s.current.carrierHz : null,
     };
     if (s.status === 'ending' && this.snap.phase !== 'fadingOut') {
+      this.heardSec = s.elapsedSec;
       const fade = Math.max(3, s.remainingSec ?? 20);
       patch.phase = 'fadingOut';
       patch.fadeSec = fade;
@@ -256,7 +267,7 @@ class Session {
     }
     if (s.status === 'ended' && this.snap.phase === 'fadingOut' && !this.snap.ended) {
       const byTimer = this.snap.remainingSec !== null && this.snap.remainingSec < 120;
-      this.finishLine(s.elapsedSec, this.snap.fadeSec, byTimer && !this.snap.takeFive);
+      this.finishLine(this.heardSec ?? s.elapsedSec, this.snap.fadeSec, byTimer && !this.snap.takeFive);
       if (this.snap.takeFive) patch.takeFive = null;
       patch.phase = 'idle';
     }
@@ -311,6 +322,7 @@ class Session {
     const layer = this.snap.layer;
     const fade = fadeOverride ?? (layer ? fadesFor(layer).fadeOut : 20);
     const elapsed = this.player.getState().elapsedSec;
+    this.heardSec = elapsed;
     const afterBreak = this.snap.takeFive && byTimer ? { timerMin: this.snap.breakAfterTimer } : undefined;
     this.stopDrift();
     this.clearTakeFive();
@@ -322,7 +334,8 @@ class Session {
     this.switching = false;
     if (!notice) this.finishLine(elapsed, fade, byTimer && !afterBreak, afterBreak);
     await p;
-    if ((this.snap.phase as Phase) === 'fadingOut') this.set({ phase: 'idle' });
+    // Back to idle: the live journey values go too, so the idle readout shows the layer's start values.
+    if ((this.snap.phase as Phase) === 'fadingOut') this.set({ phase: 'idle', beatNow: null, carrierNow: null });
   }
 
   setLevel(level: LevelName) {
@@ -518,7 +531,7 @@ class Session {
 
   // ───────────────────────────── simulations ─────────────────────────────
 
-  /** A phone call: fade out over 1.5 s, "Paused for your call." No auto-resume. */
+  /** A phone call: fade out over 1.5 s, "Stopped for your call." The session ends; no auto-resume (the big button starts again). */
   simulateCall() {
     void this.stop(1.5, 'call');
   }
@@ -527,6 +540,14 @@ class Session {
   }
   simulateMixingFailure() {
     void this.stop(1.5, 'mixing');
+  }
+  /**
+   * Prototype controls: show the activation moment now, as if Tuck had already stayed under the other app for
+   * 10 minutes this session. It changes only this session's display; the real first-activation date isn't written.
+   */
+  previewActivation() {
+    if (!this.isActive()) return;
+    this.set({ underSec: Math.max(600, this.snap.underSec), activatedNow: true });
   }
   clearNotice() {
     this.set({ notice: null });

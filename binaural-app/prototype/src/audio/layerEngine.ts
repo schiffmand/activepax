@@ -16,6 +16,7 @@ export class LayerEngine implements EngineLike {
 
   constructor(private readonly opts: { fadeInSec: number; fadeOutSec: number; glideSec: number; binaural: boolean }) {
     this.binaural = opts.binaural;
+    this.share = opts.binaural ? 1 : 0;
     this.bed.setBinaural(opts.binaural, 0);
     this.tones = new BinauralEngine({
       context: routedContext(),
@@ -77,7 +78,7 @@ export class LayerEngine implements EngineLike {
   /** Level (Quiet / Medium / Full) moves both the beat and the noise. */
   setVolume(v: number, glideSec: number) {
     this.volume = v;
-    this.tones.setVolume(this.binaural ? v : 0, glideSec);
+    this.tones.setVolume(v * Math.sqrt(this.share), glideSec);
     this.bed.setVolume(v, glideSec);
   }
 
@@ -86,16 +87,57 @@ export class LayerEngine implements EngineLike {
     this.bed.wanderTo(db, sec);
   }
 
-  /** Beat on or off (noise only), with a glide. */
+  /**
+   * Beat on or off (noise only), with an equal-power crossfade. The tones and the noise are uncorrelated, so
+   * their powers add: the beat's amplitude share c follows a quarter cosine and the noise fills the rest
+   * (noise² = v² + 1 − c², in units of the beat), which keeps the total constant from beat + noise to the
+   * matched noise only. Round 3 audio B10: two straight-line ramps dipped 2.1 dB in the middle.
+   * Web Audio has no equal-power ramp, so the curve is drawn as 8 short linear segments (error < 0.1 dB).
+   */
   setBinaural(on: boolean, glideSec: number) {
+    if (this.mixTimer) clearTimeout(this.mixTimer);
+    this.mixTimer = undefined;
+    const from = this.share;
+    const to = on ? 1 : 0;
     this.binaural = on;
-    this.tones.setVolume(on ? this.volume : 0, glideSec);
-    this.bed.setBinaural(on, glideSec);
+    if (glideSec <= 0.1 || from === to) {
+      this.applyShare(to, Math.max(0.03, glideSec));
+      this.bed.setBinaural(on, Math.max(0.03, glideSec));
+      return;
+    }
+    const steps = 8;
+    const dt = glideSec / steps;
+    let i = 0;
+    const step = () => {
+      if (this.disposed) return;
+      i += 1;
+      const x = i / steps;
+      const angle = (Math.PI / 2) * (from + (to - from) * x);
+      this.applyShare(Math.sin(angle), dt);
+      if (i < steps) this.mixTimer = setTimeout(step, dt * 1000);
+      else {
+        this.mixTimer = undefined;
+        this.bed.setBinaural(on, dt);
+      }
+    };
+    step();
+  }
+
+  /** The beat's amplitude share (1 = the beat at full level, 0 = noise only). */
+  private share = 1;
+  private mixTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private applyShare(c: number, sec: number) {
+    this.share = c > 0.999 ? 1 : c < 0.001 ? 0 : c;
+    // Tone amplitude goes with volumeToGain(v) = v², so a share c is a volume of v·√c.
+    this.tones.setVolume(this.volume * Math.sqrt(this.share), sec);
+    this.bed.setMix(this.share, sec);
   }
 
   dispose(afterSec = 0) {
     if (this.disposed) return;
     this.disposed = true;
+    if (this.mixTimer) clearTimeout(this.mixTimer);
     this.bed.dispose(afterSec);
     setTimeout(() => void this.tones.dispose(), afterSec * 1000 + 60);
   }

@@ -2,9 +2,10 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { summarizeWeek, compareRanges, summarizeRange, weekRange } from '@core';
 import { BUILT_IN_LAYERS, INTENT_ORDER, LEVELS, LEVEL_LABEL, builtInLayer, type LevelName } from '../tuck/layers';
 import { copy, durationWords } from '../tuck/copy';
-import { store, type DimPref, type SessionNote } from '../tuck/store';
+import { store, type DimPref, type SessionNote, type SleepNote } from '../tuck/store';
 import { useTuck } from '../ui/derived';
 import { ui } from '../ui/state';
+import { openExport } from '../ui/exporting';
 import { Button, Group, PageShell, RowButton, Segmented, SwitchRow } from '../ui/kit';
 import { session } from '../audio/session';
 import { startSound } from '../ui/derived';
@@ -66,25 +67,28 @@ export function Pages() {
   }
 }
 
-function download(name: string, type: string, body: string) {
-  const blob = new Blob([body], { type });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-/** One row per noted session: what played, for how long, and the one-tap rating. Nothing else. */
-export function notesCsv(notes: SessionNote[]): string {
-  const head = 'date,time,layer,beat_hz,noise,minutes,rating,blind_label';
+/**
+ * One row per noted session: what played, for how long, and the one-tap rating. Nothing else.
+ * Times are on the app's clock (the same one the screen shows), with an ISO time and its UTC offset.
+ * For a revealed blind comparison, `blind` fills the arm and its beat (0 Hz for the no-beat arm), so the file stands on its own.
+ */
+export function notesCsv(notes: SessionNote[], blind?: { beatIs: 'A' | 'B'; beatHz: number } | null, sleep: SleepNote[] = []): string {
+  const p2 = (n: number) => String(Math.abs(n)).padStart(2, '0');
+  const head = 'date,time,started_at,layer,arm,beat_hz,noise,minutes,rating,blind_label';
   const rows = notes.map((n) => {
-    const d = new Date(n.at);
-    const date = d.toISOString().slice(0, 10);
-    const time = d.toTimeString().slice(0, 5);
-    return [date, time, `"${n.layerName.replace(/"/g, '""')}"`, n.beatHz ?? '', n.noise, n.minutes, n.rating, n.blind ?? ''].join(',');
+    const d = ui.appTime(n.at);
+    const date = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+    const time = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    const off = -d.getTimezoneOffset();
+    const iso = `${date}T${time}:${p2(d.getSeconds())}${off >= 0 ? '+' : '-'}${p2(Math.floor(Math.abs(off) / 60))}:${p2(Math.abs(off) % 60)}`;
+    const isBeat = n.blind && blind ? n.blind === blind.beatIs : null;
+    const arm = n.blind ? (blind ? (isBeat ? 'beat' : 'no beat') : '') : n.beatHz !== null ? 'beat' : 'noise only';
+    const beat = n.blind ? (blind ? (isBeat ? blind.beatHz : 0) : '') : (n.beatHz ?? '');
+    return [date, time, iso, `"${n.layerName.replace(/"/g, '""')}"`, arm, beat, n.noise, n.minutes, n.rating, n.blind ?? ''].join(',');
   });
-  return [head, ...rows].join('\n');
+  // Sleep notes: the night, the layer, and how you slept (3 well, 2 OK, 1 poorly), so the file matches the screen.
+  const sleepRows = sleep.filter((n) => n.rating > 0).map((n) => [n.night, '', '', `"${n.layerName.replace(/"/g, '""')}"`, 'sleep note', '', '', '', n.rating, ''].join(','));
+  return [head, ...rows, ...sleepRows].join('\n');
 }
 
 const H1 = ({ children }: { children: React.ReactNode }) => <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-2 mb-2">{children}</h1>;
@@ -155,8 +159,8 @@ function Settings() {
 
       <Group title="Schedule" note="One daily time is free. Your phone starts the layer under whatever is playing, with a notification you can stop from. More schedules come with Tuck Plus.">
         <SwitchRow testid="set-schedule" label="Start a layer every day" checked={prefs.schedule.on} onChange={(v) => set({ schedule: { ...prefs.schedule, on: v } })} />
-        <div className="py-3 grid grid-cols-[minmax(9.5rem,auto)_1fr] gap-3 items-end">
-          <div>
+        <div className="py-3 flex flex-wrap gap-3 items-end">
+          <div className="w-[9.5rem] shrink-0">
             <label htmlFor="sched-time" className="block text-[1rem] font-medium text-ink mb-2">
               At
             </label>
@@ -169,7 +173,7 @@ function Settings() {
               data-testid="set-schedule-time"
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-[12.5rem]">
             <label htmlFor="sched-layer" className="block text-[1rem] font-medium text-ink mb-2">
               Play
             </label>
@@ -228,7 +232,7 @@ function Settings() {
           <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">Every movement becomes a 600 ms cross-fade. Sound fades don’t change.</p>
         </div>
         <SwitchRow testid="set-texture" label="Texture on the layer" checked={prefs.texture} onChange={(v) => set({ texture: v })} />
-        <SwitchRow label="Breathing layer" hint="Calm, Unwind and Sleep: one slow rise and fall every 10 seconds." checked={prefs.breathingLayer} onChange={(v) => set({ breathingLayer: v })} />
+        <SwitchRow label="Breathing layer" hint="Calm, Unwind and Evening descent: one slow rise and fall every 10 seconds." checked={prefs.breathingLayer} onChange={(v) => set({ breathingLayer: v })} />
         <SwitchRow label="Haptics" hint="A soft tick at each level detent and when sound has fully started." checked={core.settings.hapticsEnabled && !core.settings.sensoryMode} onChange={(v) => store.core.dispatch({ type: 'settings/update', patch: { hapticsEnabled: v } })} />
       </Group>
 
@@ -310,7 +314,7 @@ function Settings() {
             ]}
           />
           <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">
-            Auto: warm and dim from 21:00 for every layer, and from 18:00 for Sleep. Keeps the screen under about 40 cd/m², removes most blue, and never shows a bright button.
+            Auto: warm and dim from 21:00 for every layer, and from 18:00 for Evening descent. Keeps the screen under about 40 cd/m², removes most blue, and never shows a bright button.
           </p>
         </div>
         <SwitchRow testid="set-legible" label="Legible text" hint="Atkinson Hyperlegible throughout, including headings." checked={prefs.legibleText} onChange={(v) => set({ legibleText: v })} />
@@ -341,9 +345,9 @@ function Settings() {
       </Group>
 
       <Group title="Privacy">
-        <p className="py-3 text-[1rem] leading-6 text-ink">Everything stays on this phone. No account. No trackers.</p>
+        <p className="py-3 text-[1rem] leading-6 text-ink">Everything stays on this phone. No account. No trackers. (Tuck Plus can copy saved layers to your other devices through your own iCloud or Google account, encrypted so only your devices can read them. It’s off unless you turn it on.)</p>
         <div className="py-3 flex flex-wrap gap-3">
-          <Button variant="quiet" onClick={() => download('tuck-data.json', 'application/json', JSON.stringify({ core: st.core, prefs }, null, 2))}>
+          <Button variant="quiet" data-testid="set-export" onClick={() => openExport({ name: 'tuck-data.json', type: 'application/json', body: JSON.stringify({ core: st.core, prefs }, null, 2), what: 'All your Tuck data' })}>
             Export my data (JSON)
           </Button>
           <Button
@@ -416,7 +420,7 @@ function Science() {
       <P>So Tuck doesn’t promise anything. It gives you a calm layer, lets you run it with or without the beat, and helps you see what works for you.</P>
       <div className="mt-6 rounded-[18px] bg-surface2 px-4 py-4">
         <p className="text-[1rem] leading-6 text-ink max-w-[60ch]">
-          Tuck is not a medical device and doesn’t diagnose or treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don’t use Sleep while driving. Keep the
+          Tuck is not a medical device and doesn’t diagnose or treat any condition. If you have epilepsy or a seizure disorder, check with your doctor first. Don’t use Tuck while driving, least of all Evening descent. Keep the
           volume moderate.
         </p>
       </div>
@@ -622,7 +626,7 @@ function Week() {
             <div className="flex items-end justify-between h-[140px] gap-3">
               {week.perDay.map((d, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                  <div className="w-full rounded-t-[6px] bg-ink2/80" style={{ height: `${Math.max(d.totalSec ? 4 : 0, (d.totalSec / max) * 120)}px` }} title={`${Math.round(d.totalSec / 60)} min`} />
+                  <div className="w-full rounded-t-[6px] bg-ink2/80" style={{ height: `${Math.max(d.totalSec ? 4 : 0, (d.totalSec / max) * 120)}px` }} title={`${Math.floor(d.totalSec / 60)} min`} />
                 </div>
               ))}
             </div>
@@ -630,7 +634,7 @@ function Week() {
               {week.perDay.map((d, i) => (
                 <div key={i} className="flex-1 text-center">
                   <span className="block text-[1rem] text-ink2">{days[i]}</span>
-                  <span className="block tnum text-[1rem] text-ink">{Math.round(d.totalSec / 60)}</span>
+                  <span className="block tnum text-[1rem] text-ink">{Math.floor(d.totalSec / 60)}</span>
                   {anySleep && (
                     <span className="block text-[1rem] text-ink2" data-testid={sleepByDay[i] ? 'week-slept' : undefined}>
                       {sleepByDay[i] ? (sleepByDay[i]!.rating === 3 ? 'Well' : sleepByDay[i]!.rating === 2 ? 'OK' : 'Poorly') : '·'}
@@ -667,11 +671,19 @@ function Week() {
         <>
           {notes.length === 0 && prefs.sleepNotes.length === 0 ? (
             <p className="text-[1rem] leading-6 text-ink2">The log is on. Notes appear here after your next session.</p>
-          ) : (
+          ) : notes.length > 0 ? (
             <NotesSummary notes={notes} />
+          ) : null}
+          {prefs.sleepNotes.filter((n) => n.rating > 0).length > 0 && (
+            <p className="text-[1rem] leading-6 text-ink mt-3" data-testid="sleep-count">
+              {(() => {
+                const k = prefs.sleepNotes.filter((n) => n.rating > 0).length;
+                return `${k} sleep note${k === 1 ? '' : 's'}, the morning after an evening session.`;
+              })()}
+            </p>
           )}
           {prefs.sleepNotes.filter((n) => n.rating > 0).length > 0 && (
-            <ul className="divide-y divide-line mt-2" data-testid="sleep-notes">
+            <ul className="divide-y divide-line mt-1" data-testid="sleep-notes">
               {prefs.sleepNotes
                 .filter((n) => n.rating > 0)
                 .slice(-5)
@@ -686,15 +698,19 @@ function Week() {
                 ))}
             </ul>
           )}
+          {notes.length + prefs.sleepNotes.filter((n) => n.rating > 0).length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="quiet" onClick={() => download('tuck-notes.csv', 'text/csv', notesCsv(prefs.notes))} data-testid="export-csv">
+            <Button variant="quiet" onClick={() => openExport({ name: 'tuck-notes.csv', type: 'text/csv', body: notesCsv(prefs.notes, null, prefs.sleepNotes), what: 'Your notes' })} data-testid="export-csv">
               Export CSV
             </Button>
-            <Button variant="quiet" onClick={() => download('tuck-notes.json', 'application/json', JSON.stringify({ notes: prefs.notes, sleep: prefs.sleepNotes }, null, 2))} data-testid="export-json">
+            <Button variant="quiet" onClick={() => openExport({ name: 'tuck-notes.json', type: 'application/json', body: JSON.stringify({ notes: prefs.notes, sleep: prefs.sleepNotes }, null, 2), what: 'Your notes' })} data-testid="export-json">
               Export JSON
             </Button>
           </div>
-          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">Turn the log off in Settings, Your notes.</p>
+          ) : (
+            <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2" data-testid="export-empty">Nothing to export yet. Export CSV and JSON appear here with your first note.</p>
+          )}
+          <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-2">Turn the log off in Settings → Your notes.</p>
         </>
       )}
     </article>
@@ -705,11 +721,25 @@ function NotesSummary({ notes }: { notes: SessionNote[] }) {
   const beat = notes.filter((n) => n.beatHz !== null);
   const noise = notes.filter((n) => n.beatHz === null);
   const mean = (a: SessionNote[]) => (a.length ? a.reduce((s, n) => s + n.rating, 0) / a.length : null);
-  const words = (m: number | null) => (m === null ? 'none yet' : m >= 2.5 ? 'mostly good' : m >= 1.8 ? 'mostly the same as usual' : 'mostly not for you');
+  // Summary words only from 5 notes up; below that, the counts themselves (round 3: "mostly good (1)" overclaimed).
+  const RATING = { 3: 'good', 2: 'same as usual', 1: 'not for you' } as Record<number, string>;
+  const counts = (a: SessionNote[]) =>
+    [3, 2, 1]
+      .map((r) => [r, a.filter((n) => n.rating === r).length] as const)
+      .filter(([, c]) => c > 0)
+      .map(([r, c]) => `${c} ${RATING[r]}`)
+      .join(', ');
+  const describe = (a: SessionNote[]) => {
+    if (a.length === 0) return 'no notes yet';
+    const n = `${a.length} note${a.length === 1 ? '' : 's'}`;
+    if (a.length < 5) return `${n}: ${counts(a)}`;
+    const m = mean(a)!;
+    return `${m >= 2.5 ? 'mostly good' : m >= 1.8 ? 'mostly the same as usual' : 'mostly not for you'} (${n}: ${counts(a)})`;
+  };
   return (
     <div data-testid="notes-summary">
       <p className="text-[1rem] leading-6 text-ink">
-        {notes.length} noted session{notes.length === 1 ? '' : 's'}. With the beat: {words(mean(beat))} ({beat.length}). Noise only: {words(mean(noise))} ({noise.length}).
+        {notes.length} noted session{notes.length === 1 ? '' : 's'}. With the beat: {describe(beat)}. Noise only: {describe(noise)}.
       </p>
       <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">These are your notes, not a test. For a fair answer, run a blind comparison.</p>
     </div>
@@ -727,7 +757,7 @@ function Blind() {
       <article className="pb-8" data-testid="blind-setup">
         <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">Does the beat do anything for you?</h1>
         <P>
-          For two weeks, the layer you choose plays as layer A or layer B. One has the beat, one is noise only. Tuck picks at random each time and hides the numbers. After each session you tap
+          For two weeks, the layer you choose plays as layer A or layer B. One has the beat. The other plays the same tones and noise with no beat: they’re built to sound alike. Tuck picks at random each time and hides the numbers. After each session you tap
           how it went. At the end you see your own result.
         </P>
         <div className="mt-6">
@@ -754,7 +784,7 @@ function Blind() {
           </select>
         </div>
         <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3" data-testid="blind-fixed">
-          To keep it fair, both play loudness-matched, at Medium, held still. Level and motion are fixed during the comparison’s sessions.
+          To keep it fair, both play the same tones at the same level, at Medium, held still. Level and motion are fixed during the comparison’s sessions.
         </p>
         <Button
           full
@@ -788,7 +818,7 @@ function Blind() {
       <h1 className="text-[1.9375rem] leading-[2.375rem] font-medium text-ink mt-2">{b.revealed ? 'Your result' : `Day ${day} of ${b.days}`}</h1>
       <P>
         {b.revealed
-          ? `Layer ${b.beatIs} had the beat. Layer ${b.beatIs === 'A' ? 'B' : 'A'} was noise only.`
+          ? `Layer ${b.beatIs} had the beat. Layer ${b.beatIs === 'A' ? 'B' : 'A'} played the same tones with no beat.`
           : `Start ${name} as usual. It plays as A or B, chosen at random. Tap how it went at the end of each session.`}
       </P>
       <dl className="mt-6 grid grid-cols-2 gap-3">
@@ -796,7 +826,7 @@ function Blind() {
           <div key={k} className="rounded-[18px] bg-surface px-4 py-4">
             <dt className="text-[1rem] text-ink2">
               Layer {k}
-              {b.revealed ? (k === b.beatIs ? ', beat' : ', noise only') : ''}
+              {b.revealed ? (k === b.beatIs ? ', beat' : ', no beat') : ''}
             </dt>
             <dd className="tnum text-[1rem] text-ink2 mt-1">Average</dd>
             <dd className="tnum text-[1.9375rem] leading-[2.375rem] text-ink" data-testid={`blind-avg-${k}`}>
@@ -818,11 +848,11 @@ function Blind() {
               ? 'There aren’t notes for both layers, so there’s no comparison to make.'
               : Math.abs(ma - mb) < 0.3
                 ? 'They came out about the same. For you, on these days, the beat didn’t make a clear difference.'
-                : `The ${(b.beatIs === 'A' ? ma : mb) > (b.beatIs === 'A' ? mb : ma) ? 'beat' : 'noise only'} sessions came out a little better for you.`}
+                : `The ${(b.beatIs === 'A' ? ma : mb) > (b.beatIs === 'A' ? mb : ma) ? 'beat' : 'no-beat'} sessions came out a little better for you.`}
             {both && ` Layer A: ${fmt(ma)} from ${a.length} note${a.length === 1 ? '' : 's'}. Layer B: ${fmt(mb)} from ${bb.length}. With this few sessions, n is small and one good day can tip it. Treat it as a hint, not a finding.`}
           </P>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="quiet" onClick={() => download('tuck-blind.csv', 'text/csv', notesCsv(notes))} data-testid="blind-export">
+            <Button variant="quiet" onClick={() => openExport({ name: 'tuck-blind.csv', type: 'text/csv', body: notesCsv(notes, { beatIs: b.beatIs, beatHz: store.findLayer(b.layerId)?.beatHz ?? 14 }), what: 'Your blind comparison' })} data-testid="blind-export">
               Export CSV
             </Button>
             <Button variant="quiet" onClick={() => store.setPrefs({ blind: null })} data-testid="blind-new">
@@ -854,11 +884,11 @@ function Blind() {
 
 const PLAN: { what: string; free: string; plus: string }[] = [
   { what: 'Layers', free: 'All of them, with every number, Drift, Hold and Vary', plus: 'The same' },
-  { what: 'Saved layers', free: 'As many as you like', plus: 'Synced to your other devices' },
+  { what: 'Saved layers', free: 'As many as you like, on this phone', plus: 'Also on your other devices, via your own iCloud or Google account, end-to-end encrypted. No Tuck server, no account. Off until you turn it on' },
   { what: 'Timers', free: 'Any length, Cycles 25 + 5, Take 5', plus: 'The same' },
   { what: 'Start without opening', free: 'One Control Center tile, one automation, the widget', plus: 'Start recipes: a layer, level and timer per Shortcut, as many as you like' },
   { what: 'Schedule', free: 'One daily time', plus: 'As many as you like' },
-  { what: 'Blind comparison', free: 'Two weeks, beat or noise only, CSV', plus: 'Four weeks, two of your own layers, sleep notes in the result, PDF' },
+  { what: 'Blind comparison', free: 'Two weeks, beat or no beat, CSV', plus: 'Four weeks, two of your own layers, sleep notes in the result, PDF' },
   { what: 'Health', free: 'Mindful minutes, written as you go', plus: 'Your history, with sleep notes beside it' },
 ];
 

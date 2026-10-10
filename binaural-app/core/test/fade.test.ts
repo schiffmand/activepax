@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FADE_FLOOR, rampFade, paramValueAt } from '../src/audio/webaudio';
+import { FADE_FLOOR, rampFade, rampParam, paramValueAt } from '../src/audio/webaudio';
 import { gainToDb } from '../src/audio/engine';
 import { generateNoise } from '../src/audio/noise';
 import { MockAudioContext, MockGain, MockParam } from './mockAudio';
@@ -67,5 +67,65 @@ describe('generateNoise with an RMS target', () => {
   it('peak-normalises as before when no RMS target is given', () => {
     const d = generateNoise('pink', 48_000, { seed: 5 });
     expect(d.reduce((m, v) => Math.max(m, Math.abs(v)), 0)).toBeCloseTo(0.9, 5);
+  });
+});
+
+/**
+ * Round 3 audio B1: `cancelAndHoldAtTime` past the last automation event inserts no anchor, so the next
+ * ramp used to interpolate from that old event (an instant jump on Stop and a click on level changes).
+ * The mock now follows the spec (no anchor past the last event), so these fail without the fix.
+ */
+describe('ramps start from the current value, however long the param sat still (B1)', () => {
+  it('Stop after 60 s fades from full level, about -20 dB at stop + 10 s', () => {
+    const ctx = new MockAudioContext();
+    const p = new MockParam(ctx, 0);
+    rampFade(p, 1, 0, 8);
+    const stopAt = 60;
+    rampFade(p, 0, stopAt, 20);
+    expect(Math.abs(db(p.valueAt(stopAt + 0.05)) - db(p.valueAt(stopAt - 0.01)))).toBeLessThan(0.5);
+    expect(db(p.valueAt(stopAt + 10))).toBeGreaterThan(-22);
+    expect(db(p.valueAt(stopAt + 10))).toBeLessThan(-18);
+    expect(p.valueAt(stopAt + 20)).toBe(0);
+  });
+
+  it('Stop after 25 min is still a 20 s fade, not a cut', () => {
+    const ctx = new MockAudioContext();
+    const p = new MockParam(ctx, 0);
+    rampFade(p, 1, 0, 8);
+    rampFade(p, 0, 1500, 20);
+    expect(db(p.valueAt(1501))).toBeGreaterThan(-3);
+    expect(db(p.valueAt(1510))).toBeGreaterThan(-22);
+  });
+
+  it('a level change after 12 s glides with no step (no click)', () => {
+    const ctx = new MockAudioContext();
+    const p = new MockParam(ctx, 0);
+    rampParam(p, 0.0498, 0, 1.2);
+    rampParam(p, 0.0196, 12, 1.2);
+    // No sample-to-sample step: 10 ms after the change it has moved less than 0.3 dB.
+    expect(Math.abs(db(p.valueAt(12.01)) - db(0.0498))).toBeLessThan(0.3);
+    expect(p.valueAt(13.2)).toBeCloseTo(0.0196, 5);
+  });
+
+  it('a ramp cut mid-way continues from where it was', () => {
+    const ctx = new MockAudioContext();
+    const p = new MockParam(ctx, 0);
+    rampParam(p, 1, 0, 10);
+    rampParam(p, 0, 5, 5);
+    expect(p.valueAt(5)).toBeCloseTo(0.5, 2);
+    expect(p.valueAt(5.01)).toBeCloseTo(0.499, 2);
+  });
+
+  it('the engine stop after 60 s keeps the level at the start of the fade', async () => {
+    const rig = makeRig({ fadeInSec: 8, fadeOutSec: 20, fadeCurve: 'perceptual' });
+    await rig.engine.start();
+    await rig.advance(60, 500);
+    const fadeGain = rig.ctx.of<MockGain>('gain')[3]!;
+    const before = fadeGain.gain.valueAt(rig.ctx.currentTime);
+    const t0 = rig.ctx.currentTime;
+    void rig.engine.stop();
+    expect(Math.abs(db(fadeGain.gain.valueAt(t0 + 0.05)) - db(before))).toBeLessThan(0.5);
+    expect(db(fadeGain.gain.valueAt(t0 + 10))).toBeLessThan(-15);
+    expect(db(fadeGain.gain.valueAt(t0 + 10))).toBeGreaterThan(-25);
   });
 });

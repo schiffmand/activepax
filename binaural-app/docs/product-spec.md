@@ -38,7 +38,7 @@ Tuck plays binaural tones with a soft noise bed **underneath** whatever else is 
 | 20 | **Versioned built-ins**: "what changed" diff, reset to default | P1 | Sam (sameness), Dev (reversibility) |
 | 21 | Dim wool night theme, warm (automatic from 21:00 for every layer, from 18:00 for Sleep; never a bright button at night) | P1 | Priya, meditator |
 | 22 | Private log (off by default): one-tap rating after a session, a one-tap sleep note the next morning, CSV / JSON export | P1 (built, round 1) | Dev, Priya, Hannah |
-| 23 | **Blind comparison** (beat vs noise only on one layer, 14 days, labelled A / B). Basic version free; Plus adds longer runs, own-layer vs own-layer, PDF | P1 free basic (built, round 1); Plus extension P2 | Hannah, Dev |
+| 23 | **Blind comparison** (beat vs a sham on one layer: the same carrier in both ears, 0 Hz beat, same tone level and noise, so the arms are built to sound alike; 14 days, labelled A / B; round 4). Basic version free; Plus adds longer runs, own-layer vs own-layer, PDF | P1 free basic (built, round 1); Plus extension P2 | Hannah, Dev |
 | 24 | One daily schedule and a mindful-minutes write to Apple Health / Health Connect (both free, round 2); more schedules, Health history with sleep notes, sync | P1 the free part; P2 (Plus) the rest | Priya |
 | 25 | Shortcuts / App Intents ("Start Focus under my audio"), the "when Spotify opens, start Tuck" automation recipe, Control Center control, Quick Settings tile, Lock Screen widget | **P1** (round 1: starting is the ADHD job, and this is the no-streak retention loop) | Maya, Dev, Priya |
 | 26 | Pomodoro-style cycles in the timer (25 on, 5 at Quiet, one chime, 4 rounds) | P1 (built, round 1) | Leo, Maya |
@@ -169,13 +169,14 @@ All sizes are for a 390 × 844 pt frame (iPhone 14/15) with 20 pt gutters. Safe 
    - **Readout row** (engraved, Thread 16 tabular, 48 pt target): "14 Hz · L 200 / R 214 ›", with L in Heather and R in Lichen. **Tap → the spec card.** In noise only: "Noise only · brown 25% ›".
    - **Timer chip:** "No timer ›" or "50 min ›". **Tap → the timer sheet.**
    - **[Start sound]**: full width, 56 pt, Fleece fill with a Loden label (Day: Loden fill, Muslin label). **Always visible when idle.**
-   - First idle view only: a hint line, "Pull the top edge up, or tap Start sound." It disappears after the first start.
+   - Idle: a hint line, "Pull the top edge up, or tap Start sound.", with the same words every time (round 4: a shorter second wording read as a different instruction). At accessibility text sizes it is screen-reader only.
 4. **Weekly total** (P1, Thread 16): hidden until the first session ends, and switchable off.
 
 **Playing layout:**
 - The layer rises to its level height (Quiet 360 / Medium 430 / Full 500 pt) in **1.4 s**. The lining brightens from 45% to 100% **linearly across the full fade-in** (8 s, or 15 s for Steady).
 - The home line area shows the one metaphor line: **"Tucked in."** (Plain: "Sound on."). Under it, in Thread: "With you for 24 min · Fades out at 50 min" (Plain: "Playing for 24 min · Fades out at 50 min").
 - Inside the layer: the readout row, then **Level** as a three-segment control **Quiet · Medium · Full** (48 pt; segments above the ceiling are hatched and show a lock), then **Drift / Hold** as a two-segment control, then the timer chip, then **[Stop]** (full width, 56 pt, outline style).
+- **The top stays readable (round 4).** While playing, the status line, the layer name and the glance line ("Started at 10:42 · ends at 11:07", or "· 1 h 50 min this week", or "· fades out when you stop") are never covered at default text sizes. The layer's level height gives way first: it rests no higher than leaves the measured top visible (Full may rest at about 560 instead of 580 when a headphone pill, a notice or a shared layer's Save row is showing). The Level control still says which level is on. A plan with a defined end (a timer, Cycles, Evening descent) always states its end time there; Cycles counts its four rounds and three breaks ("ends at 12:52").
 - **Drag the handle** up or down to change level. It snaps to a detent in 140 ms, and the sound glides over 1.2 s. **Drag below Quiet's height:** the hint reads "Let go to set it down." Letting go there stops; dragging back up cancels.
 - **Stop / set down:** the layer sinks to idle height in 2 s. Sound fades over 20 s (60 s for Sleep), and the lining dims across the same 20 s. While fading, the button reads **"Start sound"** again, and tapping it fades back in from the current level. The session-end line ("Set down after 52 min. Faded out over 20 seconds.") shows for 8 s.
 
@@ -363,6 +364,8 @@ Starting from `fadingOut` fades back in from the current gain, without a click.
 - Reduce Motion or Still screen means zero movement (cross-fades only). Nothing flashes more than 3 times per second, ever. The beat is never visualised. Nothing ambient cycles faster than once per 6 s.
 - The web prototype is fully keyboard operable: Enter = Start sound, Esc = Stop, arrows = Level, with a visible 2 pt focus ring offset 2 pt.
 - Dynamic Type up to AX3 with no clipped primary action. The home line wraps.
+- **Nothing floats over text (round 4).** At accessibility text sizes, when Home's top runs under the layer, a "More ⌄" cue sits in its own reserved 48 pt row below the text, never on it, and goes while a sheet or the spec card is open. At default text sizes the cue never appears: the layer leaves room instead. Home's headings cap at 48 px (status lines at 38 px) so the question is never cut mid-word at 200%; body text scales in full. Each ear's value stays with its label ("R 214 Hz" never wraps apart).
+- **Disconnects say so where you are.** A disconnect mid-session shows "Headphones disconnected, so Tuck faded out. Start plays noise only until they're back." on Home itself, in place of the generic pill; it goes when headphones return.
 - No sound, haptic or motion happens without a user action. The ear-check tones only play from a tap.
 
 ## 8. Prototype demo script (what the final demo must show)
@@ -392,6 +395,12 @@ Starting from `fadingOut` fades back in from the current gain, without a click.
 10. **Program labels:** rename the `sleep-descent` step label 'Asleep' to 'Low' (no outcome words in UI-visible strings).
 11. **Take 5:** a player action that sets level Quiet for N minutes, then a chime, then fade out (or the next block if auto-continue is on).
 
+## Output levels (round 4, audio)
+
+- **Noise only is matched in integrated loudness (BS.1770 K-weighting), not RMS.** For every built-in layer, noise only (speaker, Mono, call mode, the Noise only switch) and the Beat Off endpoint land within 0.3 LU of the layer they replace (`core/test/loudness.test.ts`: Focus +0.01, Calm +0.10, Unwind +0.20, Evening descent +0.28, Steady +0.09, Long focus −0.02 LU). The +0.6 dB RMS difference measured on Focus is that match: brown noise needs more RMS than a 200 Hz tone for the same K-weighted loudness. Requirement: within 1 LU.
+- **True-peak ceiling: −1 dBTP** (`PEAK_CEILING`). Tuck's hottest output, brown noise only at 35% on Full, measures −10.0 dBTP (4× oversampled), so there is 9 dB of headroom before the ceiling and no limiter is needed. Every user volume up to `MAX_CLEAN_VOLUME` (0.61; Full is 0.42) stays under the ceiling by construction. When Tuck sums under other audio at full device volume, the OS mixer owns the final limit; Tuck never adds gain to reach it.
+- **Audio checks go through the UI.** `__tuck.session.setBinaural()` alone is undone by Home's sync effect, which follows the selected layer. With `?debug=1`, use `__tuck.setBeat(on)`, which flips the layer the way the spec card's Beat switch does, and assert the tone scan as well as RMS.
+
 ## Activation and the north star (added after round 1)
 
 Tuck measures nothing it doesn't need, and nothing leaves the phone without consent. These are the product's own definitions, computed on device for the user's own This week page and, only if they opt in to anonymous diagnostics, counted in aggregate:
@@ -401,3 +410,29 @@ Tuck measures nothing it doesn't need, and nothing leaves the phone without cons
 - **North-star input:** the share of sessions with "Your audio keeps playing above" true for at least half the session. That number is the proof of the wedge: Tuck under something else, not instead of it.
 - **Retention without streaks:** the share of sessions started without opening the app (Control Center, Shortcuts automation, Lock Screen widget, schedule). It replaces any streak mechanic.
 
+
+### Funnel events (added after round 3)
+
+So the round-4 changes can be judged, the prototype spec names the funnel. Each event is a local counter with a timestamp (`prefs.funnel`, on the phone); only users who opt in to anonymous diagnostics send aggregate counts, never a layer name, a note or the sharer's word. No event carries what else is playing.
+
+| Event | Fires when | Judges |
+|---|---|---|
+| `ear_check_started` | "Check my headphones" tapped (the left tone plays) | onboarding friction |
+| `ear_check_passed` / `ear_check_verdict:<swapped·mono·spatial·one-ear·none>` | the verdict shows | how many people can hear the beat at all |
+| `ear_check_skipped` | "Skip, use noise only" | trust in the check; noise-only share |
+| `first_sound_ms` | ms from first launch to the first audible sample (target ≤ 10 000) | first sound |
+| `activated` | `underSec` ≥ 600 within 48 h (see above) | the aha |
+| `d1_same_as_last` | "Same as last time?" Start tapped on the day after the first session | one-tap daily start |
+| `start_outside_app` | a session started from Control Center, Shortcuts, the widget or the schedule | retention without streaks |
+| `start_tip_tapped` / `start_tip_dismissed` | the session-end suggestion (shown until one of these) | whether the suggestion earns its place |
+| `export_opened:<csv·json·all·blind>` and `export_outcome:<sent·framed·copied·copy_failed>` | the Export sheet | that "your data is yours" is usable |
+| `share_copied` / `share_copy_failed` / `share_note_added` | the share sheet | the sender's side of the loop |
+| `share_opened` | a shared link opens Home on the shared layer (with `first_visit: true/false`, nothing else) | reach of the loop |
+| `share_played` | Play it on the shared layer, with sound for at least 60 s | the recipient's first sound |
+| `share_saved` | Save it / Save &lt;name&gt; confirmed on the shared layer | conversion: the layer became theirs |
+| `share_ear_check` | "Stop and check my headphones" tapped by a first-visit recipient (round 4) | recipients on a speaker reaching the beat |
+| `blind_started` / `blind_revealed` | the blind comparison | the Plus hero |
+
+The share events carry no layer, no word and no sender (round 4, growth): the loop is judged as `share_opened → share_played → share_saved`, like onboarding's ear check → first sound → activation.
+
+In the prototype these are specified, not wired (there is no analytics code), so the demo still sends nothing anywhere. Prototype controls → "Show the activation moment" previews the `activated` line in five seconds (it starts both sounds and shows "Stayed under your audio for 10 min" for this session only; `prefs.activatedAt` isn't written).

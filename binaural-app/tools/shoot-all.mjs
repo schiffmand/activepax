@@ -5,6 +5,7 @@ import { chromium } from 'playwright-core';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.resolve(process.argv[2] || path.join(root, 'docs/screens'));
@@ -15,6 +16,25 @@ const H = `${U}?screen=home&hour=10`;
 const t = (id) => `[data-testid=${id}]`;
 
 // step: string = click testid; number = wait ms; fn = custom
+const big = async (p) => p.addStyleTag({ content: 'html{font-size:200% !important}' });
+const scrollTo = (id) => async (p) => p.evaluate((id) => document.querySelector(`[data-testid=${id}]`)?.scrollIntoView({ block: 'center' }), id);
+const seedNotes = async (p) =>
+  p.evaluate(() => window.__tuck.store.setPrefs({ logOn: true, notes: [
+    { at: Date.now() - 3600e3, layerId: 'focus', layerName: 'Focus', beatHz: 14, noise: 'brown', minutes: 25, rating: 3 },
+    { at: Date.now() - 86400e3, layerId: 'calm', layerName: 'Calm', beatHz: 10, noise: 'pink', minutes: 12, rating: 2 },
+  ] }));
+// A revealed blind comparison with two notes per arm (beat on A).
+const seedBlind = async (p) =>
+  p.evaluate(() => {
+    const now = Date.now();
+    const n = (k, h, r) => ({ at: now - h * 3600e3, layerId: 'focus', layerName: `Layer ${k}`, beatHz: null, noise: 'brown', minutes: 25, rating: r, blind: k });
+    window.__tuck.store.setPrefs({
+      blind: { layerId: 'focus', beatIs: 'A', startedAt: now - 5 * 86400e3, days: 14, current: null, plays: { A: 2, B: 2 }, revealed: true },
+      notes: [n('A', 50, 3), n('B', 40, 2), n('A', 26, 3), n('B', 3, 2)],
+    });
+  });
+// The published viewer: clipboard writes are refused and execCommand fails too.
+const noClipboard = async (p) => p.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new Error('NotAllowedError')); document.execCommand = () => false; });
 const demo = (id) => [ 'nav-menu', 'menu-demo', async (p) => p.click(`[data-testid=sheet-demo] ${t(id)}`), 400, 'sheet-close' ];
 const screens = [
   ['01-onboarding', U, []],
@@ -62,28 +82,63 @@ const screens = [
   ['43-headphones-speaker', `${H}&debug=1`, [async (p) => p.evaluate(() => window.__tuck.ui.set({ headphone: 'speaker' })), 600]],
   ['44-headphones-sheet', `${H}&debug=1`, [async (p) => p.evaluate(() => window.__tuck.ui.set({ headphone: 'speaker' })), 600, 'banner-speaker', 800]],
   ['45-prototype-controls', H, ['nav-menu', 'menu-demo', 800]],
-  ['46-large-text', H, [async (p) => p.addStyleTag({ content: 'html{font-size:200% !important}' }), 'start', 2000]],
+  ['46-large-text', H, [big, 'start', 2000]],
+  // Round 4 additions.
+  ['47-large-text-idle', H, [big, 1000]],
+  ['48-large-text-spec-card', H, [big, 'readout', 1500]],
+  ['49-playing-first-session', H, ['start', 9000]],
+  ['50-evening-home', `${U}?screen=home&hour=21`, [800]],
+  ['51-take-five-running', H, ['timer-chip', 'timer-25', 'start', 1000, ...demo('demo-skip'), 25000, 'take-five', 2500]],
+  ['52-call-stopped', `${H}&debug=1`, ['start', 3000, async (p) => p.evaluate(() => window.__tuck.session.simulateCall()), 3000]],
+  ['53-headphones-disconnected-idle', `${H}&debug=1`, [async (p) => p.evaluate(() => window.__tuck.ui.set({ headphone: 'disconnected' })), 600, 'banner-disconnected', 800]],
+  ['54-this-week-few-notes', `${H}&debug=1`, [seedNotes, 'nav-menu', 'menu-week', scrollTo('notes-summary'), 600]],
+  ['55-export-sandboxed', `framed:${H}&debug=1`, [seedNotes, 'nav-menu', 'menu-week', scrollTo('export-csv'), 'export-csv', 800]],
+  ['56-export-copied', `framed:${H}&debug=1`, [seedNotes, 'nav-menu', 'menu-week', scrollTo('export-csv'), 'export-csv', 'export-copy', 800]],
+  ['57-share-copy-failed', `framed:${H}&debug=1`, [noClipboard, 'readout', 'spec-share', async (p) => p.fill(t('share-note'), 'for reading'), 'share-copy', 800]],
+  ['58-shared-with-note', `${U}?hour=10&layer=10,180,pink,30,hold,1,Library&note=for%20reading`, [800]],
+  ['59-schedule', H, ['nav-menu', 'menu-settings', scrollTo('set-schedule-layer'), 600]],
+  ['60-desktop-frame', H, [800], { width: 1280, height: 860 }],
+  // Round 5 additions (round-4 fixes).
+  ['61-playing-full', H, ['start', 'level-full', 2500]],
+  ['62-playing-one-earbud', `${H}&debug=1`, ['start', 1500, async (p) => p.evaluate(() => window.__tuck.ui.set({ headphone: 'oneEar' })), 2500]],
+  ['63-cycles-running', H, ['timer-chip', 'timer-cycles', 'start', 2500]],
+  ['64-disconnected-mid-session', `${H}&debug=1`, ['start', 3000, async (p) => p.evaluate(() => window.__tuck.ui.set({ headphone: 'disconnected' })), 3000]],
+  ['65-large-text-session-end', H, [big, 'start', 2000, 'stop', 1500]],
+  ['66-evening-descent-playing', `${U}?screen=home&hour=21&debug=1`, ['chip-heavy-eyed', 'start', 2000, async (p) => p.evaluate(() => window.__tuck.session.clock.skip(10 * 60 * 1000)), 2500]],
+  ['67-editor-invalid-beat', H, ['readout', 'spec-edit', 800, async (p) => { await p.fill(t('editor-beat'), '99'); await p.keyboard.press('Tab'); }, 800]],
+  ['68-shared-recipient-check', `${U}?hour=10&layer=10,180,pink,30,hold,1,Library&note=for%20reading&debug=1`, ['start', 1500, async (p) => p.evaluate(() => window.__tuck.session.clock.skip(65_000)), 2500]],
+  ['69-activation-moment', H, ['nav-menu', 'menu-demo', async (p) => p.click(`[data-testid=sheet-demo] ${t('demo-activation')}`), 3500]],
+  ['70-this-week-sleep-note', `${H}&debug=1`, [async (p) => p.evaluate(() => window.__tuck.store.setPrefs({ logOn: true, sleepNotes: [{ night: '2026-10-09', layerName: 'Evening descent', rating: 3, at: Date.now() }] })), 'nav-menu', 'menu-week', scrollTo('sleep-count'), 600]],
+  ['71-blind-export-revealed', `framed:${H}&debug=1`, [seedBlind, 'nav-menu', 'menu-blind', scrollTo('blind-export'), 'blind-export', 800]],
+  ['72-large-text-idle-more', H, [big, 1000, 'home-more', 1200]],
 ];
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--autoplay-policy=no-user-gesture-required'] });
 let failures = 0;
-for (const [name, url, steps] of screens) {
+// 'framed:<url>' runs the page inside a sandboxed iframe without allow-downloads, like the published viewer.
+const viewer = path.join(os.tmpdir(), 'tuck-viewer.html');
+for (const [name, url0, steps, vp] of screens) {
   if (only && !name.includes(only)) continue;
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  const page = await ctx.newPage();
+  const framed = url0.startsWith('framed:');
+  const url = framed ? 'file://' + viewer : url0;
+  if (framed) fs.writeFileSync(viewer, `<!doctype html><html><body style="margin:0;background:#121612"><iframe sandbox="allow-scripts allow-same-origin" src="${url0.slice(7).replace(/&/g, '&amp;')}" style="border:0;width:390px;height:844px"></iframe></body></html>`);
+  const ctx = await browser.newContext({ viewport: vp ?? { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const top = await ctx.newPage();
   const logs = [];
-  page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`); });
-  page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
-  await page.goto(url, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  top.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`); });
+  top.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
+  await top.goto(url, { waitUntil: 'networkidle' });
+  await top.waitForTimeout(framed ? 1600 : 800);
+  // Steps act on the app: the page itself, or the viewer's iframe.
+  const page = framed ? top.frames()[1] : top;
   for (const s of steps) {
     try {
-      if (typeof s === 'number') await page.waitForTimeout(s);
+      if (typeof s === 'number') await top.waitForTimeout(s);
       else if (typeof s === 'function') await s(page);
-      else { await page.click(t(s), { timeout: 3000 }); await page.waitForTimeout(500); }
+      else { await page.click(t(s), { timeout: 3000 }); await top.waitForTimeout(500); }
     } catch (e) { logs.push(`[step-fail] ${typeof s === 'string' ? s : 'fn'}: ${e.message.split('\n')[0]}`); failures++; }
   }
-  await page.screenshot({ path: path.join(outDir, `${name}.png`) });
+  await top.screenshot({ path: path.join(outDir, `${name}.png`) });
   console.log(`${name}${logs.length ? '\n  ' + logs.join('\n  ') : ''}`);
   await ctx.close();
 }

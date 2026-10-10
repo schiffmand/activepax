@@ -3,8 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { summarizeWeek } from '@core';
 import { CYCLE, localDate, session, fadesFor } from '../audio/session';
-import { CHIPS, chipForLayer, copy, durationWords, elapsedWords, greetingFor, playsLine, type ChipId } from '../tuck/copy';
-import { ears, hz, INTENT_ORDER, LAYER_HEIGHT, LEVEL_LABEL, LEVELS, builtInLayer, wanders, type Layer, type LevelName } from '../tuck/layers';
+import { CHIPS, HP_DISCONNECTED_MID, chipForLayer, copy, durationWords, elapsedWords, greetingFor, playsLine, type ChipId } from '../tuck/copy';
+import { hz, INTENT_ORDER, readoutNumbers, LAYER_HEIGHT, LEVEL_LABEL, LEVELS, builtInLayer, wanders, type Layer, type LevelName } from '../tuck/layers';
 import { store, type TimerChoice } from '../tuck/store';
 import { binauralFor, pickChip, selectLayer, startSound, stopSound, useTuck } from '../ui/derived';
 import { ui, type Headphone } from '../ui/state';
@@ -32,7 +32,8 @@ import { SpecCard } from './SpecCard';
 
 const SAFE_TOP = 47;
 const SAFE_BOTTOM = 34;
-const SPEC_TOP = SAFE_TOP + 56;
+/** The spec card opens below the top bar, which grows with the text size (min-h-14 is in rem). */
+const specTop = () => SAFE_TOP + Math.round(56 * Math.max(1, textScale()));
 const RELEASE_TO_STOP_BELOW = 280;
 /** How far past its resting height the idle layer must be pulled to start. */
 const PULL_TO_START = 36;
@@ -53,9 +54,13 @@ function textScale(): number {
  * than its own controls (they grow with large text), and never taller than leaves room for the status line:
  * past that, the layer's middle scrolls and Start sound / Stop stay pinned above the safe area.
  */
-export function layerTotalH(restH: number, minH: number, idle = false): number {
-  const cap = textScale() > 1.2 ? Math.round(PHONE_H * (idle ? 0.5 : 0.64)) : PHONE_H - SAFE_TOP - 140;
-  return Math.min(cap, Math.max(restH + SAFE_BOTTOM, minH));
+export function layerTotalH(restH: number, minH: number, idle = false, topNeed = 0): number {
+  const big = textScale() > 1.2;
+  const cap = big ? Math.round(PHONE_H * (idle ? 0.5 : 0.58)) : PHONE_H - SAFE_TOP - 140;
+  // Playing at default text sizes, the top (status, name, "Started at…", any pill) is never covered: the level's
+  // height gives way first (Full may rest at 560 instead of 580). The level itself shows on the Level control.
+  const fit = !idle && !big && topNeed > 0 ? PHONE_H - SAFE_TOP - 12 - topNeed : Infinity;
+  return Math.min(cap, Math.max(Math.min(restH + SAFE_BOTTOM, fit), minH));
 }
 
 export function Home() {
@@ -71,6 +76,8 @@ export function Home() {
   // Headphones disconnected mid-session: 1.5 s fade, then the notice.
   useEffect(() => {
     if (u.headphone === 'disconnected' && session.isActive()) session.simulateDisconnect();
+    // Headphones back: the "faded out" notice no longer describes what Start will do, so it goes.
+    else if (u.headphone !== 'disconnected' && session.get().notice === 'disconnected') session.clearNotice();
   }, [u.headphone]);
 
   const idle = s.phase === 'idle' || (s.phase === 'fadingOut' && !!s.ended);
@@ -93,6 +100,7 @@ export function Home() {
 function TopBar({ otherPlaying, noteVisible, activated }: { otherPlaying: boolean; noteVisible: boolean; activated: boolean }) {
   // The activation moment, marked once and quietly: the first time Tuck stays under another app for 10 minutes.
   const label = activated ? 'Stayed under your audio for 10 min' : otherPlaying ? 'Your audio keeps playing above' : 'Nothing else playing';
+  const big = textScale() > 1.2;
   return (
     <div className="relative z-20 shrink-0">
       <div className="min-h-14 py-1 flex items-center justify-between pl-3 pr-2">
@@ -100,11 +108,12 @@ function TopBar({ otherPlaying, noteVisible, activated }: { otherPlaying: boolea
           type="button"
           data-testid="audio-indicator"
           onClick={() => ui.set({ page: 'mixing' })}
-          className="h-12 inline-flex items-center gap-2 rounded-full pl-2 pr-3 text-ink2 hover:text-ink transition-colors"
+          className="min-h-12 min-w-0 inline-flex items-center gap-2 rounded-full pl-2 pr-3 text-left text-ink2 hover:text-ink transition-colors"
           aria-label={`${label}. How Tuck plays under your audio`}
         >
-          {otherPlaying ? <IconAudioAbove /> : <IconQuiet />}
-          <span className={cx('text-[1rem]', activated && 'text-ink')} data-testid={activated ? 'activation' : undefined}>
+          {/* At accessibility text sizes the icon goes, so the indicator stays one left-aligned line. */}
+          {!big && (otherPlaying ? <IconAudioAbove /> : <IconQuiet />)}
+          <span className={cx('leading-tight whitespace-nowrap overflow-hidden text-ellipsis', activated && 'text-ink')} style={{ fontSize: 'min(1rem, 22px)' }} data-testid={activated ? 'activation' : undefined}>
             {label}
           </span>
         </button>
@@ -166,10 +175,13 @@ function HeadphonePill({ state }: { state: Headphone }) {
 
 function NoticeBanner() {
   const { s } = useTuck();
-  if (!s.notice || s.notice === 'disconnected') return null;
+  if (!s.notice) return null;
+  // Round 4 (Sam): a disconnect mid-session says so on Home itself, like the call and takeover notices.
   const text =
-    s.notice === 'call'
-      ? 'Paused for your call.'
+    s.notice === 'disconnected'
+      ? HP_DISCONNECTED_MID
+      : s.notice === 'call'
+      ? 'Stopped for your call. Start sound when you’re done.'
       : s.notice === 'mixing'
         ? 'Another app took over the sound, so your layer stopped. Your audio wasn’t changed.'
         : s.notice === 'blocked'
@@ -178,13 +190,8 @@ function NoticeBanner() {
   if (!text) return null;
   return (
     <Banner
-      icon={s.notice === 'call' ? <IconCall /> : <IconInfo />}
+      icon={s.notice === 'call' ? <IconCall /> : s.notice === 'disconnected' ? <IconHeadphones /> : <IconInfo />}
       testid={`notice-${s.notice}`}
-      actions={
-        <Button variant="text" onClick={() => startSound()}>
-          Start sound
-        </Button>
-      }
     >
       {text}
     </Banner>
@@ -208,10 +215,11 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   const showWeek = prefs.showWeeklyTotal && week.sessions > 0;
   const greet = greetingFor(t.hour);
   // No greeting (Plain labels, Sensory mode, the setting off, or 00:00 to 04:00): no stray heading line either.
-  const greeting = prefs.greeting && labels === 'warm' && greet ? greet : null;
+  // At accessibility text sizes the greeting goes too, so the question itself stays in view.
+  const greeting = prefs.greeting && labels === 'warm' && greet && textScale() <= 1.2 ? greet : null;
   const pinned = prefs.pinnedLayerId ? store.findLayer(prefs.pinnedLayerId) : undefined;
   const sleepAsk = useSleepAsk();
-  // A blind comparison is running on this layer: say so, and never say "beat" (it may play as noise only).
+  // A blind comparison is running on this layer: say so, and never say "beat" (one arm plays the same tones with no beat).
   const blindOn = !!prefs.blind && !prefs.blind.revealed && layer.id.replace(/~noise$/, '') === prefs.blind.layerId;
   const blindLine = labels === 'plain' ? `${layer.name}: blind comparison, A or B.` : `That’s ${layer.name}, in your blind comparison: A or B, chosen at random.`;
 
@@ -232,7 +240,7 @@ function HomeTop({ top }: { top: React.ReactNode }) {
     const sharedNow = !!u.shared && layer.id === u.shared.id && !s.blind;
     body = (
       <motion.div key="playing" {...fade} data-testid="home-playing">
-        <p className={plainStatus ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[1.5625rem] leading-8 text-ink'} data-testid="status-line">
+        <p className={plainStatus ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink'} data-testid="status-line">
           {status}
         </p>
         {/* The name only: the numbers live once, on the readout. */}
@@ -249,6 +257,25 @@ function HomeTop({ top }: { top: React.ReactNode }) {
             </Button>
           </div>
         )}
+        {/* A share recipient who hasn't set up is the person most likely to be on a speaker. After the first minute,
+            one quiet line and a way to check (growth, round 4). It stops the layer first: the check needs silence. */}
+        {sharedNow && u.sharedNew && !st.core.settings.headphoneCheck.verdict && s.elapsedSec >= 60 && layer.binaural && (
+          <div className="mt-2" data-testid="shared-check">
+            <p className="text-[1rem] leading-[1.375rem] text-ink2 max-w-[34ch]">The beat needs stereo headphones, one tone in each ear.</p>
+            <div className="-ml-1">
+              <Button
+                variant="text"
+                onClick={() => {
+                  void session.stop(1.5);
+                  ui.set({ onboarding: 'ear', earFrom: 'settings' });
+                }}
+                data-testid="shared-check-go"
+              >
+                Stop and check my headphones
+              </Button>
+            </div>
+          </div>
+        )}
       </motion.div>
     );
   } else if (s.ended) {
@@ -258,8 +285,8 @@ function HomeTop({ top }: { top: React.ReactNode }) {
     const sh = u.shared;
     body = (
       <motion.div key="shared" {...fade} data-testid="home-shared">
-        <p className="voice text-[1.5625rem] leading-8 text-ink2">Someone shared a layer.</p>
-        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{sh.name}</h1>
+        <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2" data-testid="shared-from">{u.sharedNote ? <>Someone shared a layer, “{u.sharedNote}”.</> : 'Someone shared a layer.'}</p>
+        <h1 className="voice text-[min(1.9375rem,48px)] leading-[min(2.375rem,56px)] text-ink mt-1">{sh.name}</h1>
         <p className="tnum text-[1rem] leading-6 text-ink mt-2">{playsLine(sh, binaural, labels)}</p>
         <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">Play it below. Nothing is saved until you choose to.</p>
         <div className="mt-2 flex flex-wrap gap-x-5 -ml-1">
@@ -285,8 +312,8 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   } else if (pinned) {
     body = (
       <motion.div key="pinned" {...fade} data-testid="home-pinned">
-        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
-        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{labels === 'plain' ? 'Your layer:' : 'Your layer is ready.'}</h1>
+        {greeting && <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2">{greeting}</p>}
+        <h1 className="voice text-[min(1.9375rem,48px)] leading-[min(2.375rem,56px)] text-ink mt-1">{labels === 'plain' ? 'Your layer:' : 'Your layer is ready.'}</h1>
         <p className="mt-2 text-[1.25rem] leading-7 text-ink">
           {pinned.name} <span className="tnum text-[1rem] text-ink2">· {layerHzLabel(pinned, null, binaural)}</span>
         </p>
@@ -297,8 +324,8 @@ function HomeTop({ top }: { top: React.ReactNode }) {
     const selChip: ChipId | null = u.chip ?? chipForLayer(layer.id);
     body = (
       <motion.div key="arrive" {...fade} data-testid="home-arrive">
-        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
-        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{copy.homeFirst(labels)}</h1>
+        {greeting && <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2">{greeting}</p>}
+        <h1 className="voice text-[min(1.9375rem,48px)] leading-[min(2.375rem,56px)] text-ink mt-1">{copy.homeFirst(labels)}</h1>
         <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="How are you arriving?">
           {CHIPS.map((c) => (
             <Chip key={c.id} label={c.label} on={selChip === c.id} onClick={() => pickChip(c.id)} testid={`chip-${c.id}`} />
@@ -310,8 +337,8 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   } else if (prefs.askArrival) {
     body = (
       <motion.div key="same" {...fade} data-testid="home-same">
-        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2">{greeting}</p>}
-        <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">{u.chip ? (labels === 'plain' ? 'Layer ready.' : 'Start when you’re ready.') : copy.homeSame(labels)}</h1>
+        {greeting && <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2">{greeting}</p>}
+        <h1 className="voice text-[min(1.9375rem,48px)] leading-[min(2.375rem,56px)] text-ink mt-1">{u.chip ? (labels === 'plain' ? 'Layer ready.' : 'Start when you’re ready.') : copy.homeSame(labels)}</h1>
         <button type="button" onClick={() => ui.set({ sheet: 'picker' })} className="mt-2 min-h-12 -ml-1 px-1 inline-flex items-center gap-2" data-testid="layer-name">
           <span className="text-[1.25rem] leading-7 text-ink">{layer.name}</span>
           <span className="tnum text-[1rem] text-ink2">{blindOn ? 'blind comparison' : layerHzLabel(layer, null, binaural)}</span>
@@ -328,7 +355,7 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   } else {
     body = (
       <motion.div key="intents" {...fade} data-testid="home-intents">
-        {greeting && <p className="voice text-[1.5625rem] leading-8 text-ink2 mb-2">{greeting}</p>}
+        {greeting && <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2 mb-2">{greeting}</p>}
         <p className="text-[1.25rem] leading-7 text-ink">
           <span className="font-bold">{lastId ? 'Last layer:' : 'Layer:'}</span> {layer.name}{' '}
           <span className="tnum text-[1rem] text-ink2">· {layerHzLabel(layer, null, binaural)}</span>
@@ -350,8 +377,9 @@ function HomeTop({ top }: { top: React.ReactNode }) {
   }
 
   // Disconnected shows while idle too: Start then plays noise only on the speaker, and the pill says so.
-  const pill = !!HP_PILL[u.headphone];
-  const notice = !!s.notice && s.notice !== 'disconnected';
+  const notice = !!s.notice && !playing && !(s.notice === 'disconnected' && u.headphone !== 'disconnected');
+  // The disconnect notice already says what the pill would (noise only), so only one of them shows.
+  const pill = !!HP_PILL[u.headphone] && !(notice && s.notice === 'disconnected');
 
   // Nothing on Home is ever cut off under the layer: if the idle content needs more room, the idle layer
   // sits lower (it keeps the pull affordance, the readout and Start sound).
@@ -378,13 +406,35 @@ function HomeTop({ top }: { top: React.ReactNode }) {
     return () => ro.disconnect();
   });
 
+  // Playing: measure what the top needs (its natural height, not the box it's given), so the layer can leave room.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => {
+      // Wait for the playing view itself: the idle view may still be animating out.
+      if (playingRef.current && !el.querySelector('[data-testid=home-playing]')) return;
+      let bottom = 0;
+      for (const c of Array.from(el.children) as HTMLElement[]) bottom = Math.max(bottom, c.offsetTop + c.offsetHeight);
+      const need = playingRef.current ? el.offsetTop + bottom + 8 : 0;
+      if (Math.abs(need - ui.get().playTopH) > 2) ui.set({ playTopH: need });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    for (const c of Array.from(el.children)) ro.observe(c);
+    if (bodyRef.current) ro.observe(bodyRef.current);
+    return () => ro.disconnect();
+  });
+
+  const endAt = playing && s.startedAt > 0 ? sessionEndsAt(s) : null;
+  const moreBelow = useOverflowBelow(scrollRef);
+  const big = textScale() > 1.2;
   return (
     <div
       className="absolute left-0 right-0 flex flex-col"
-      style={{ top: SAFE_TOP, bottom: layerTotalH(playing ? LAYER_HEIGHT[s.level] : idleHeight(u.compactIdle), u.layerMinH, !playing) + 12, transition: reduced ? 'none' : 'bottom 1.4s cubic-bezier(.22,.8,.3,1)' }}
+      style={{ top: SAFE_TOP, bottom: layerTotalH(playing ? LAYER_HEIGHT[s.level] : idleHeight(u.compactIdle), u.layerMinH, !playing, u.playTopH) + 12, transition: reduced ? 'none' : 'bottom 1.4s cubic-bezier(.22,.8,.3,1)' }}
     >
       {top}
-      <div ref={scrollRef} className="fade-overflow px-5 flex-1 min-h-0 flex flex-col overflow-y-auto scrollbar-none pb-2" data-testid="home-top">
+      <div ref={scrollRef} className="fade-overflow relative px-5 flex-1 min-h-0 flex flex-col overflow-y-auto scrollbar-none pb-2" data-testid="home-top">
         {(pill || notice) && (
           <div className="flex flex-col gap-2 mt-1 mb-3">
             {pill && <HeadphonePill state={u.headphone} />}
@@ -397,9 +447,19 @@ function HomeTop({ top }: { top: React.ReactNode }) {
           </AnimatePresence>
         </div>
         {/* While playing, the top half has one quiet job: when you started, and this week's plain total. */}
+        {/* Anchored under the layer name (round 3: it sat 250 pt below it). On a first session, with no week yet,
+            it still has its second half: when it ends, or that it fades when you stop. */}
         {playing && s.startedAt > 0 && (
-          <p className="mt-auto pt-2 tnum text-[1rem] leading-[1.375rem] text-ink2" data-testid="playing-glance">
-            {[`Started at ${clock(s.startedAt)}`, showWeek && !s.blind ? `${durationWords(week.totalSec + s.elapsedSec)} this week` : null].filter(Boolean).join(' · ')}
+          <p className="mt-3 tnum text-[1rem] leading-[1.375rem] text-ink2" data-testid="playing-glance">
+            {[
+              `Started at ${clock(s.startedAt)}`,
+              // A plan with an end says when (round 4: Cycles said "fades out when you stop"); otherwise this week's total.
+              endAt !== null
+                ? `ends at ${clock(endAt)}`
+                : showWeek && !s.blind
+                  ? `${durationWords(week.totalSec + s.elapsedSec)} this week`
+                  : 'fades out when you stop',
+            ].join(' · ')}
           </p>
         )}
         {showWeek && !playing && !u.chipsOpen && !s.ended && !u.chipFirst && !u.shared && (
@@ -409,8 +469,62 @@ function HomeTop({ top }: { top: React.ReactNode }) {
           </button>
         )}
       </div>
+      {/* Accessibility text sizes only: when the top content runs under the layer, a cue in its own reserved row,
+          below the text and never on it (round 4: a floating pill covered words). Default sizes never need it: the
+          layer leaves room instead. It goes while a sheet or the spec card is open. */}
+      {big && (
+        <div className="shrink-0 px-5 flex items-center justify-end" style={{ height: 48 }} data-testid="home-more-row">
+          {moreBelow && !u.spec && !u.sheet && (
+            <button
+              type="button"
+              onClick={() => scrollRef.current?.scrollBy({ top: Math.round((scrollRef.current?.clientHeight ?? 200) * 0.7), behavior: reduced ? 'auto' : 'smooth' })}
+              className="px-4 rounded-full border-[1.5px] border-edge text-ink font-medium inline-flex items-center gap-1"
+              style={{ fontSize: 'min(1rem, 22px)', height: 44 }}
+              aria-label="More above the layer. Scroll down."
+              data-testid="home-more"
+            >
+              More <IconChevron size={16} className="rotate-90" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+/** True while a scroll area has content hidden below its bottom edge. */
+function useOverflowBelow(ref: React.RefObject<HTMLElement | null>): boolean {
+  const [below, setBelow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setBelow(el.scrollHeight - el.clientHeight - el.scrollTop > 8);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const c of Array.from(el.children)) ro.observe(c);
+    el.addEventListener('scroll', update, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('scroll', update);
+    };
+  });
+  return below;
+}
+
+/** When this session ends on its own (wall-clock ms), or null when it plays until you stop it. */
+function sessionEndsAt(s: ReturnType<typeof session.get>): number | null {
+  if (s.takeFive) return s.startedAt + s.takeFive.endsAtSec * 1000;
+  if (s.layer?.journey) return s.startedAt + 45 * 60_000;
+  if (s.cycles) {
+    const c = s.cycles;
+    const round = (CYCLE.workMin + CYCLE.breakMin) * 60;
+    // The last round ends the session with no break after it.
+    const endSec = c.phase === 'work' ? c.nextAtSec + (c.of - c.round) * round : c.nextAtSec + CYCLE.workMin * 60 + (c.of - c.round - 1) * round;
+    return s.startedAt + endSec * 1000;
+  }
+  if (s.timerMin) return s.startedAt + s.timerMin * 60_000;
+  return null;
 }
 
 /** A wall-clock time on the prototype's clock (?hour= shifts the hour): "10:02". */
@@ -435,8 +549,8 @@ function SleepNoteAsk({ fade, night, layerName, time, minutes }: { fade: object;
   const save = (rating: 0 | 1 | 2 | 3) => store.setPrefs({ sleepNotes: [...prefs.sleepNotes, { night, layerName, rating, at: Date.now() }] });
   return (
     <motion.div {...fade} data-testid="sleep-ask">
-      <p className="voice text-[1.5625rem] leading-8 text-ink2">{labels === 'plain' ? 'Sleep note' : 'Morning.'}</p>
-      <h1 className="voice text-[1.9375rem] leading-[2.375rem] text-ink mt-1">How did you sleep?</h1>
+      <p className="voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink2">{labels === 'plain' ? 'Sleep note' : 'Morning.'}</p>
+      <h1 className="voice text-[min(1.9375rem,48px)] leading-[min(2.375rem,56px)] text-ink mt-1">How did you sleep?</h1>
       <p className="tnum text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="sleep-last">
         Last night: {layerName}
         {time ? `, ${time}` : ''}
@@ -464,7 +578,8 @@ function SessionEnd({ fade }: { fade: object }) {
   const e = last.current;
   if (!e) return null;
   const asks = (prefs.logOn || !!e.blind) && e.elapsedSec >= 60 && !e.noted;
-  const showTip = !prefs.startTipSeen && !asks;
+  // At accessibility text sizes the tip would sit under the layer, so it waits for another session (it's in the Menu too).
+  const showTip = !prefs.startTipSeen && !asks && textScale() <= 1.2;
   const rate = (rating: 1 | 2 | 3) => {
     store.setPrefs({
       notes: [
@@ -476,7 +591,7 @@ function SessionEnd({ fade }: { fade: object }) {
   };
   return (
     <motion.div {...fade} data-testid="session-end">
-      <p className={labels === 'plain' ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[1.5625rem] leading-8 text-ink'}>{e.afterBreak ? (labels === 'plain' ? 'Break ended.' : 'Break over.') : `${copy.sessionEnd(labels, e.elapsedSec, e.fadeSec).split('. ')[0]}.`}</p>
+      <p className={labels === 'plain' ? 'text-[1.25rem] leading-7 font-medium text-ink' : 'voice text-[min(1.5625rem,38px)] leading-[min(2rem,46px)] text-ink'}>{e.afterBreak ? (labels === 'plain' ? 'Break ended.' : 'Break over.') : `${copy.sessionEnd(labels, e.elapsedSec, e.fadeSec).split('. ')[0]}.`}</p>
       <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">
         {s.phase === 'fadingOut' ? `Fading out over ${e.fadeSec} seconds.` : `Faded out over ${e.fadeSec} seconds.`}
         {e.noted && ' Noted.'}
@@ -509,7 +624,15 @@ function SessionEnd({ fade }: { fade: object }) {
             Take 5
           </Button>
         )}
-        <Button variant="text" onClick={() => session.dismissEnded()} data-testid="ended-dismiss">
+        <Button
+          variant="text"
+          onClick={() => {
+            // Done with the tip on screen counts as "seen it": the suggestion doesn't come back (Maya, round 3).
+            if (showTip) store.setPrefs({ startTipSeen: true });
+            session.dismissEnded();
+          }}
+          data-testid="ended-dismiss"
+        >
           Done
         </Button>
         {showTip && (
@@ -611,7 +734,7 @@ function LayerPanel() {
     return () => ro.disconnect();
   });
 
-  const total = drag ? drag.h + SAFE_BOTTOM : layerTotalH(restH, u.layerMinH, !active);
+  const total = drag ? drag.h + SAFE_BOTTOM : layerTotalH(restH, u.layerMinH, !active, u.playTopH);
   const transition = drag || reduced ? 'none' : `height ${u.spec ? 360 : anim}ms cubic-bezier(.22,.8,.3,1)`;
 
   // How far the idle layer has been pulled towards starting (0..1): the ritual's progress.
@@ -692,7 +815,7 @@ function LayerPanel() {
     }
   };
 
-  const e = ears(layer);
+  const e = readoutNumbers(layer, s.phase !== 'idle' && s.beatNow != null && s.carrierNow != null ? { beatHz: s.beatNow, carrierHz: s.carrierNow } : null);
   const blindView = useBlindView();
   const showEars = binaural && !blindView;
   // The swap mark follows the route too, not only the ear-check setting (the Headphones sheet promises the swap).
@@ -707,7 +830,7 @@ function LayerPanel() {
           'relative rounded-t-[28px] bg-surface twill text-ink shadow-[0_-10px_40px_rgba(0,0,0,.18)]',
           prefs.breathingLayer && !reduced && t.theme !== 'dim' && s.phase === 'playing' && !u.spec && !drag && ['calm', 'unwind', 'sleep'].includes(layer.intent) && 'breathing',
         )}
-        style={{ height: u.spec ? `calc(100% - ${SPEC_TOP}px)` : total, transition, transformStyle: 'preserve-3d' }}
+        style={{ height: u.spec ? `calc(100% - ${specTop()}px)` : total, transition, transformStyle: 'preserve-3d' }}
         animate={reduced ? { rotateY: 0 } : { rotateY: u.spec ? [90, 0] : 0 }}
         transition={{ duration: reduced ? 0 : 0.18, ease: EASE }}
         data-testid="layer"
@@ -775,7 +898,8 @@ function LayerPanel() {
                 onPointerCancel={() => setDrag(null)}
                 onKeyDown={onHandleKey}
               >
-                <span className="block h-[5px] w-10 rounded-full bg-ink2" aria-hidden />
+                {/* Hidden while a sheet is up, so its own grab handle isn't stacked over this one. */}
+                <span className={cx('block h-[5px] w-10 rounded-full bg-ink2 transition-opacity', u.sheet && 'opacity-0')} aria-hidden />
               </div>
 
               {/* The middle scrolls only when large text needs more room than the screen has. */}
@@ -793,7 +917,7 @@ function LayerPanel() {
                         blindView
                           ? `Blind comparison${blindView === 'A' || blindView === 'B' ? `, layer ${blindView}` : ''}. The numbers stay hidden until you reveal the result. Show the spec card.`
                           : showEars
-                            ? `${hz(layer.beatHz)} hertz beat, left ${hz(e.left)}, right ${hz(e.right)}${swappedNow ? ', channels swapped for your headphones' : ''}. Show the spec card.`
+                            ? `${hz(e.beat)} hertz beat, left ${hz(e.left)}, right ${hz(e.right)}${swappedNow ? ', channels swapped for your headphones' : ''}. Show the spec card.`
                             : `Noise only, ${layer.noise.type}. Show the spec card.`
                       }
                     >
@@ -803,7 +927,7 @@ function LayerPanel() {
                         </span>
                       ) : showEars ? (
                         <>
-                          <span className="whitespace-nowrap">{layer.journey && s.beatNow ? hz(s.beatNow) : hz(layer.beatHz)}&nbsp;Hz</span>
+                          <span className="whitespace-nowrap">{hz(e.beat)}&nbsp;Hz</span>
                           <span aria-hidden className="mx-1">
                             ·
                           </span>
@@ -988,23 +1112,20 @@ function Felt({ active, pull, releasing, pulling, blindView }: { active: boolean
         <span className="felt-chev flex justify-center text-ink2" aria-hidden style={{ transform: reduced ? undefined : `translateY(${-pull * 6}px)`, opacity: 0.55 + pull * 0.45 }}>
           <IconUp size={22} />
         </span>
-        <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1" data-testid="pull-hint">
+        <p className={cx('text-[1rem] leading-[1.375rem] text-ink2 mt-1', textScale() > 1.2 && !pulling && 'sr-only')} data-testid="pull-hint">
           {pulling && pull >= 1
             ? labels === 'plain'
               ? 'Let go to start.'
               : 'Let go to start sound.'
-            : !prefs.hintDone
-              ? `Pull the top edge up, or tap ${startWord}.`
-              : labels === 'plain'
-                ? 'Pull up to start.'
-                : `Pull up, or tap ${startWord}.`}
+            : // One wording, every time (round 4: first run and later read differently).
+              `Pull the top edge up, or tap ${startWord}.`}
         </p>
       </motion.div>
     );
   }
 
   return (
-    <div className="felt flex-1 min-h-[3.5rem] flex flex-col items-center justify-center px-5 overflow-hidden">
+    <div className={cx('felt flex-1 min-h-[3.5rem] flex flex-col items-center justify-center px-5 overflow-hidden', !active && !pulling && textScale() > 1.2 && 'hidden')}>
       <div className="shrink-0 mb-3" aria-hidden>
         <Stitch width={300} stroke={2} mono={!binaural || neutral} gap={gap} meet={meet >= 1} meetAmount={meet} reduced={reduced} glideMs={active ? 60_000 : 0} />
       </div>

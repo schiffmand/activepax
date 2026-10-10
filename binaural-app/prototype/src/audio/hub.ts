@@ -233,6 +233,17 @@ export class NoiseBed {
     if (this.typeGain) rampParam(this.typeGain.gain, noiseGain(this.noise.volume, on), this.now(), Math.max(0.03, glideSec), 'linear');
   }
 
+  /**
+   * Mid-crossfade between beat + noise and noise only: `toneShare` is the beat's amplitude share (1 to 0).
+   * The noise takes the power the beat gives up, so the total stays at the layer's loudness.
+   */
+  setMix(toneShare: number, glideSec: number) {
+    const c = Math.min(1, Math.max(0, toneShare));
+    const v = this.noise.volume;
+    this.binaural = c > 0;
+    if (this.typeGain) rampParam(this.typeGain.gain, noiseVolumeToGain(Math.sqrt(v * v + 1 - c * c)), this.now(), Math.max(0.03, glideSec), 'linear');
+  }
+
   setVolume(v: number, glideSec: number) {
     rampParam(this.volume.gain, volumeToGain(v), this.now(), Math.max(0.03, glideSec), 'linear');
   }

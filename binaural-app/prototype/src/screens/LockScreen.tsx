@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { otherApp } from '../audio/otherApp';
 import { session } from '../audio/session';
-import { ears, hz } from '../tuck/layers';
+import { hz, readoutNumbers } from '../tuck/layers';
 import { startSound, useTuck } from '../ui/derived';
 import { store } from '../tuck/store';
 import { ui, useOther } from '../ui/state';
@@ -26,7 +26,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
   }, []);
   const active = s.phase !== 'idle';
   const leftMin = s.remainingSec !== null ? Math.max(0, Math.ceil(s.remainingSec / 60)) : null;
-  const e = ears(layer);
+  const e = readoutNumbers(layer, active && s.beatNow != null && s.carrierNow != null ? { beatHz: s.beatNow, carrierHz: s.carrierNow } : null);
   const minimal = prefs.liveActivityStyle === 'minimal';
   const blind = s.blind;
   // Only say "under your audio" when something is actually playing above.
@@ -100,7 +100,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
           minimal ? (
             <div className="rounded-[24px] bg-[rgba(48,54,48,.82)] px-4 h-16 flex items-center justify-between" data-testid="live-activity">
               <p className="tnum text-[1rem]">
-                {blind ? `Layer ${blind}` : layer.name} · {blind ? 'blind' : binaural ? `${hz(s.beatNow ?? layer.beatHz)} Hz` : 'noise'} · {left !== null ? `${left} min` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}` : 'no timer'}
+                {blind ? `Layer ${blind}` : layer.name} · {blind ? 'blind' : binaural ? `${hz(e.beat)} Hz` : 'noise'} · {left !== null ? `${left} min` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}` : 'no timer'}
               </p>
               <button type="button" onClick={() => void session.stop()} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[1rem] font-bold">
                 Stop
@@ -121,7 +121,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
                     <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">Layer {blind}</p>
                   ) : binaural ? (
                     <>
-                      <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">{hz(s.beatNow ?? layer.beatHz)} Hz</p>
+                      <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">{hz(e.beat)} Hz</p>
                       <p className="tnum text-[1rem]">
                         <span style={{ color: '#9DB2D6' }}>L {hz(e.left)}</span> <span className="text-[#AEB2A0]">/</span> <span style={{ color: '#CFCB86' }}>R {hz(e.right)}</span>
                       </p>

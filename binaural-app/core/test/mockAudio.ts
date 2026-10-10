@@ -101,11 +101,23 @@ export class MockParam implements AudioParamLike {
     this.calls.push(`cancel(${time})`);
     this.events = this.events.filter((e) => e.time < time);
   }
+  /**
+   * Spec semantics (Chromium, WebKit): the hold value is inserted only when `time` cuts through an
+   * automation event that is still running (a ramp ending after `time`, or a setTarget). Once the last
+   * event has finished, nothing is inserted, so a following ramp interpolates from that last event.
+   * (Round 3 audio B1: the old mock always inserted a hold and hid that.)
+   */
   cancelAndHoldAtTime(time: number) {
     this.calls.push(`hold(${time})`);
     const v = this.valueAt(time);
-    this.events = this.events.filter((e) => e.time < time);
-    this.insert({ kind: 'set', time, value: v });
+    const active = this.events.some((e) => e.time > time && (e.kind === 'linear' || e.kind === 'exp'))
+      || this.events.some((e) => e.kind === 'target' && e.time <= time);
+    const cut = this.events.find((e) => e.time > time && (e.kind === 'linear' || e.kind === 'exp'));
+    this.events = this.events.filter((e) => e.time < time || (e.time === time && e.kind === 'set'));
+    if (!active) return;
+    // A ramp cut short ends at `time` with its value there (same shape up to the cut).
+    if (cut) this.insert({ kind: cut.kind === 'exp' ? 'exp' : 'linear', time, value: v });
+    else this.insert({ kind: 'set', time, value: v });
   }
 }
 

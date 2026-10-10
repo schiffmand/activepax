@@ -114,6 +114,8 @@ export interface TuckPrefs {
   healthOn: boolean;
   /** Values the user changed after Sensory mode applied its bundle. */
   sensoryOverrides: string[];
+  /** The layer last started after 21:00, preselected in the evening (else Evening descent, via Heavy-eyed). */
+  lastEveningLayerId: string | null;
 }
 
 export const DEFAULT_PREFS: TuckPrefs = {
@@ -161,6 +163,7 @@ export const DEFAULT_PREFS: TuckPrefs = {
   activatedAt: 0,
   healthOn: false,
   sensoryOverrides: [],
+  lastEveningLayerId: null,
 };
 
 /** Sensory mode's bundle (spec §5.9). Applied once when switched on; each value can still be changed. */

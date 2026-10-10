@@ -207,10 +207,17 @@ export function gainToVolume(gain: number): number {
   return Math.sqrt(clamp(gain, 0, 1));
 }
 
+/**
+ * A 0 Hz beat: the same carrier in both ears. It is the sham (control) arm of a blind comparison, which
+ * has to sound like the beat arm (same tones, same level, same noise) and differ only in the beat.
+ * Saved layers and presets still validate to LIMITS.beatHz.min; only the engine accepts exactly 0.
+ */
+export const SHAM_BEAT_HZ = 0;
+
 /** Clamp a tone to engine limits; also guarantees beat < carrier so the left ear stays > 0 Hz. */
 export function sanitizeTone(beatHz: number, carrierHz: number): { beatHz: number; carrierHz: number } {
   const carrier = clamp(carrierHz, LIMITS.carrierHz.min, LIMITS.carrierHz.max);
-  const beat = clamp(beatHz, LIMITS.beatHz.min, Math.min(LIMITS.beatHz.max, carrier - 1));
+  const beat = beatHz === SHAM_BEAT_HZ ? SHAM_BEAT_HZ : clamp(beatHz, LIMITS.beatHz.min, Math.min(LIMITS.beatHz.max, carrier - 1));
   return { beatHz: beat, carrierHz: carrier };
 }
 
