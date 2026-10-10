@@ -1,7 +1,7 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see Model.swift header).
 //
-// Owns AVAudioSession policy. The one rule that makes Tealight a *layer*:
+// Owns AVAudioSession policy. The one rule that makes Tuck a *layer*:
 //
 //   category .playback  +  option .mixWithOthers   (and NOT .duckOthers, NOT .interruptSpokenAudioAndMixWithOthers)
 //
@@ -10,7 +10,7 @@
 // - .mixWithOthers: we never interrupt Spotify / podcasts / YouTube, and they don't interrupt us.
 //   A mixable session is also never the "Now Playing" app, so the user's music keeps the lock-screen
 //   player and the hardware/AirPods play-pause controls. Do not set MPNowPlayingInfoCenter or
-//   register MPRemoteCommandCenter handlers. Tealight's own lock-screen control is a Live Activity.
+//   register MPRemoteCommandCenter handlers. Tuck's own lock-screen control is a Live Activity.
 //
 // It also reports interruptions (calls, Siri, alarms), route changes (headphones unplugged, AirPods
 // connected) and the headphone facts the UI's headphone-state model needs (core/product-spec §5.2):

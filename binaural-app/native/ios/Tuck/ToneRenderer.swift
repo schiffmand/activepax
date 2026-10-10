@@ -1,4 +1,4 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see Model.swift header).
 //
 // The DSP that runs on the real-time audio thread, inside AVAudioSourceNode's render block.
@@ -207,7 +207,7 @@ final class ToneRenderer {
                     r += noiseR[c].next() * g
                 }
             }
-            let master = level.next() * volumeGain.next() * fade.next()
+            let master = level.next() * volumeGain.next() * perceptualFade(fade.next())
             let outL = Float(l * master)
             let outR = Float(r * master)
             if swap {
@@ -220,3 +220,15 @@ final class ToneRenderer {
         }
     }
 }
+
+/// Start/stop fades run in decibels, like core's rampFade: the fade ramp moves linearly from 0 to 1,
+/// and this maps it to gain linearly in dB from −40 dB to 0 dB, with a short linear step from true
+/// silence to −40 dB. So an 8 to 60 s fade sounds even, instead of jumping up early or hanging then dropping.
+@inline(__always)
+func perceptualFade(_ p: Double) -> Double {
+    if p <= 0 { return 0 }
+    if p >= 1 { return 1 }
+    if p < 0.02 { return (p / 0.02) * 0.01 }
+    return pow(0.01, (1 - p) / 0.98)
+}
+

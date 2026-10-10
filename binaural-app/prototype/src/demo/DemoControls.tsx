@@ -3,7 +3,7 @@ import { otherApp } from '../audio/otherApp';
 import { session } from '../audio/session';
 import { LEVEL_LABEL, LEVELS, type LevelName } from '../tuck/layers';
 import { store } from '../tuck/store';
-import { useTuck } from '../ui/derived';
+import { startSound, useTuck } from '../ui/derived';
 import { ui, useOther, type Headphone } from '../ui/state';
 import { Button, Segmented, cx } from '../ui/kit';
 import { IconPause, IconPlay } from '../ui/icons';
@@ -109,8 +109,14 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
           <DemoBtn compact={compact} disabled={!active} onClick={() => session.skipAhead()} testid="demo-skip">
             Skip ahead
           </DemoBtn>
-          <DemoBtn compact={compact} onClick={() => ui.set({ hourOverride: u.hourOverride === null ? 21 : null })} testid="demo-evening" pressed={u.hourOverride !== null}>
-            {u.hourOverride === null ? 'Make it 21:00' : 'Use real time'}
+          <DemoBtn compact={compact} onClick={() => ui.set({ hourOverride: u.hourOverride === 21 ? null : 21 })} testid="demo-evening" pressed={u.hourOverride === 21}>
+            {u.hourOverride === 21 ? 'Use real time' : 'Make it 21:00'}
+          </DemoBtn>
+          <DemoBtn compact={compact} onClick={() => ui.set({ hourOverride: u.hourOverride === 7 ? null : 7 })} testid="demo-morning" pressed={u.hourOverride === 7}>
+            {u.hourOverride === 7 ? 'Use real time' : 'Make it 07:00'}
+          </DemoBtn>
+          <DemoBtn compact={compact} disabled={active} onClick={() => { ui.set({ sheet: null }); startSound(t.prefs.schedule.layerId); }} testid="demo-schedule">
+            Run the schedule
           </DemoBtn>
           <DemoBtn compact={compact} disabled={!active} onClick={() => session.simulateCall()} testid="demo-call">
             Phone call
@@ -119,7 +125,7 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             App takes over
           </DemoBtn>
         </div>
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>Skip ahead jumps to just before the timer’s fade (or ten minutes on).</p>
+        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>Skip ahead jumps to just before the timer’s fade, the next break, or ten minutes on. 07:00 shows the morning sleep note (when the log is on and an evening session was played).</p>
       </section>
 
       <section className={card} aria-label="Data">
@@ -141,7 +147,9 @@ export function DemoControls({ compact = false }: { compact?: boolean }) {
             Start over
           </DemoBtn>
         </div>
-        <p className={cx('text-[16px] leading-[22px] mt-2', sub)}>The sample week is illustrative, so This week has something to show.</p>
+        <p className={cx('text-[16px] leading-[22px] mt-2', sub)} data-testid="demo-week-note">
+          {t.prefs.sampleWeek ? 'Sample week added. This week labels it as sample data.' : 'The sample week is illustrative, so This week has something to show.'}
+        </p>
       </section>
     </div>
   );
@@ -185,6 +193,5 @@ function addSampleWeek() {
     mk(Math.min(sinceMon, 4), 11, 25, 'Focus', 'focus', 'beta'),
   ];
   for (const r of recs) if (r.startedAt < now) store.core.dispatch({ type: 'history/add', record: r });
-  store.setPrefs({ firstSessionDone: true });
-  ui.toast('Added an illustrative week of sessions.');
+  store.setPrefs({ firstSessionDone: true, sampleWeek: true });
 }

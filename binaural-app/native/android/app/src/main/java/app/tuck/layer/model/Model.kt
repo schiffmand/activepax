@@ -1,4 +1,4 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED. Written against Kotlin 2.0, AGP 8, minSdk 26,
 // targetSdk 35, with kotlinx.serialization, but never built or run on a device. Treat it as a
 // precise spec in code form, not as shipped code.
@@ -7,7 +7,7 @@
 // identical to the TypeScript model, so presets/programs/history move between web and native as-is.
 // If the TypeScript model changes, change this file in the same commit.
 
-package app.tealight.layer.model
+package app.tuck.layer.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

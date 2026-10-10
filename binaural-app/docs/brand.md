@@ -229,12 +229,12 @@ The screen is split the same way your listening is. **The top is your audio's sp
 - **Start sound is always visible when idle.** The pull is the ritual, never the gate. VoiceOver, TalkBack, Switch Control, the keyboard, widgets, Shortcuts, Control Center and the Live Activity all reach the same state.
 - **Pull up (or tap Start sound):** the layer rises in **1.4 s**, and the sound fades in over **8 s** (15 s for Steady). The **lining strip brightens across the whole 8 s**, so you can see the fade (graft 6).
 - **Level, while playing:** how high the layer sits is how loud it is under your audio. There are three detents, **Quiet · Medium · Full**, and they're also buttons. A lockable ceiling (Settings) stops any gesture from going louder.
-- **Drift / Hold** (must-change 5): *Drift* lets the beat and the noise wander slowly within a narrow range, so it doesn't go stale. *Hold* keeps it identical, every time. "Steady" is only ever the name of an intent.
+- **Drift / Vary / Hold** (must-change 5): *Drift* lets the beat and the noise wander slowly within a narrow range (beat ±0.5 Hz, noise ±1 dB), so it doesn't go stale. *Vary* is Drift plus a different noise bed each session, chosen for you, for people who need novelty without a decision. *Hold* keeps it identical, every time. "Steady" is only ever the name of an intent.
 
 ### 3. Set down: stopping is neutral
 
 - **Pull the layer down past Quiet and let go, or tap Stop.** The layer sinks in 2 s, and the sound and the lining fade out together over 20 s (60 s for Sleep).
-- There's no "end session?" dialog and no rating unless you've opted in. The line reads "Set down after 52 min." for 8 seconds, then the home returns.
+- There's no "end session?" dialog and no rating unless you've opted in (the private log in Settings, or a blind comparison). Then it's one tap: Good · Same as usual · Not for me. The line reads "Set down after 52 min." for 8 seconds, then the home returns.
 
 ### 4. The spec card: tap the readout to flip it (graft 2)
 
@@ -295,8 +295,8 @@ Wool and textile colours: dyed with plants, worn soft, never neon. Dark first. *
 
 **Terracotta check (must-change 10).** Round 2's Day lining `#D9997C` measured hue 19°, saturation 55%, lightness 67%. That is a dusty terracotta, which breaks our own rule. The final Day lining `#E5AD88` (hue 24°, lightness 72%) moves toward apricot and matches the Night lining's hue (`#EBB89A`, 22°).
 
-### Dim wool (Sleep, Evening descent, Heavy-eyed after sunset)
-`bg #141814`, `surface #1C221C`, `ink #A3A897` (7.4:1), `ink2 #8A8F7E`, `left #7E8B9E`, `right #9A976A`, lining `#8C6F60` at 40%. There's no Fleece-white text, no texture and no breathing layer. **Target: nothing on screen above about 40 cd/m² at default brightness.**
+### Dim wool (from 21:00 for every layer, from 18:00 for Sleep)
+Warmed after round 1: `bg #15120F`, `surface #1D1915`, `ink #B09A82` (6.9:1), `ink2 #958472`, `edge #766857`, `left #7E8B9E`, `right #9A976A`, lining `#8C6F60` at 40%. There's no Fleece-white text, no texture and no breathing layer, and **the primary button is an outline, never a bright fill**. **Target: nothing on screen above about 40 cd/m² at default brightness.**
 
 ### Rules
 - **No red, ever.** Warnings use Seam, an icon and plain words.

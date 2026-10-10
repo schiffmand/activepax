@@ -1,4 +1,4 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see model/Model.kt header).
 //
 // Plays a Program (or a Preset via presetToProgram) on the BinauralEngine; the native twin of the
@@ -9,17 +9,17 @@
 // - pause freezes the program clock; a program/timer end fades out with the program's end fade.
 // The service is a foreground service, so its main-thread coroutines keep running with the screen off.
 
-package app.tealight.layer.service
+package app.tuck.layer.service
 
 import android.os.SystemClock
-import app.tealight.layer.audio.BinauralEngine
-import app.tealight.layer.audio.EngineStartParams
-import app.tealight.layer.model.AutomationStep
-import app.tealight.layer.model.CompiledProgram
-import app.tealight.layer.model.NoiseColor
-import app.tealight.layer.model.NoiseSetting
-import app.tealight.layer.model.Program
-import app.tealight.layer.model.compileProgram
+import app.tuck.layer.audio.BinauralEngine
+import app.tuck.layer.audio.EngineStartParams
+import app.tuck.layer.model.AutomationStep
+import app.tuck.layer.model.CompiledProgram
+import app.tuck.layer.model.NoiseColor
+import app.tuck.layer.model.NoiseSetting
+import app.tuck.layer.model.Program
+import app.tuck.layer.model.compileProgram
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

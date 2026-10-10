@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { validateTone, type NoiseSetting } from '@core';
+import { LIMITS, validateTone, type NoiseSetting } from '@core';
 import { session } from '../audio/session';
+import { noiseDb } from '../audio/hub';
 import { builtInLayer, ears, hz, LEVEL_LABEL, LEVELS, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import { store } from '../tuck/store';
 import { useTuck } from '../ui/derived';
 import { ui } from '../ui/state';
-import { Button, Segmented } from '../ui/kit';
+import { Button, PageShell, Segmented } from '../ui/kit';
 import { IconInfo } from '../ui/icons';
 
-/** Edit a copy: the exact-frequency editor. The original is untouched. */
-export function Editor() {
+/** Edit a copy: the exact-frequency editor, in its own page with an opaque header and a fixed Save footer. */
+export function Editor({ onBack, reduced }: { onBack: () => void; reduced: boolean }) {
   const t = useTuck();
   const base: Layer = store.findLayer(t.u.draftFrom) ?? t.layer ?? builtInLayer('focus')!;
   const [d, setD] = useState<Layer>(() => ({
@@ -49,15 +50,31 @@ export function Editor() {
     if (!fromText) setCarrierText(hz(v));
   };
   const setNoise = (n: Partial<NoiseSetting>) => setD((x) => ({ ...x, noise: { ...x.noise, ...n } }));
-  const db = d.noise.volume > 0 ? `${(20 * Math.log10(d.noise.volume)).toFixed(1)} dB` : '−∞ dB';
+  // The same square law as core and the native engines (volumeToGain), before the shared headroom.
+  const dbv = noiseDb(d.noise.volume);
+  const db = Number.isFinite(dbv) ? `${dbv.toFixed(1)} dB` : '−∞ dB';
   const lowWarn = e.left < 60 || e.right < 60;
   // Log slider for carrier: 0..1000 steps over 40..1000 Hz.
   const toLog = (hzv: number) => Math.round((Math.log(hzv / 40) / Math.log(1000 / 40)) * 1000);
   const fromLog = (p: number) => Math.round(40 * Math.pow(1000 / 40, p / 1000));
 
+  const footer = (
+    <div data-testid="editor-footer">
+      <Button
+        full
+        disabled={errors.length > 0}
+        data-testid="editor-save"
+        onClick={() => ui.set({ draft: { ...d, name: base.kind === 'builtin' ? (base.id === 'focus' ? 'Desk' : `My ${base.name.toLowerCase()}`) : d.name }, sheet: 'save', draftFrom: base.id })}
+      >
+        Save
+      </Button>
+      <p className="text-[16px] leading-[22px] text-ink2 mt-2">{playingThis ? 'You’re hearing these changes now, with a 1 second glide.' : 'Start sound on Home to hear changes live.'}</p>
+    </div>
+  );
   return (
-    <div className="pb-8" data-testid="editor">
-      <h1 className="text-[31px] leading-[38px] font-bold text-ink mt-2">{d.name}</h1>
+    <PageShell title={d.name} onBack={onBack} reduced={reduced} testid="page-editor" backLabel="Cancel" footer={footer}>
+    <div className="pb-4" data-testid="editor">
+      <h1 className="text-[31px] leading-[38px] font-medium text-ink mt-2">{d.name}</h1>
       <p className="text-[16px] text-ink2 mt-1">{base.kind === 'builtin' ? `${base.name} stays as it is. This copy is yours.` : 'Changes apply when you save.'}</p>
 
       <section className="mt-6">
@@ -98,6 +115,9 @@ export function Editor() {
         <p id="beat-ears" className="tnum text-[20px] font-medium flex gap-4" aria-live="polite">
           <span style={{ color: 'var(--c-left)' }}>L {hz(e.left)} Hz</span>
           <span style={{ color: 'var(--c-right)' }}>R {hz(e.right)} Hz</span>
+        </p>
+        <p className="tnum text-[16px] leading-[22px] text-ink2 mt-1" data-testid="editor-range">
+          {LIMITS.beatHz.min}–45 Hz on the slider, steps of 0.1 Hz. Type any value from {LIMITS.beatHz.min} to {LIMITS.beatHz.max} Hz.
         </p>
       </section>
 
@@ -166,11 +186,16 @@ export function Editor() {
           onChange={(v) => setD((x) => ({ ...x, motion: v }))}
           options={[
             { value: 'drift', label: 'Drift' },
+            { value: 'vary', label: 'Vary' },
             { value: 'hold', label: 'Hold' },
           ]}
         />
         <p className="text-[16px] leading-[22px] text-ink2 mt-2">
-          {d.motion === 'drift' ? `The beat wanders slowly within ±${hz(d.driftHz)} Hz so it doesn’t go stale.` : 'Identical every time. No variation.'}
+          {d.motion === 'drift'
+            ? `The beat wanders slowly within ±${hz(d.driftHz)} Hz and the noise within ±1 dB, so it doesn’t go stale.`
+            : d.motion === 'vary'
+              ? 'Drift, plus a different noise colour each session, chosen for you.'
+              : 'Identical every time. No variation.'}
         </p>
       </section>
 
@@ -222,18 +247,8 @@ export function Editor() {
         )}
       </section>
 
-      <div className="mt-6">
-        <Button
-          full
-          disabled={errors.length > 0}
-          data-testid="editor-save"
-          onClick={() => ui.set({ draft: { ...d, name: base.kind === 'builtin' ? (base.id === 'focus' ? 'Desk' : `My ${base.name.toLowerCase()}`) : d.name }, sheet: 'save', draftFrom: base.id })}
-        >
-          Save
-        </Button>
-        <p className="text-[16px] leading-[22px] text-ink2 mt-3">{playingThis ? 'You’re hearing these changes now, with a 1 second glide.' : 'Start sound on Home to hear changes live.'}</p>
-      </div>
     </div>
+    </PageShell>
   );
 }
 

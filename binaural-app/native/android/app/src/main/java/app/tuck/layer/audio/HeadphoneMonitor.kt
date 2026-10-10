@@ -1,7 +1,7 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see model/Model.kt header).
 //
-// Because Tealight deliberately holds no audio focus, it gets no focus callbacks. This class supplies
+// Because Tuck deliberately holds no audio focus, it gets no focus callbacks. This class supplies
 // the events the engine still needs, plus the facts for the UI's headphone-state model
 // (product-spec §5.2: speaker | oneEar | mono | spatial | stereoOk | swapped | disconnected):
 //
@@ -11,7 +11,7 @@
 // - Settings.System "master_mono" (Accessibility > Mono audio): hidden key, read best effort.
 // - Spatializer (API 32+): reported for completeness; our AudioTrack already opts out of it.
 
-package app.tealight.layer.audio
+package app.tuck.layer.audio
 
 import android.content.BroadcastReceiver
 import android.content.Context

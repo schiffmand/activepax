@@ -36,11 +36,16 @@ Tuck plays binaural tones with a soft noise bed **underneath** whatever else is 
 | 18 | **Live Activity / Lock Screen** (mocked in the prototype) | P1 | Everyone starts Tuck while another app is in front |
 | 19 | **Totals, not streaks** ("kept you company 3 h 40 min this week") | P1 | Maya and Leo: no guilt, progress without pressure |
 | 20 | **Versioned built-ins**: "what changed" diff, reset to default | P1 | Sam (sameness), Dev (reversibility) |
-| 21 | Dim wool night theme (automatic for Sleep / Heavy-eyed after sunset) | P1 | Priya, meditator |
-| 22 | Optional one-tap rating after a session (private, off by default) | P1 | Groundwork for n-of-1 (Dev, Hannah) |
-| 23 | **Blind comparison** (beats + noise vs noise only, 14 days, labelled A / B) | P2 (Plus) | Hannah, Dev |
-| 24 | Schedules, Apple Health / Health Connect mindful minutes, sync | P2 (Plus) | Priya |
-| 25 | Shortcuts / App Intents, URL scheme, widgets, Control Center, Quick Settings tile | P2 | Dev, Priya |
+| 21 | Dim wool night theme, warm (automatic from 21:00 for every layer, from 18:00 for Sleep; never a bright button at night) | P1 | Priya, meditator |
+| 22 | Private log (off by default): one-tap rating after a session, a one-tap sleep note the next morning, CSV / JSON export | P1 (built, round 1) | Dev, Priya, Hannah |
+| 23 | **Blind comparison** (beat vs noise only on one layer, 14 days, labelled A / B). Basic version free; Plus adds longer runs, own-layer vs own-layer, PDF | P1 free basic (built, round 1); Plus extension P2 | Hannah, Dev |
+| 24 | One daily schedule (free, built in round 1); more schedules, Apple Health / Health Connect mindful minutes, sync | P1 one daily time; P2 (Plus) the rest | Priya |
+| 25 | Shortcuts / App Intents ("Start Focus under my audio"), the "when Spotify opens, start Tuck" automation recipe, Control Center control, Quick Settings tile, Lock Screen widget | **P1** (round 1: starting is the ADHD job, and this is the no-streak retention loop) | Maya, Dev, Priya |
+| 26 | Pomodoro-style cycles in the timer (25 on, 5 at Quiet, one chime, 4 rounds) | P1 (built, round 1) | Leo, Maya |
+| 27 | Vary (Drift plus a different noise each session, chosen for you) | P1 (built, round 1) | Maya |
+| 28 | Pin one layer to Home (Steady mode): no arrival question, startable from the Lock Screen | P1 (built, round 1) | Sam |
+| 29 | Shareable layer card with a deep link (numbers only, no personal data) | P1 (built, round 1) | Growth: acquisition loop |
+| 30 | Body doubling: opt-in "working alongside" count, or a timer shared with one friend by link | P2 experiment (round 1), to the brand §14 privacy standard | Maya, Leo |
 | — | "Others tucked in right now" | **Cut from v1** | Can return only to the privacy standard in brand.md §14 |
 
 **Out of scope for v1:** accounts, social feeds, AI-generated music, ads, any health claim, reading other apps' now-playing information, and any visualisation of the beat.
@@ -302,7 +307,7 @@ A grouped list. Every row says exactly what it does.
 - The verbatim copy from brand.md §6, in the three-part structure: **this part is well established** (the perceptual beat) / **this part isn't** (outcomes) / **the steadiest evidence is for noise** (why every layer has a noise bed). Atkinson 16/24, ≤60 characters per line, headings in Literata 25.
 - **Read the studies (6):** a plain citation list. Each entry has a one-line summary and the direction of the finding (benefit / no effect / negative). It must include the Nigg et al. 2024 noise meta-analysis, the Ingendoh et al. 2023 systematic review and the negative-finding study. The exact list is owned in `docs/`.
 - **Safety:** not a medical device; the epilepsy and seizure note; don't use Sleep while driving; keep the volume moderate, with a link to the OS headphone-level setting.
-- **[Try a blind comparison]:** P2. Until then it shows a plain explainer of what it will do and says that it isn't available yet.
+- **[Try a blind comparison]:** opens the Blind comparison page (free basic version, built in round 1).
 - Reachable from the Menu, from onboarding (a link on screen 1 is optional), and from the spec card ("What does this do? → What we know").
 
 ### 5.11 This week (totals, P1)
@@ -386,3 +391,12 @@ Starting from `fadingOut` fades back in from the current gain, without a click.
 9. **Copy helpers:** session-end and status lines in warm and plain variants, always with explicit units ("Fades out at 50 min").
 10. **Program labels:** rename the `sleep-descent` step label 'Asleep' to 'Low' (no outcome words in UI-visible strings).
 11. **Take 5:** a player action that sets level Quiet for N minutes, then a chime, then fade out (or the next block if auto-continue is on).
+
+## Activation and the north star (added after round 1)
+
+Tuck measures nothing it doesn't need, and nothing leaves the phone without consent. These are the product's own definitions, computed on device for the user's own This week page and, only if they opt in to anonymous diagnostics, counted in aggregate:
+
+- **Activation:** first sound within 10 seconds of first launch (onboarding skip or ear check, then Start sound).
+- **North-star input:** the share of sessions with "Your audio keeps playing above" true for at least half the session. That number is the proof of the wedge: Tuck under something else, not instead of it.
+- **Retention without streaks:** the share of sessions started without opening the app (Control Center, Shortcuts automation, Lock Screen widget, schedule). It replaces any streak mechanic.
+

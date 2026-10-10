@@ -9,7 +9,6 @@ import {
   bandFor,
   earFrequencies,
   presetToProgram,
-  type Band,
   type NoiseSetting,
   type NoiseType,
   type Preset,
@@ -17,7 +16,9 @@ import {
 } from '@core';
 
 export type IntentId = 'focus' | 'calm' | 'unwind' | 'sleep' | 'steady';
-export type Motion = 'drift' | 'hold';
+/** Drift: the beat and the noise wander slowly. Vary: Drift, plus a different noise each session. Hold: identical. */
+export type Motion = 'drift' | 'vary' | 'hold';
+export const wanders = (m: Motion) => m !== 'hold';
 export type LevelName = 'quiet' | 'medium' | 'full';
 
 export const LEVELS: readonly LevelName[] = ['quiet', 'medium', 'full'];
@@ -52,6 +53,10 @@ export interface Layer {
   savedAt?: number;
   /** Level the layer starts at (Just working → Quiet). */
   startLevel?: LevelName;
+  /** One honest line shown with the layer (Long focus). */
+  note?: string;
+  /** Vary: which noise this session picked (shown on the readout). */
+  variant?: string;
 }
 
 const builtin = (l: Omit<Layer, 'kind' | 'version' | 'binaural' | 'driftHz' | 'driftPeriodMin' | 'fadeOutSec'> & Partial<Layer>): Layer =>
@@ -83,7 +88,17 @@ export const BUILT_IN_LAYERS: readonly Layer[] = Object.freeze([
     journey: 'evening-descent',
   }),
   builtin({ id: 'steady', name: 'Steady', intent: 'steady', beatHz: 10, carrierHz: 180, noise: { type: 'brown', volume: 0.35 }, motion: 'hold', motionLocked: true, fadeInSec: 15 }),
-  builtin({ id: 'long-focus', name: 'Long focus', intent: 'long-focus', beatHz: 40, carrierHz: 220, noise: { type: 'pink', volume: 0.2 }, motion: 'drift', fadeInSec: 8 }),
+  builtin({
+    id: 'long-focus',
+    name: 'Long focus',
+    intent: 'long-focus',
+    beatHz: 40,
+    carrierHz: 220,
+    noise: { type: 'pink', volume: 0.2 },
+    motion: 'drift',
+    fadeInSec: 8,
+    note: 'At 40 Hz the beat is faint. Most of what you hear is texture.',
+  }),
 ]);
 
 export const INTENT_ORDER: readonly IntentId[] = ['focus', 'calm', 'unwind', 'sleep', 'steady'];
@@ -200,13 +215,27 @@ export function engravedLine(l: Layer): string {
   const parts = [] as string[];
   if (l.binaural) parts.push(l.journey ? '8 → 2 Hz' : `${hz(l.beatHz)} Hz`);
   parts.push(l.noise.type === 'off' ? 'no noise' : `${l.noise.type} noise`);
-  parts.push(l.motion === 'drift' ? 'Drift' : 'Hold');
+  parts.push(l.motion === 'drift' ? 'Drift' : l.motion === 'vary' ? 'Vary' : 'Hold');
   return parts.join(' · ');
 }
 
-export function descriptiveBand(beatHz: number): string {
-  const b: Band = bandFor(beatHz);
-  return `${b} range`;
+/**
+ * Vary: the noise beds a layer rotates through, one per session, without asking. Colours stay within
+ * the layer's character (dark beds for Focus and Sleep, softer ones for Calm). Levels are loudness-matched.
+ */
+const VARIANTS: Record<string, NoiseSetting['type'][]> = {
+  focus: ['brown', 'pink', 'brown', 'white'],
+  calm: ['pink', 'brown'],
+  unwind: ['pink', 'brown'],
+  'long-focus': ['pink', 'brown', 'white'],
+};
+
+export function variedLayer(l: Layer, index: number): Layer {
+  const base = l.id.replace(/~noise$/, '');
+  const list = VARIANTS[base] ?? (l.noise.type === 'off' ? ['off' as const] : [l.noise.type, l.noise.type === 'brown' ? 'pink' : 'brown']);
+  const type = list[index % list.length]!;
+  if (type === l.noise.type) return { ...l, variant: `${type} noise today` };
+  return { ...l, noise: { ...l.noise, type }, variant: `${type} noise today` };
 }
 
 // ───────────────────────────── envelope (spec card plot) ─────────────────────────────
@@ -217,7 +246,10 @@ export interface EnvelopePoint {
 }
 
 /** Level over time for the spec-card plot: fade-in ramp, plateau, fade-out ramp. Journeys follow their steps. */
-export function envelopeFor(l: Layer, timerMin: number | null): { points: EnvelopePoint[]; totalSec: number; open: boolean; plateauFrom: number; plateauTo: number } {
+export function envelopeFor(
+  l: Layer,
+  timerMin: number | null,
+): { points: EnvelopePoint[]; totalSec: number; open: boolean; plateauFrom: number; plateauTo: number; beat?: EnvelopePoint[] } {
   const fadeIn = l.fadeInSec;
   if (l.journey === 'evening-descent') {
     const total = 45 * 60 + 60;
@@ -234,6 +266,13 @@ export function envelopeFor(l: Layer, timerMin: number | null): { points: Envelo
       open: false,
       plateauFrom: fadeIn,
       plateauTo: 45 * 60,
+      // The beat (Hz): 8 → 4 over 15 min, 4 → 2 over the next 15, then held at 2.
+      beat: [
+        { t: 0, v: 8 },
+        { t: 15 * 60, v: 4 },
+        { t: 30 * 60, v: 2 },
+        { t: total, v: 2 },
+      ],
     };
   }
   if (timerMin === null) {

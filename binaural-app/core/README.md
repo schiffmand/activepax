@@ -92,6 +92,7 @@ new BinauralEngine(options?: {
   glideSec?: number;    // 0.4, the default for setBeat/setCarrier/setVolume
   suspendOnPause?: boolean; // true: suspends the AudioContext when paused (battery)
   noiseBufferSec?: number;  // 8
+  fadeCurve?: 'linear' | 'perceptual';  // 'linear'; 'perceptual' fades in dB (rampFade)
   initial?: { beatHz?, carrierHz?, volume?, level?, noise? };
 })
 ```
@@ -110,7 +111,9 @@ new BinauralEngine(options?: {
 | `subscribe(fn)` / `on('started'\|'paused'\|'resumed'\|'stopped'\|'error'\|'state', fn)` | Return an unsubscribe function. Listener errors are isolated. |
 | `dispose()` | Immediate teardown. Closes the context only if the engine created it. |
 
-Helpers: `volumeToGain`, `gainToVolume`, `gainToDb`, `sanitizeTone`, `TONE_HEADROOM`, `NOISE_HEADROOM`, `rampParam`, `holdParam`, and `generateNoise(type, length, { seed, peak, loopCrossfadeSamples })`. `generateNoise` is pure: white, pink (Kellet) or brown (leaky integrator), with DC removed, peak normalised and an equal-power seamless loop.
+Helpers: `volumeToGain`, `gainToVolume`, `gainToDb`, `sanitizeTone`, `TONE_HEADROOM`, `NOISE_HEADROOM`, `rampParam`, `holdParam`, `rampFade`, and `generateNoise(type, length, { seed, peak, rms, loopCrossfadeSamples })`. `generateNoise` is pure: white, pink (Kellet) or brown (leaky integrator), with DC removed, peak normalised (or RMS normalised with `rms`, capped at `peak`) and an equal-power seamless loop.
+
+`rampFade(param, target, now, sec)` is a perceptual fade: it moves linearly in dB between −40 dB (`FADE_FLOOR`) and the target, with a ≤ 50 ms linear step between true silence and the floor, so long fades sound even (a linear-amplitude fade seems to jump up early and to hang, then drop, at the end). The engine uses it for start, stop, pause and resume when `fadeCurve: 'perceptual'`. The native renderers apply the same curve at render time (`perceptualFade`).
 
 ### Programs (journeys)
 

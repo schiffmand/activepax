@@ -11,16 +11,22 @@ import { startSound } from '../ui/derived';
 export function Intro({ reduced }: { reduced: boolean }) {
   return (
     <div className="absolute inset-0 flex flex-col px-5 pt-[47px] pb-[34px]" data-testid="screen-intro">
-      <div className="pt-10">
-        <Mark size={64} />
+      <div className="pt-6">
+        <Mark size={56} />
       </div>
-      <h1 className="voice text-[31px] leading-[38px] text-ink mt-8">Your audio stays on top.</h1>
+      <h1 className="voice text-[31px] leading-[38px] text-ink mt-6">Your audio stays on top.</h1>
       <p className="text-[16px] leading-6 text-ink mt-4 max-w-[34ch]">
         Tuck plays a soft layer of tones and noise under your podcast, music or videos. It never pauses them.
       </p>
+      {/* What Background Sounds doesn't do: say it once, plainly. */}
+      <ul className="mt-4 flex flex-col gap-1 text-[16px] leading-6 text-ink2" data-testid="intro-why">
+        <li>Binaural beats with exact numbers, or noise only.</li>
+        <li>Layers for focus, calm and sleep, with timers that fade out.</li>
+        <li>The same on iPhone and Android.</li>
+      </ul>
 
       {/* Static two-band diagram: your audio above, Tuck below. Nothing moves on launch. */}
-      <figure className="mt-8 rounded-[22px] overflow-hidden border border-line" aria-label="Your audio sits on top. Tuck sits underneath.">
+      <figure className="mt-6 rounded-[22px] overflow-hidden border border-line" aria-label="Your audio sits on top. Tuck sits underneath.">
         <div className="bg-bg h-[92px] px-4 flex items-center justify-between">
           <span className="text-[16px] text-ink2">Your audio</span>
           <span className="flex flex-col gap-[7px] items-end" aria-hidden>
@@ -63,7 +69,7 @@ export function Intro({ reduced }: { reduced: boolean }) {
 
 type Heard = StereoCheckAnswer['heard'];
 type EarState = { status: 'idle' | 'playing' | 'asking' | 'done'; heard?: Heard };
-type Verdict = 'ok' | 'swapped' | 'mono' | 'spatial' | 'one-ear' | 'unsure' | null;
+type Verdict = 'ok' | 'swapped' | 'mono' | 'spatial' | 'one-ear' | 'unsure' | 'none-left' | 'none-right' | null;
 
 const heardText = (played: Ear, h: Heard) => {
   if (h === played) return played === 'left' ? 'Left heard' : 'Right heard';
@@ -79,6 +85,8 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
   const [asking, setAsking] = useState<Ear | null>(null);
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [blocked, setBlocked] = useState(false);
+  // The first sound the app ever makes: about −24 dBFS (volume 0.355² × 0.5). "Louder" after "Neither": about −19 dBFS.
+  const [louder, setLouder] = useState(false);
   const handle = useRef<StereoCheckHandle | null>(null);
   const rightBtn = useRef<HTMLButtonElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -92,7 +100,7 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
     if (verdict) setTimeout(() => resultRef.current?.querySelector('button')?.focus(), 80);
   }, [verdict]);
 
-  const play = async (ear: Ear) => {
+  const play = async (ear: Ear, loud: boolean = louder) => {
     handle.current?.cancel();
     setVerdict(null);
     const set = ear === 'left' ? setLeft : setRight;
@@ -106,6 +114,8 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
     setAsking(null);
     try {
       // Core's stereo check, one ear at a time: 1.5 s, 200 Hz left / 214 Hz right, 300 ms ramps.
+      // It renders straight to the context's destination, deliberately bypassing the L/R swap router:
+      // the check tests the hardware as worn, so a swap from an earlier check can't hide a new one.
       const h = await runStereoCheck(getContext(), {
         sequence: [ear],
         frequencyHz: ear === 'left' ? 200 : 214,
@@ -113,7 +123,7 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
         edgeSec: 0.3,
         leadInSec: 0.05,
         gapSec: 0,
-        volume: 0.55,
+        volume: loud ? 0.47 : 0.355,
       });
       handle.current = h;
       const r = await h.done;
@@ -129,6 +139,14 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
 
   const answer = (ear: Ear, heard: Heard) => {
     const st: EarState = { status: 'done', heard };
+    // "Neither" on a single side gets its guidance straight away, with a fix (not just "Not heard").
+    if (heard === 'none') {
+      if (ear === 'left') setLeft(st);
+      else setRight(st);
+      setAsking(null);
+      setVerdict(ear === 'left' ? 'none-left' : 'none-right');
+      return;
+    }
     const l = ear === 'left' ? st : left;
     const r = ear === 'right' ? st : right;
     if (ear === 'left') setLeft(st);
@@ -141,8 +159,9 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
       ]);
       store.core.dispatch({ type: 'settings/update', patch: { headphoneCheck: { verdict: res.verdict, at: Date.now() } } });
       setVerdict(res.verdict);
+      // A pass clears a swap from an earlier check (the readout must stay true); a swap sets it.
       if (res.verdict === 'swapped') store.setPrefs({ swapChannels: true });
-      if (res.verdict === 'ok') store.setPrefs({ noiseOnly: false });
+      if (res.verdict === 'ok') store.setPrefs({ noiseOnly: false, swapChannels: false });
       if (res.verdict === 'unsure') {
         setTimeout(() => {
           setLeft({ status: 'idle' });
@@ -226,7 +245,27 @@ export function EarCheck({ reduced }: { reduced: boolean }) {
           )}
           {!asking && verdict && (
             <motion.div key={`v-${verdict}`} ref={resultRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} data-testid={`ear-verdict-${verdict}`}>
-              <VerdictBlock verdict={verdict} setVerdict={setVerdict} reset={reset} finish={finish} from={from} />
+              <VerdictBlock
+                verdict={verdict}
+                setVerdict={setVerdict}
+                reset={reset}
+                finish={finish}
+                from={from}
+                louder={louder}
+                onLouder={() => {
+                  setLouder(true);
+                  const ear = verdict === 'none-right' ? 'right' : 'left';
+                  (ear === 'left' ? setLeft : setRight)({ status: 'idle' });
+                  setVerdict(null);
+                  void play(ear, true);
+                }}
+                onRetry={() => {
+                  const ear = verdict === 'none-right' ? 'right' : 'left';
+                  (ear === 'left' ? setLeft : setRight)({ status: 'idle' });
+                  setVerdict(null);
+                  void play(ear);
+                }}
+              />
             </motion.div>
           )}
           {blocked && !asking && !verdict && (
@@ -298,15 +337,47 @@ function VerdictBlock({
   reset,
   finish,
   from,
+  louder,
+  onLouder,
+  onRetry,
 }: {
   verdict: Exclude<Verdict, null>;
   setVerdict: (v: Verdict) => void;
   reset: () => void;
   finish: (o: { noiseOnly?: boolean; start?: boolean }) => void;
   from: 'onboarding' | 'settings';
+  louder: boolean;
+  onLouder: () => void;
+  onRetry: () => void;
 }) {
   const p = 'text-[16px] leading-6 text-ink';
+  const [how, setHow] = useState(false);
   switch (verdict) {
+    case 'none-left':
+    case 'none-right': {
+      const side = verdict === 'none-left' ? 'left' : 'right';
+      return (
+        <div data-testid="ear-none">
+          <p className={p}>
+            Nothing on the {side}. Check the {side} earbud is in and connected, and that your volume is up{louder ? '' : ', then play it again'}. If only one side works, noise only still covers the room.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-4">
+            {louder ? (
+              <Button variant="quiet" onClick={onRetry} data-testid="ear-retry">
+                Play {side} again
+              </Button>
+            ) : (
+              <Button variant="quiet" onClick={onLouder} data-testid="ear-louder">
+                Play it a little louder
+              </Button>
+            )}
+            <Button variant="text" onClick={() => finish({ noiseOnly: true })}>
+              Use noise only
+            </Button>
+          </div>
+        </div>
+      );
+    }
     case 'ok':
       return (
         <div className="flex flex-col gap-2">
@@ -336,8 +407,9 @@ function VerdictBlock({
       return (
         <div>
           <p className={p}>Mono Audio is on in Accessibility settings. It merges left and right, so the beat can’t form.</p>
+          {how && <p className="text-[16px] leading-6 text-ink2 mt-2">On a phone this opens Settings, Accessibility, Audio and Visual, Mono Audio.</p>}
           <div className="mt-2 flex flex-wrap gap-x-4">
-            <Button variant="quiet" onClick={() => ui.toast('On a phone, this opens Settings, Accessibility, Audio.')}>
+            <Button variant="quiet" onClick={() => setHow(true)}>
               Open Settings
             </Button>
             <Button variant="text" onClick={() => finish({ noiseOnly: true })}>
@@ -355,8 +427,9 @@ function VerdictBlock({
           <p className={p}>
             Spatial Audio seems to be on. It blends the two ears together, which hides the beat. You can turn it off in Control Center, or carry on with noise only. Both are fine.
           </p>
+          {how && <p className="text-[16px] leading-6 text-ink2 mt-2">In Control Center, press and hold the volume slider, then turn Spatial Audio off.</p>}
           <div className="mt-2 flex flex-wrap gap-x-4">
-            <Button variant="quiet" onClick={() => ui.toast('Control Center: press and hold the volume slider, then turn Spatial Audio off.', 6000)}>
+            <Button variant="quiet" onClick={() => setHow(true)}>
               Show me how
             </Button>
             <Button variant="text" onClick={() => finish({ noiseOnly: true })}>

@@ -5,8 +5,8 @@ import { store } from '../tuck/store';
 import type { ChipId } from '../tuck/copy';
 import type { Layer, Motion } from '../tuck/layers';
 
-export type Page = 'home' | 'settings' | 'science' | 'studies' | 'mixing' | 'week' | 'plus' | 'editor' | 'lock';
-export type Sheet = null | 'picker' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete';
+export type Page = 'home' | 'settings' | 'science' | 'studies' | 'mixing' | 'week' | 'plus' | 'editor' | 'lock' | 'blind';
+export type Sheet = null | 'picker' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete' | 'share' | 'anywhere';
 export type Headphone = 'stereoOk' | 'speaker' | 'oneEar' | 'callMode' | 'mono' | 'spatial' | 'swapped' | 'disconnected' | 'unknown';
 
 export interface UiState {
@@ -32,6 +32,12 @@ export interface UiState {
   deleteId: string | null;
   /** The editor's unsaved copy, handed to the Save sheet. */
   draft: Layer | null;
+  /** What we know: the section to scroll to ('beat' or 'noise'). */
+  anchor: 'beat' | 'noise' | null;
+  /** A layer opened from a shared link, waiting to be saved or played. */
+  shared: Layer | null;
+  /** The idle layer sits lower when Home's top content needs the room (a notice plus the chips). */
+  compactIdle: boolean;
 }
 
 const initial: UiState = {
@@ -52,6 +58,9 @@ const initial: UiState = {
   draftFrom: null,
   deleteId: null,
   draft: null,
+  anchor: null,
+  shared: null,
+  compactIdle: false,
 };
 
 class Ui {
@@ -64,6 +73,12 @@ class Ui {
     return () => this.ls.delete(fn);
   };
   set = (p: Partial<UiState>) => {
+    // Toasts never follow you: opening a sheet, a page or the spec card dismisses them.
+    const covers = (p.sheet !== undefined && p.sheet !== null) || (p.page !== undefined && p.page !== 'home') || p.spec === true || (p.onboarding !== undefined && p.onboarding !== null);
+    if (covers && this.s.toast && p.toast === undefined) {
+      p = { ...p, toast: null };
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+    }
     this.s = { ...this.s, ...p };
     for (const l of this.ls) l();
   };

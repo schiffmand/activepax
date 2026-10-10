@@ -15,6 +15,7 @@ import { generateNoise } from './noise';
 import {
   holdParam,
   paramValueAt,
+  rampFade,
   rampParam,
   setParam,
   type AudioBufferLike,
@@ -90,6 +91,11 @@ export interface EngineOptions {
   initial?: EngineStartParams;
   /** Noise buffer length in seconds. */
   noiseBufferSec?: number;
+  /**
+   * Shape of the start/stop/pause fades. 'linear' (default) ramps the amplitude linearly;
+   * 'perceptual' ramps in decibels from -40 dB (see rampFade), which sounds even over long fades.
+   */
+  fadeCurve?: 'linear' | 'perceptual';
 }
 
 /**
@@ -220,6 +226,7 @@ export class BinauralEngine {
       glideSec: Math.max(0, fin(options.glideSec, 0.4)),
       suspendOnPause: options.suspendOnPause ?? true,
       noiseBufferSec: Math.max(0.1, fin(options.noiseBufferSec, 8)),
+      fadeCurve: options.fadeCurve === 'perceptual' ? 'perceptual' : 'linear',
     };
     const init = options.initial ?? {};
     const tone = sanitizeTone(fin(init.beatHz, 10), fin(init.carrierHz, 200));
@@ -366,6 +373,12 @@ export class BinauralEngine {
     }
   }
 
+  /** Start/stop/pause fades, in the configured curve. */
+  private fade(param: GainNodeLike['gain'], target: number, now: number, sec: number): void {
+    if (this.opts.fadeCurve === 'perceptual') rampFade(param, target, now, sec);
+    else rampParam(param, target, now, sec, 'linear');
+  }
+
   /** Re-ramp the fade from silence (after an interruption the param may be mid-fade or stale). */
   private fadeInFromSilence(): void {
     const g = this.graph;
@@ -373,7 +386,7 @@ export class BinauralEngine {
     if (!g || !ctx) return;
     const t = ctx.currentTime;
     rampParam(g.fadeGain.gain, 0, t, 0, 'linear');
-    rampParam(g.fadeGain.gain, 1, t, this.opts.fadeInSec, 'linear');
+    this.fade(g.fadeGain.gain, 1, t, this.opts.fadeInSec);
   }
 
   private cancelPending(): void {
@@ -593,7 +606,7 @@ export class BinauralEngine {
       this.applyNoise(noise, this.opts.fadeInSec);
     }
     const g = this.graph!;
-    rampParam(g.fadeGain.gain, 1, ctx.currentTime, this.opts.fadeInSec, 'linear');
+    this.fade(g.fadeGain.gain, 1, ctx.currentTime, this.opts.fadeInSec);
     this.patch({ status: 'playing' });
     this.emitter.emit('started', this.getState());
   }
@@ -617,7 +630,7 @@ export class BinauralEngine {
       return;
     }
     const ctx = this.ctx;
-    rampParam(this.graph.fadeGain.gain, 0, ctx.currentTime, fade, 'linear');
+    this.fade(this.graph.fadeGain.gain, 0, ctx.currentTime, fade);
     this.patch({ status: 'stopping' });
     await this.afterSec(fade, async () => {
       this.teardown();
@@ -665,7 +678,7 @@ export class BinauralEngine {
     }
     if (this.state.status !== 'playing') return;
     this.opSeq++;
-    rampParam(this.graph.fadeGain.gain, 0, ctx.currentTime, this.opts.pauseFadeSec, 'linear');
+    this.fade(this.graph.fadeGain.gain, 0, ctx.currentTime, this.opts.pauseFadeSec);
     this.patch({ status: 'paused' });
     this.emitter.emit('paused', this.getState());
     await this.afterSec(this.opts.pauseFadeSec, async () => {
@@ -688,7 +701,7 @@ export class BinauralEngine {
       this.emitter.emit('error', err);
       throw err;
     }
-    rampParam(this.graph.fadeGain.gain, 1, ctx.currentTime, this.opts.fadeInSec, 'linear');
+    this.fade(this.graph.fadeGain.gain, 1, ctx.currentTime, this.opts.fadeInSec);
     this.patch({ status: 'playing' });
     this.emitter.emit('resumed', this.getState());
   }

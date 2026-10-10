@@ -1,7 +1,7 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see model/Model.kt header).
 //
-// Pure-Kotlin DSP, the twin of native/ios/Tealight/ToneRenderer.swift and of the Web Audio graph in
+// Pure-Kotlin DSP, the twin of native/ios/Tuck/ToneRenderer.swift and of the Web Audio graph in
 // core/src/audio/engine.ts:
 //
 //   sin(left ear)  ─┐
@@ -14,10 +14,10 @@
 // top of every buffer. Every parameter is a Ramp that retargets from its *current* value, so a new
 // glide interrupting one in flight is continuous (no clicks, no zipper noise).
 
-package app.tealight.layer.audio
+package app.tuck.layer.audio
 
-import app.tealight.layer.model.NoiseColor
-import app.tealight.layer.model.RampCurve
+import app.tuck.layer.model.NoiseColor
+import app.tuck.layer.model.RampCurve
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.PI
 import kotlin.math.max
@@ -88,7 +88,7 @@ class NoiseVoice(private val color: NoiseColor, seed: Int) {
     fun next(): Double {
         val w = rng.next() * 2 - 1
         val x = when (color) {
-            NoiseColor.WHITE, NoiseColor.OFF -> w * 0.9
+            NoiseColor.WHITE, NoiseColor.OFF -> w * 0.182 // loudness-matched (RMS 0.105)
             NoiseColor.PINK -> {
                 b0 = 0.99886 * b0 + w * 0.0555179
                 b1 = 0.99332 * b1 + w * 0.0750759
@@ -96,13 +96,13 @@ class NoiseVoice(private val color: NoiseColor, seed: Int) {
                 b3 = 0.8665 * b3 + w * 0.3104856
                 b4 = 0.55 * b4 + w * 0.5329522
                 b5 = -0.7616 * b5 - w * 0.016898
-                val p = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11
+                val p = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.0934
                 b6 = w * 0.115926
                 p
             }
             NoiseColor.BROWN -> {
                 last = (last + 0.02 * w) / 1.02
-                last * 3.5
+                last * 3.19
             }
         }
         val y = x - dcX + 0.9995 * dcY // DC blocker
@@ -187,7 +187,7 @@ class ToneRenderer(val sampleRate: Int, leftHz: Double, rightHz: Double, level: 
                     r += noiseR[c].next() * g
                 }
             }
-            val master = level.next() * volumeGain.next() * fade.next()
+            val master = level.next() * volumeGain.next() * perceptualFade(fade.next())
             val outL = (l * master).toFloat()
             val outR = (r * master).toFloat()
             out[j++] = if (swapNow) outR else outL
@@ -195,3 +195,16 @@ class ToneRenderer(val sampleRate: Int, leftHz: Double, rightHz: Double, level: 
         }
     }
 }
+
+/**
+ * Start/stop fades run in decibels, like core's rampFade: the fade ramp moves linearly from 0 to 1, and
+ * this maps it to gain linearly in dB from −40 dB to 0 dB, with a short linear step from true silence to
+ * −40 dB. An 8 to 60 s fade then sounds even, instead of jumping up early or hanging and then dropping.
+ */
+internal fun perceptualFade(p: Double): Double = when {
+    p <= 0.0 -> 0.0
+    p >= 1.0 -> 1.0
+    p < 0.02 -> (p / 0.02) * 0.01
+    else -> Math.pow(0.01, (1.0 - p) / 0.98)
+}
+

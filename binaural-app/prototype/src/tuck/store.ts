@@ -9,6 +9,53 @@ import { createStore, localStorageAdapter, type AppState, type Preset, type Stor
 import { BUILT_IN_LAYERS, builtInLayer, presetToLayer, type Layer, type LevelName, type Motion, type TuckPresetExtras } from './layers';
 
 export type ThemePref = 'night' | 'day' | 'system';
+/** A timer choice: minutes, no timer, or work/break cycles. */
+export type TimerChoice = number | null | 'cycles';
+
+/** One private, one-tap note about a session (only when the log or a blind comparison is on). */
+export interface SessionNote {
+  at: number;
+  layerId: string;
+  layerName: string;
+  beatHz: number | null;
+  noise: string;
+  minutes: number;
+  /** 3 = good, 2 = about the same, 1 = not for me. */
+  rating: 1 | 2 | 3;
+  /** Set during a blind comparison: which label played. */
+  blind?: 'A' | 'B';
+}
+
+/** "How did you sleep?" the morning after a session that started in the evening. */
+export interface SleepNote {
+  /** The night the session started (local date, YYYY-MM-DD). */
+  night: string;
+  layerName: string;
+  rating: 1 | 2 | 3 | 0;
+  at: number;
+}
+
+/** A blind comparison: one layer, A and B (one with the beat, one noise only), randomised locally. */
+export interface BlindState {
+  layerId: string;
+  /** Which label carries the beat. Hidden until the end. */
+  beatIs: 'A' | 'B';
+  startedAt: number;
+  days: number;
+  /** The label of the session that's playing now or played last. */
+  current: 'A' | 'B' | null;
+  plays: { A: number; B: number };
+  revealed: boolean;
+}
+
+export interface Schedule {
+  on: boolean;
+  /** "HH:MM", local time. */
+  time: string;
+  layerId: string;
+  /** The last local date (YYYY-MM-DD) it fired. */
+  lastFired: string | null;
+}
 export type DimPref = 'auto' | 'always' | 'off';
 
 export interface TuckPrefs {
@@ -35,16 +82,32 @@ export interface TuckPrefs {
   liveActivityStyle: 'standard' | 'minimal';
   showWeeklyTotal: boolean;
   tooMuchLayerId: string | null;
+  /** Steady mode: Home always offers this one layer, with no arrival question. */
+  pinnedLayerId: string | null;
   theme: ThemePref;
+  /** Private log: one tap after each session, and a sleep note the morning after. Off by default. */
+  logOn: boolean;
+  notes: SessionNote[];
+  sleepNotes: SleepNote[];
+  blind: BlindState | null;
+  schedule: Schedule;
+  /** Vary: which noise variant each layer played last. */
+  varyIndex: Record<string, number>;
+  /** The sample week came from Prototype controls. */
+  sampleWeek: boolean;
+  /** The "Start Tuck without opening it" suggestion was shown. */
+  startTipSeen: boolean;
   /** Remember-once UI facts. */
   chipsSeen: string[];
   audioNoteDismissed: boolean;
   hintDone: boolean;
   firstSessionDone: boolean;
-  timerByLayer: Record<string, number | null>;
+  timerByLayer: Record<string, TimerChoice>;
   lastLevel: LevelName;
   lastMotion: Record<string, Motion>;
   lastVisit: number | null;
+  /** The last session that started in the evening (for the morning sleep note). */
+  lastNight: { night: string; layerName: string } | null;
   /** Values the user changed after Sensory mode applied its bundle. */
   sensoryOverrides: string[];
 }
@@ -72,7 +135,16 @@ export const DEFAULT_PREFS: TuckPrefs = {
   liveActivityStyle: 'standard',
   showWeeklyTotal: true,
   tooMuchLayerId: null,
+  pinnedLayerId: null,
   theme: 'night',
+  logOn: false,
+  notes: [],
+  sleepNotes: [],
+  blind: null,
+  schedule: { on: false, time: '21:30', layerId: 'sleep', lastFired: null },
+  varyIndex: {},
+  sampleWeek: false,
+  startTipSeen: false,
   chipsSeen: [],
   audioNoteDismissed: false,
   hintDone: false,
@@ -81,6 +153,7 @@ export const DEFAULT_PREFS: TuckPrefs = {
   lastLevel: 'medium',
   lastMotion: {},
   lastVisit: null,
+  lastNight: null,
   sensoryOverrides: [],
 };
 
@@ -116,7 +189,8 @@ function sanitizePrefs(raw: unknown): TuckPrefs {
   for (const [k, def] of Object.entries(DEFAULT_PREFS)) {
     const v = r[k];
     if (v === undefined) continue;
-    if (def === null ? v === null || typeof v === 'string' : typeof v === typeof def && (Array.isArray(def) === Array.isArray(v))) out[k] = v;
+    // null defaults (optional ids and objects) accept a string, an object or null.
+    if (def === null ? v === null || typeof v === 'string' || typeof v === 'object' : typeof v === typeof def && Array.isArray(def) === Array.isArray(v)) out[k] = v;
   }
   return out as unknown as TuckPrefs;
 }

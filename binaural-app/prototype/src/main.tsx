@@ -4,6 +4,7 @@ import './styles.css';
 import { App } from './App';
 import { store } from './tuck/store';
 import { ui } from './ui/state';
+import { parseShared } from './tuck/share';
 
 async function boot() {
   await store.hydrate();
@@ -25,6 +26,15 @@ async function boot() {
     store.core.dispatch({ type: 'settings/update', patch: { onboarded: true } });
     ui.set({ onboarding: null });
   }
+  // A shared layer link (?layer=14,207,brown,25,drift,1,Desk) opens Home with that layer, ready to save.
+  const shared = parseShared(q.get('layer'));
+  if (shared) {
+    if (!store.get().core.settings.onboarded) store.core.dispatch({ type: 'settings/update', patch: { onboarded: true } });
+    ui.set({ onboarding: null, shared });
+  }
+  // ?hour=14 pretends the local hour is 14:00 (screenshots that shouldn't depend on the real clock).
+  const hour = Number(q.get('hour'));
+  if (q.get('hour') !== null && Number.isInteger(hour) && hour >= 0 && hour < 24) ui.set({ hourOverride: hour });
   if (q.get('debug') === '1') {
     const { session } = await import('./audio/session');
     (window as unknown as Record<string, unknown>).__tuck = { session, store, ui };

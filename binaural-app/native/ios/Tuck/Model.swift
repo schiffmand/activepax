@@ -1,4 +1,4 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED. Written against iOS 16+ / Swift 5.9 APIs, but it has
 // never been built or run on a device. Treat it as a precise spec in code form, not as shipped code.
 //

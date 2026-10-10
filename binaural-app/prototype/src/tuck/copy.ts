@@ -67,14 +67,27 @@ export function firstPickLine(chip: ChipId, labels: Labels): string {
   return labels === 'plain' ? `This is the layer for ${name}. It isn’t a treatment.` : `This is what we play when you pick ${name}. It isn’t a treatment.`;
 }
 
-export function greetingFor(hour: number): string {
-  if (hour < 12 && hour >= 4) return 'Morning.';
-  if (hour < 18 && hour >= 12) return 'Afternoon.';
-  return 'Evening.';
+/** Morning, Afternoon, Evening, or nothing between midnight and 04:00 (the line then reads "Tuck"). */
+export function greetingFor(hour: number): string | null {
+  if (hour >= 4 && hour < 12) return 'Morning.';
+  if (hour >= 12 && hour < 18) return 'Afternoon.';
+  if (hour >= 18) return 'Evening.';
+  return null;
 }
 
 export function minutes(sec: number): number {
   return Math.max(0, Math.floor(sec / 60));
+}
+
+/** Elapsed time that never rounds up: "under a minute", "1 min", "52 min", "1 h 5 min". */
+export function elapsedWords(sec: number): string {
+  if (sec < 60) return 'under a minute';
+  const m = minutes(sec);
+  const nb = '\u00A0';
+  if (m < 60) return `${m}${nb}min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}${nb}h${nb}${r}${nb}min` : `${h}${nb}h`;
 }
 
 export function durationWords(sec: number): string {
@@ -90,10 +103,13 @@ export const copy = {
   statusPlaying: (l: Labels) => (l === 'plain' ? 'Sound on.' : 'Tucked in.'),
   statusFadingIn: (l: Labels, fadeSec: number) => (l === 'plain' ? `Starting. Fading in over ${fadeSec} seconds.` : 'Tucking in…'),
   statusFadingOut: (l: Labels, fadeSec: number) => (l === 'plain' ? `Stopping. Fading out over ${fadeSec} seconds.` : `Setting it down over ${fadeSec} seconds.`),
+  /** The elapsed half of the detail line. Under a minute it never shows "0 min". */
+  elapsed: (l: Labels, elapsedSec: number) =>
+    elapsedSec < 60 ? (l === 'plain' ? 'Playing for under a minute' : 'Just started') : `${l === 'plain' ? 'Playing for' : 'With you for'} ${elapsedWords(elapsedSec)}`,
   detail: (l: Labels, elapsedSec: number, fadesAtMin: number | null) =>
-    `${l === 'plain' ? 'Playing for' : 'With you for'} ${minutes(elapsedSec)} min · ${fadesAtMin === null ? 'No timer' : `Fades out at ${fadesAtMin} min`}`,
+    `${copy.elapsed(l, elapsedSec)} · ${fadesAtMin === null ? 'No timer' : `Fades out at ${fadesAtMin} min`}`,
   sessionEnd: (l: Labels, elapsedSec: number, fadeSec: number) =>
-    `${l === 'plain' ? 'Stopped' : 'Set down'} after ${Math.max(1, minutes(elapsedSec))} min. Faded out over ${fadeSec} seconds.`,
+    `${l === 'plain' ? 'Stopped' : 'Set down'} after ${elapsedWords(elapsedSec)}. Faded out over ${fadeSec} seconds.`,
   releaseHint: (l: Labels) => (l === 'plain' ? 'Let go to stop.' : 'Let go to set it down.'),
   takeFive: (l: Labels) =>
     l === 'plain' ? 'Break, 5 min. Level Quiet. One chime at the end.' : 'Five minutes off. The layer drops to Quiet and one soft chime marks the end.',
@@ -105,6 +121,24 @@ export const copy = {
       ? `Total this week: ${total}, ${sessions} session${sessions === 1 ? '' : 's'}.`
       : `Tuck kept you company for ${total} this week, across ${sessions} session${sessions === 1 ? '' : 's'}.`,
 };
+
+/** The line under the arrival chips, for whatever will actually play (beat or noise only). */
+export function playsLine(l: Layer, binaural: boolean, labels: Labels): string {
+  const noise = l.noise.type === 'off' ? 'no noise' : `${labels === 'plain' ? '' : 'soft '}${l.noise.type} noise`;
+  if (!binaural) return labels === 'plain' ? `${l.name}, noise only: ${l.noise.type} noise, no beat.` : `That’s ${l.name}, as noise only: ${noise}, no beat.`;
+  if (l.journey) return labels === 'plain' ? 'Evening descent: 8 Hz to 2 Hz over 30 min, then 15 min low, then silence.' : 'That’s Evening descent: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes and silence.';
+  return labels === 'plain' ? `${l.name}: ${hz(l.beatHz)} Hz beat, ${noise}.` : `That’s ${l.name}: a ${hz(l.beatHz)} Hz beat over ${noise}.`;
+}
+
+/** Which chip a layer belongs to (so "Arriving differently?" never shows a line with no chip selected). */
+export function chipForLayer(id: string): ChipId | null {
+  const base = id.replace(/~noise$/, '');
+  if (base === 'focus') return 'scattered';
+  if (base === 'calm') return 'wound-up';
+  if (base === 'steady') return 'too-much';
+  if (base === 'sleep' || base === 'unwind') return 'heavy-eyed';
+  return null;
+}
 
 export function readoutText(l: Layer): string {
   if (!l.binaural) return `Noise only · ${l.noise.type} ${Math.round(l.noise.volume * 100)}%`;

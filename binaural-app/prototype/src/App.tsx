@@ -31,6 +31,7 @@ export function App() {
   const scale = framed ? Math.min(1, (vp.h - 48) / (844 + 28)) : 1;
 
   useKeyboard();
+  useSchedule();
 
   useLayoutEffect(() => {
     document.documentElement.style.background = '#121612';
@@ -140,6 +141,7 @@ function Phone({ framed }: { framed: boolean }) {
       data-theme={theme}
       data-texture={texture ? 'on' : 'off'}
       data-legible={prefs.legibleText ? 'true' : 'false'}
+      data-transparency={t.transparencyReduced ? 'reduced' : 'normal'}
       data-phone
       data-testid="phone"
       style={{ transition: 'background-color 600ms linear, color 600ms linear' }}
@@ -164,7 +166,6 @@ function Phone({ framed }: { framed: boolean }) {
       )}
       <AnimatePresence>{!u.onboarding && <Pages />}</AnimatePresence>
       <Sheets />
-      <Toast />
       {framed && <div className="absolute bottom-[8px] left-1/2 -translate-x-1/2 h-[5px] w-[134px] rounded-full bg-ink/80 z-[60] pointer-events-none" aria-hidden />}
     </div>
   );
@@ -178,27 +179,29 @@ function Fade({ children, reduced }: { children: React.ReactNode; reduced: boole
   );
 }
 
-function Toast() {
-  const { u } = useTuck();
-  return (
-    <div className="absolute inset-x-0 bottom-[350px] z-[55] flex justify-center px-4 pointer-events-none" role="status" aria-live="polite">
-      <AnimatePresence>
-        {u.toast && (
-          <motion.p
-            key={u.toast}
-            className="max-w-[350px] rounded-[18px] bg-surface2 text-ink px-4 py-3 text-[16px] leading-[22px] shadow-[0_8px_30px_rgba(0,0,0,.25)]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            data-testid="toast"
-          >
-            {u.toast}
-          </motion.p>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+/**
+ * The free daily schedule. On a phone the OS starts it (a notification you can stop from); here it
+ * fires while the prototype is open, once per day, if nothing is playing.
+ */
+function useSchedule() {
+  useEffect(() => {
+    const check = () => {
+      const { schedule } = store.get().prefs;
+      if (!schedule.on || session.isActive()) return;
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (schedule.lastFired === today) return;
+      const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (hhmm < schedule.time) return;
+      // Only within 10 minutes of the time, so opening the app late doesn't start sound unasked.
+      const [h, m] = schedule.time.split(':').map(Number);
+      if ((now.getHours() * 60 + now.getMinutes()) - ((h ?? 0) * 60 + (m ?? 0)) > 10) return;
+      store.setPrefs({ schedule: { ...schedule, lastFired: today } });
+      startSound(schedule.layerId);
+    };
+    const i = setInterval(check, 15_000);
+    return () => clearInterval(i);
+  }, []);
 }
 
 /** Enter = Start sound, Esc = Stop, arrows = Level (spec §7), when nothing else has focus. */

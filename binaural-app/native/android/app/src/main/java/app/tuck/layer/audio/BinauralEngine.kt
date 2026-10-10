@@ -1,4 +1,4 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see model/Model.kt header).
 //
 // Streams ToneRenderer output into an AudioTrack from a dedicated writer thread. Same transport and
@@ -16,7 +16,7 @@
 // the remembered noise volume; stop() releases the AudioTrack (no silent rendering burning battery);
 // every gain change, even an "instant" one, is a >= 30 ms ramp.
 
-package app.tealight.layer.audio
+package app.tuck.layer.audio
 
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -24,14 +24,14 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Build
 import android.os.Process
-import app.tealight.layer.model.Band
-import app.tealight.layer.model.NoiseColor
-import app.tealight.layer.model.NoiseSetting
-import app.tealight.layer.model.RampCurve
-import app.tealight.layer.model.clamp
-import app.tealight.layer.model.earFrequencies
-import app.tealight.layer.model.sanitizeTone
-import app.tealight.layer.model.volumeToGain
+import app.tuck.layer.model.Band
+import app.tuck.layer.model.NoiseColor
+import app.tuck.layer.model.NoiseSetting
+import app.tuck.layer.model.RampCurve
+import app.tuck.layer.model.clamp
+import app.tuck.layer.model.earFrequencies
+import app.tuck.layer.model.sanitizeTone
+import app.tuck.layer.model.volumeToGain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -137,7 +137,7 @@ class BinauralEngine(
         applyNoise(s.noise, 0.0)
         writing = true
         writerPaused = false
-        writer = Thread({ writeLoop(t, rend) }, "tealight-audio").apply { start() }
+        writer = Thread({ writeLoop(t, rend) }, "tuck-audio").apply { start() }
         t.play()
     }
 

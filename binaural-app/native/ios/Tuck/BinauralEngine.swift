@@ -1,4 +1,4 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see Model.swift header).
 //
 // AVAudioEngine host for ToneRenderer, with the same transport and parameter API as the web core's
@@ -54,7 +54,7 @@ enum EngineEvent {
     case stateChanged(EngineState)
     /// Paused because the OS interrupted us for a call; show "Paused for your call. [Resume]".
     case pausedForCall
-    /// Paused because headphones went away; show "Headphones disconnected. Tealight paused…".
+    /// Paused because headphones went away; show "Headphones disconnected. Tuck paused…".
     case pausedForRouteLoss
     case headphoneFacts(HeadphoneFacts)
 }
@@ -298,7 +298,7 @@ final class BinauralEngine: AudioSessionControllerDelegate {
         if state.status != .idle { applyNoise(state.noise, fadeSec: fadeSec) }
     }
 
-    /// Set from the stereo check's 'swapped' verdict (spec: "Tealight will swap them for you").
+    /// Set from the stereo check's 'swapped' verdict (spec: "Tuck will swap them for you").
     func setSwapChannels(_ on: Bool) {
         state.swapChannels = on
         renderer?.send(.swapChannels(on))

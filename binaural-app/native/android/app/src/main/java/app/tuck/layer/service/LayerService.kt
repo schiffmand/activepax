@@ -1,4 +1,4 @@
-// Tealight native engine — Android
+// Tuck native engine — Android
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see model/Model.kt header).
 //
 // Foreground service (type mediaPlayback) that owns the engine while a layer plays, so Android keeps
@@ -14,7 +14,7 @@
 // starting foreground services from the background, and Android 14+ requires the
 // FOREGROUND_SERVICE_MEDIA_PLAYBACK permission declared in the manifest.
 
-package app.tealight.layer.service
+package app.tuck.layer.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -31,15 +31,15 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import app.tealight.layer.R
-import app.tealight.layer.audio.BinauralEngine
-import app.tealight.layer.audio.EngineStatus
-import app.tealight.layer.audio.HeadphoneFacts
-import app.tealight.layer.audio.HeadphoneMonitor
-import app.tealight.layer.model.BUILT_IN_PRESETS
-import app.tealight.layer.model.BUILT_IN_PROGRAMS
-import app.tealight.layer.model.Program
-import app.tealight.layer.model.presetToProgram
+import app.tuck.layer.R
+import app.tuck.layer.audio.BinauralEngine
+import app.tuck.layer.audio.EngineStatus
+import app.tuck.layer.audio.HeadphoneFacts
+import app.tuck.layer.audio.HeadphoneMonitor
+import app.tuck.layer.model.BUILT_IN_PRESETS
+import app.tuck.layer.model.BUILT_IN_PROGRAMS
+import app.tuck.layer.model.Program
+import app.tuck.layer.model.presetToProgram
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,7 +62,7 @@ class LayerService : LifecycleService() {
     private lateinit var monitor: HeadphoneMonitor
     private var notificationTicker: Job? = null
     private var foreground = false
-    private var currentTitle = "Tealight"
+    private var currentTitle = "Tuck"
 
     private val _facts = MutableStateFlow<HeadphoneFacts?>(null)
     val headphoneFacts: StateFlow<HeadphoneFacts?> = _facts
@@ -149,7 +149,7 @@ class LayerService : LifecycleService() {
     private fun createChannel() {
         val nm = getSystemService(NotificationManager::class.java)
         val ch = NotificationChannel(CHANNEL_ID, "Playing layer", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "Shows while Tealight plays under your other audio, with a Stop button."
+            description = "Shows while Tuck plays under your other audio, with a Stop button."
             setShowBadge(false)
             setSound(null, null)
             enableVibration(false)
@@ -194,7 +194,7 @@ class LayerService : LifecycleService() {
             else -> runner.remainingSec?.let { "${kotlin.math.ceil(it / 60).toInt()} min left" } ?: "Under your audio"
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_tealight_flame)
+            .setSmallIcon(R.drawable.ic_tuck_flame)
             .setContentTitle(currentTitle)
             .setContentText(text)
             .setContentIntent(open)
@@ -210,10 +210,10 @@ class LayerService : LifecycleService() {
     }
 
     companion object {
-        const val ACTION_PLAY = "app.tealight.layer.PLAY"
-        const val ACTION_PAUSE = "app.tealight.layer.PAUSE"
-        const val ACTION_RESUME = "app.tealight.layer.RESUME"
-        const val ACTION_STOP = "app.tealight.layer.STOP"
+        const val ACTION_PLAY = "app.tuck.layer.PLAY"
+        const val ACTION_PAUSE = "app.tuck.layer.PAUSE"
+        const val ACTION_RESUME = "app.tuck.layer.RESUME"
+        const val ACTION_STOP = "app.tuck.layer.STOP"
         const val EXTRA_PRESET_ID = "presetId"
         const val EXTRA_PROGRAM_ID = "programId"
         const val EXTRA_TIMER_SEC = "timerSec"

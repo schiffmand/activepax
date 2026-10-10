@@ -7,8 +7,35 @@ import { ProgramPlayer, sessionToRecord, AudioBlockedError, type PlayerState } f
 import { getContext, ensureRunning, playChime, setSwap } from './hub';
 import { LayerEngine } from './layerEngine';
 import { createWarpClock } from './warpClock';
-import { LEVEL_VOLUME, LEVELS, programFor, type Layer, type LevelName, type Motion } from '../tuck/layers';
+import { LEVEL_VOLUME, LEVELS, programFor, wanders, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import { store } from '../tuck/store';
+
+/** Work/break cycles: 25 min at your level, 5 min at Quiet, one chime, back up. Four rounds. */
+export const CYCLE = { workMin: 25, breakMin: 5, rounds: 4 } as const;
+
+export interface Cycles {
+  round: number;
+  of: number;
+  phase: 'work' | 'break';
+  /** Elapsed seconds at which the current phase ends. */
+  nextAtSec: number;
+  /** The level work returns to after a break. */
+  workLevel: LevelName;
+}
+
+export interface Ended {
+  elapsedSec: number;
+  fadeSec: number;
+  at: number;
+  byTimer: boolean;
+  layerId: string;
+  layerName: string;
+  beatHz: number | null;
+  noise: string;
+  blind: 'A' | 'B' | null;
+  /** Set once the one-tap note is saved (or skipped). */
+  noted?: boolean;
+}
 
 export type Phase = 'idle' | 'starting' | 'fadingIn' | 'playing' | 'fadingOut';
 export type Notice = 'call' | 'disconnected' | 'mixing' | 'blocked' | null;
@@ -27,7 +54,12 @@ export interface SessionSnapshot {
   stepLabel: string | null;
   beatNow: number | null;
   takeFive: { endsAtSec: number } | null;
-  ended: { elapsedSec: number; fadeSec: number; at: number; byTimer: boolean } | null;
+  cycles: Cycles | null;
+  /** During a blind comparison: the label playing (numbers are hidden). */
+  blind: 'A' | 'B' | null;
+  /** Drift's current offset from the layer's beat, Hz (drives the stitch gap). */
+  driftOffset: number;
+  ended: Ended | null;
   notice: Notice;
 }
 
@@ -44,6 +76,9 @@ const initial: SessionSnapshot = {
   stepLabel: null,
   beatNow: null,
   takeFive: null,
+  cycles: null,
+  blind: null,
+  driftOffset: 0,
   ended: null,
   notice: null,
 };
@@ -69,6 +104,7 @@ class Session {
   private fadeTimer: ReturnType<typeof setTimeout> | undefined;
   private driftTimer: ReturnType<typeof setTimeout> | undefined;
   private takeFiveTimer: unknown;
+  private cycleTimer: unknown;
   private endedTimer: ReturnType<typeof setTimeout> | undefined;
   private switching = false;
   private driftSeed = 1;
@@ -94,7 +130,7 @@ class Session {
   }
 
   /** Start sound (or pull up). Must run from a tap the first time (autoplay policy). */
-  async start(layer: Layer, opts: { level: LevelName; motion: Motion; timerMin: number | null; binaural: boolean }) {
+  async start(layer: Layer, opts: { level: LevelName; motion: Motion; timerMin: number | null; binaural: boolean; cycles?: boolean; blind?: 'A' | 'B' | null }) {
     const prefs = store.get().prefs;
     setSwap(prefs.swapChannels);
     const ok = await ensureRunning();
@@ -128,15 +164,18 @@ class Session {
       level,
       motion: layer.motionLocked ? 'hold' : opts.motion,
       binaural: opts.binaural,
-      timerMin: opts.timerMin,
+      timerMin: opts.cycles ? null : opts.timerMin,
       ended: null,
       notice: null,
       takeFive: null,
+      cycles: null,
+      blind: opts.blind ?? null,
+      driftOffset: 0,
       fadeSec: fadeIn,
     });
     try {
       await this.player!.play(programFor(layer, level), {
-        timerSec: opts.timerMin === null ? null : opts.timerMin * 60 + fadeOut,
+        timerSec: opts.cycles || opts.timerMin === null ? null : opts.timerMin * 60 + fadeOut,
         endFadeSec: fadeOut,
         volume: LEVEL_VOLUME[level],
       });
@@ -153,8 +192,10 @@ class Session {
     this.driftSeed = Math.floor(Math.random() * 1e9);
     this.driftOffset = 0;
     this.scheduleDrift();
+    this.clearCycles();
+    if (opts.cycles) this.beginCycles(level);
     store.core.dispatch({ type: 'lastPlayed/set', value: { kind: 'preset', id: layer.id } });
-    store.setPrefs({ lastLevel: opts.level, hintDone: true });
+    store.setPrefs({ lastLevel: opts.level });
   }
 
   private onPlayer(s: PlayerState) {
@@ -188,14 +229,42 @@ class Session {
 
   private finishLine(elapsedSec: number, fadeSec: number, byTimer: boolean) {
     store.setPrefs({ firstSessionDone: true });
-    this.set({ ended: { elapsedSec, fadeSec: Math.round(fadeSec), at: Date.now(), byTimer } });
+    const l = this.snap.layer;
+    const binaural = this.snap.binaural && !!l?.binaural;
+    this.set({
+      ended: {
+        elapsedSec,
+        fadeSec: Math.round(fadeSec),
+        at: Date.now(),
+        byTimer,
+        layerId: l?.id ?? 'focus',
+        layerName: l?.name ?? 'Focus',
+        beatHz: binaural && l ? l.beatHz : null,
+        noise: l ? (l.noise.type === 'off' ? 'none' : l.noise.type) : 'brown',
+        blind: this.snap.blind,
+      },
+    });
     if (this.endedTimer) clearTimeout(this.endedTimer);
-    // The session-end line shows for 8 s (30 s when it offers Take 5), then the home returns.
-    this.endedTimer = setTimeout(() => this.set({ ended: null }), byTimer ? 30_000 : 8_000);
+    // The session-end line shows for 8 s (30 s when it offers Take 5 or a one-tap note), then the home returns.
+    const p = store.get().prefs;
+    const asks = (p.logOn || !!this.snap.blind) && elapsedSec >= 60;
+    this.endedTimer = setTimeout(() => this.set({ ended: null }), byTimer || asks ? 30_000 : 8_000);
+  }
+
+  /** The one-tap note was saved or skipped: keep the line, drop the question. */
+  markNoted() {
+    if (this.snap.ended) this.set({ ended: { ...this.snap.ended, noted: true } });
+    if (this.endedTimer) clearTimeout(this.endedTimer);
+    // Keep "Set down after…" until the fade has finished, then let Home return.
+    const clear = () => {
+      if (this.snap.phase === 'fadingOut') this.endedTimer = setTimeout(clear, 1_000);
+      else this.set({ ended: null });
+    };
+    this.endedTimer = setTimeout(clear, 4_000);
   }
 
   /** Stop / set down. The sound and the lining fade out together. */
-  async stop(fadeOverride?: number, notice: Notice = null) {
+  async stop(fadeOverride?: number, notice: Notice = null, byTimer = false) {
     if (!this.player || !this.engine) return;
     if (this.snap.phase === 'idle' || this.snap.phase === 'fadingOut') return;
     const layer = this.snap.layer;
@@ -203,12 +272,13 @@ class Session {
     const elapsed = this.player.getState().elapsedSec;
     this.stopDrift();
     this.clearTakeFive();
+    this.clearCycles();
     if (this.fadeTimer) clearTimeout(this.fadeTimer);
-    this.set({ phase: 'fadingOut', fadeSec: fade, notice, takeFive: null });
+    this.set({ phase: 'fadingOut', fadeSec: fade, notice, takeFive: null, cycles: null });
     this.switching = true;
     const p = this.player.stop(fade);
     this.switching = false;
-    if (!notice) this.finishLine(elapsed, fade, false);
+    if (!notice) this.finishLine(elapsed, fade, byTimer);
     await p;
     if ((this.snap.phase as Phase) === 'fadingOut') this.set({ phase: 'idle' });
   }
@@ -216,6 +286,7 @@ class Session {
   setLevel(level: LevelName) {
     const l = this.ceiling(level);
     this.set({ level: l });
+    if (this.snap.cycles && this.snap.cycles.phase === 'work') this.set({ cycles: { ...this.snap.cycles, workLevel: l } });
     store.setPrefs({ lastLevel: l });
     if (this.engine && this.isActive()) this.engine.setVolume(LEVEL_VOLUME[l], 1.2);
     // Haptics (off by default): one soft tick per level detent.
@@ -225,17 +296,84 @@ class Session {
 
   setMotion(m: Motion) {
     if (this.snap.layer?.motionLocked) return;
+    const was = this.snap.motion;
     this.set({ motion: m });
     if (m === 'hold') {
       this.stopDrift();
-      if (this.engine && this.snap.layer && this.isActive() && !this.snap.layer.journey) this.engine.rampTo({ beatHz: this.snap.layer.beatHz }, 4);
-    } else this.scheduleDrift();
+      if (this.engine && this.snap.layer && this.isActive() && !this.snap.layer.journey) {
+        this.engine.rampTo({ beatHz: this.snap.layer.beatHz }, 4);
+        this.engine.wanderNoise(0, 4);
+      }
+      this.set({ driftOffset: 0 });
+    } else if (!wanders(was)) this.scheduleDrift();
   }
 
-  setTimer(min: number | null) {
+  setTimer(min: number | 'cycles' | null) {
     const fadeOut = this.snap.layer ? fadesFor(this.snap.layer).fadeOut : 20;
-    this.set({ timerMin: min });
+    if (min === 'cycles') {
+      this.set({ timerMin: null });
+      this.player?.setTimer(null);
+      if (this.isActive() && !this.snap.cycles) this.beginCycles(this.snap.level);
+      return;
+    }
+    this.clearCycles();
+    this.set({ timerMin: min, cycles: null });
     if (this.player && this.isActive()) this.player.setTimer(min === null ? null : min * 60 + fadeOut);
+  }
+
+  // ───────────────────────────── work/break cycles ─────────────────────────────
+
+  private beginCycles(level: LevelName) {
+    const at = (this.player?.elapsedSec() ?? 0) + CYCLE.workMin * 60;
+    this.set({ cycles: { round: 1, of: CYCLE.rounds, phase: 'work', nextAtSec: at, workLevel: level } });
+    this.scheduleCycle();
+  }
+
+  private scheduleCycle() {
+    this.clearCycleTimer();
+    const c = this.snap.cycles;
+    if (!c || !this.player) return;
+    const wait = Math.max(0, c.nextAtSec - this.player.elapsedSec());
+    this.cycleTimer = this.clock.setTimeout(() => this.cycleStep(), wait * 1000);
+  }
+
+  private cycleStep() {
+    this.cycleTimer = undefined;
+    const c = this.snap.cycles;
+    if (!c || !this.isActive()) return;
+    const now = this.player?.elapsedSec() ?? 0;
+    if (c.phase === 'work') {
+      if (c.round >= c.of) {
+        // The last round ends the session: one fade out, no break.
+        this.set({ cycles: null });
+        void this.stop(undefined, null, true);
+        return;
+      }
+      this.applyLevel('quiet', 4);
+      this.set({ cycles: { ...c, phase: 'break', nextAtSec: now + CYCLE.breakMin * 60 } });
+    } else {
+      if (store.get().prefs.takeFiveChime) playChime(LEVEL_VOLUME.quiet);
+      this.applyLevel(c.workLevel, 4);
+      this.set({ cycles: { ...c, phase: 'work', round: c.round + 1, nextAtSec: now + CYCLE.workMin * 60 } });
+    }
+    this.scheduleCycle();
+  }
+
+  private clearCycleTimer() {
+    if (this.cycleTimer !== undefined) this.clock.clearTimeout(this.cycleTimer);
+    this.cycleTimer = undefined;
+  }
+
+  private clearCycles() {
+    this.clearCycleTimer();
+    if (this.snap.cycles) this.set({ cycles: null });
+  }
+
+  /** Change the level without touching the remembered level (breaks drop to Quiet). */
+  private applyLevel(level: LevelName, glide: number) {
+    const l = this.ceiling(level);
+    this.set({ level: l });
+    if (this.engine && this.isActive()) this.engine.setVolume(LEVEL_VOLUME[l], glide);
   }
 
   setBinaural(on: boolean) {
@@ -262,7 +400,7 @@ class Session {
     }
     this.engine.setBinaural(opts.binaural, glide);
     this.engine.setVolume(LEVEL_VOLUME[level], glide);
-    this.set({ layer, motion: layer.motionLocked ? 'hold' : opts.motion, binaural: opts.binaural, level, elapsedSec: 0 });
+    this.set({ layer, motion: layer.motionLocked ? 'hold' : opts.motion, binaural: opts.binaural, level, elapsedSec: 0, blind: null, driftOffset: 0 });
     this.driftOffset = 0;
     this.scheduleDrift();
     store.core.dispatch({ type: 'lastPlayed/set', value: { kind: 'preset', id: layer.id } });
@@ -287,7 +425,7 @@ class Session {
     this.clearTakeFive();
     this.takeFiveTimer = this.clock.setTimeout(() => {
       this.takeFiveTimer = undefined;
-      if (store.get().prefs.takeFiveChime) playChime();
+      if (store.get().prefs.takeFiveChime) playChime(LEVEL_VOLUME[this.snap.level]);
       setTimeout(() => void this.stop(), 1600);
     }, TAKE_FIVE_SEC * 1000);
   }
@@ -303,16 +441,23 @@ class Session {
   private scheduleDrift() {
     this.stopDrift();
     const l = this.snap.layer;
-    if (!l || this.snap.motion !== 'drift' || l.journey || !this.engine) return;
+    if (!l || !wanders(this.snap.motion) || l.journey || !this.engine) return;
     const stepSec = 60;
+    let noiseDb = 0;
     const tick = () => {
-      if (!this.engine || !this.isActive() || this.snap.motion !== 'drift') return;
+      if (!this.engine || !this.isActive() || !wanders(this.snap.motion)) return;
       this.driftSeed = (this.driftSeed * 1664525 + 1013904223) % 4294967296;
       const r = this.driftSeed / 4294967296 - 0.5;
       // Steps small enough that a full ± range takes about one drift period.
       const step = (l.driftHz * 2 * stepSec) / (l.driftPeriodMin * 60);
       this.driftOffset = Math.max(-l.driftHz, Math.min(l.driftHz, this.driftOffset + r * 2 * step));
       this.engine.tones.rampTo({ beatHz: l.beatHz + this.driftOffset }, stepSec, 'linear');
+      // The noise wanders too (brand §7): a slow walk within ±1 dB, on its own seed.
+      this.driftSeed = (this.driftSeed * 1664525 + 1013904223) % 4294967296;
+      const r2 = this.driftSeed / 4294967296 - 0.5;
+      noiseDb = Math.max(-1, Math.min(1, noiseDb + r2 * (2 * stepSec) / (l.driftPeriodMin * 60) * 2));
+      this.engine.wanderNoise(noiseDb, stepSec);
+      this.set({ driftOffset: this.driftOffset });
       this.driftTimer = setTimeout(tick, stepSec * 1000);
     };
     this.driftTimer = setTimeout(tick, 10_000);
@@ -347,6 +492,12 @@ class Session {
   skipAhead() {
     const s = this.player?.getState();
     if (!s || !this.isActive()) return false;
+    if (this.snap.cycles) {
+      const left = this.snap.cycles.nextAtSec - s.elapsedSec;
+      if (left > 3) this.clock.skip((left - 3) * 1000);
+      this.set({ elapsedSec: this.player!.getState().elapsedSec });
+      return true;
+    }
     if (this.snap.takeFive) {
       const left = this.snap.takeFive.endsAtSec - s.elapsedSec;
       if (left > 3) this.clock.skip((left - 3) * 1000);
@@ -365,6 +516,7 @@ class Session {
   }
 
   private teardown(afterSec: number) {
+    this.clearCycleTimer();
     for (const off of this.offPlayer.splice(0)) off();
     this.player?.dispose();
     this.engine?.dispose(afterSec);
@@ -379,3 +531,7 @@ class Session {
 }
 
 export const session = new Session();
+
+export function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

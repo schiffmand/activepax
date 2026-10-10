@@ -1,4 +1,4 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see Model.swift header).
 //
 // Streaming noise for the render thread. Same algorithms and PRNG as core/src/audio/noise.ts
@@ -39,15 +39,18 @@ struct NoiseVoice {
         rng = Mulberry32(seed: seed)
     }
 
-    /// Next sample, roughly normalised so that peaks sit near ±0.9 like the core's buffers
-    /// (core normalises a whole buffer; a stream can't, so these are empirical scale factors).
+    /// Next sample, loudness-matched across colours like the prototype's buffers (core generateNoise
+    /// with an RMS target): white RMS 0.105, pink 0.157, brown 0.18. At equal RMS, white reads 4.7 dB and
+    /// pink 1.2 dB louder than brown under BS.1770 K-weighting, so these targets make the three colours
+    /// about equally loud and a colour change doesn't jump. (A stream can't normalise a whole buffer, so
+    /// the scale factors were measured on 20 s of each stream after the DC blocker.)
     @inline(__always)
     mutating func next() -> Double {
         let w = rng.next() * 2 - 1
         var x: Double
         switch color {
         case .white, .off:
-            x = w * 0.9
+            x = w * 0.182 // loudness-matched (RMS 0.105), see the note above
         case .pink:
             b0 = 0.99886 * b0 + w * 0.0555179
             b1 = 0.99332 * b1 + w * 0.0750759
@@ -55,11 +58,11 @@ struct NoiseVoice {
             b3 = 0.8665 * b3 + w * 0.3104856
             b4 = 0.55 * b4 + w * 0.5329522
             b5 = -0.7616 * b5 - w * 0.016898
-            x = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11
+            x = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.0934
             b6 = w * 0.115926
         case .brown:
             last = (last + 0.02 * w) / 1.02
-            x = last * 3.5
+            x = last * 3.19
         }
         // One-pole DC blocker: y[n] = x[n] - x[n-1] + R * y[n-1]
         let y = x - dcX + 0.9995 * dcY

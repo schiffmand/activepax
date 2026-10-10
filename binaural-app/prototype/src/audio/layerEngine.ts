@@ -23,6 +23,8 @@ export class LayerEngine implements EngineLike {
       glideSec: opts.glideSec,
       pauseFadeSec: 1.5,
       suspendOnPause: false,
+      // Fades run in dB (core rampFade), so an 8 to 60 s fade sounds even from start to end.
+      fadeCurve: 'perceptual',
     });
   }
 
@@ -76,6 +78,11 @@ export class LayerEngine implements EngineLike {
     this.volume = v;
     this.tones.setVolume(this.binaural ? v : 0, glideSec);
     this.bed.setVolume(v, glideSec);
+  }
+
+  /** Drift's slow noise wander (±1 dB). */
+  wanderNoise(db: number, sec: number) {
+    this.bed.wanderTo(db, sec);
   }
 
   /** Beat on or off (noise only), with a glide. */

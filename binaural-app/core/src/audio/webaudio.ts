@@ -88,8 +88,16 @@ interface Segment {
   startValue: number;
   endTime: number;
   endValue: number;
-  curve: 'linear' | 'exponential' | 'step';
+  curve: 'linear' | 'exponential' | 'step' | 'fade';
 }
+
+/**
+ * Floor for perceptual fades: -40 dB. A fade runs linearly in dB between the floor and full level,
+ * with a short linear segment (≤ 50 ms) between the floor and true silence so it never clicks.
+ */
+export const FADE_FLOOR = 0.01;
+/** Length of the linear segment between silence and FADE_FLOOR. */
+export const FADE_EDGE_SEC = 0.05;
 
 const segments = new WeakMap<AudioParamLike, Segment>();
 
@@ -99,6 +107,12 @@ function segmentValueAt(s: Segment, t: number): number {
   const frac = (t - s.startTime) / (s.endTime - s.startTime);
   if (s.curve === 'exponential' && s.startValue > 0 && s.endValue > 0) {
     return s.startValue * Math.pow(s.endValue / s.startValue, frac);
+  }
+  if (s.curve === 'fade') {
+    const a = Math.max(s.startValue, FADE_FLOOR);
+    const b = Math.max(s.endValue, FADE_FLOOR);
+    if (a === b) return s.startValue + (s.endValue - s.startValue) * frac;
+    return a * Math.pow(b / a, frac);
   }
   return s.startValue + (s.endValue - s.startValue) * frac;
 }
@@ -161,4 +175,39 @@ export function rampParam(
     param.linearRampToValueAtTime(target, end);
     segments.set(param, { startTime: now, startValue: from, endTime: end, endValue: target, curve: 'linear' });
   }
+}
+
+/**
+ * A perceptual fade: the gain moves linearly in decibels (an exponential ramp) between FADE_FLOOR
+ * (-40 dB) and the target, so a long fade-in doesn't seem to jump up in its first second and a long
+ * fade-out doesn't hang and then drop away. The step between true silence and the floor is a short
+ * linear ramp (≤ FADE_EDGE_SEC), well below hearing at any Tuck level, so there is no click.
+ * Falls back to a linear ramp when both ends sit below the floor.
+ */
+export function rampFade(param: AudioParamLike, target: number, now: number, durationSec: number): void {
+  if (!Number.isFinite(target) || !Number.isFinite(now)) return;
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    rampParam(param, target, now, 0, 'step');
+    return;
+  }
+  const from = paramValueAt(param, now);
+  const end = now + durationSec;
+  const edge = Math.min(FADE_EDGE_SEC, durationSec * 0.1);
+  if ((from < FADE_FLOOR && target < FADE_FLOOR) || from === target) {
+    rampParam(param, target, now, durationSec, 'linear');
+    return;
+  }
+  holdParam(param, now);
+  if (target > from) {
+    // Fade up: silence -> floor (short, linear), then floor -> target in dB.
+    if (from < FADE_FLOOR) param.linearRampToValueAtTime(FADE_FLOOR, now + edge);
+    param.exponentialRampToValueAtTime(target, end);
+  } else if (target < FADE_FLOOR) {
+    // Fade down to silence: from -> floor in dB, then floor -> 0 (short, linear).
+    param.exponentialRampToValueAtTime(FADE_FLOOR, end - edge);
+    param.linearRampToValueAtTime(target, end);
+  } else {
+    param.exponentialRampToValueAtTime(target, end);
+  }
+  segments.set(param, { startTime: now, startValue: from, endTime: end, endValue: target, curve: 'fade' });
 }

@@ -1,4 +1,4 @@
-// Tealight native engine — iOS
+// Tuck native engine — iOS
 // REFERENCE IMPLEMENTATION, NOT YET COMPILED (see Model.swift header).
 //
 // Plays a Program (or a Preset via presetToProgram) on the BinauralEngine, the native twin of the

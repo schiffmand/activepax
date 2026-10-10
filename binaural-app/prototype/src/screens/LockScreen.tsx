@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { otherApp } from '../audio/otherApp';
 import { session } from '../audio/session';
 import { ears, hz } from '../tuck/layers';
-import { useTuck } from '../ui/derived';
+import { startSound, useTuck } from '../ui/derived';
+import { store } from '../tuck/store';
 import { useOther } from '../ui/state';
 import { EASE, Mark } from '../ui/kit';
 import { IconBack, IconPause, IconPlay } from '../ui/icons';
@@ -22,9 +23,14 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
     return () => clearInterval(i);
   }, []);
   const active = s.phase !== 'idle';
-  const left = s.remainingSec !== null ? Math.max(0, Math.ceil(s.remainingSec / 60)) : null;
+  const leftMin = s.remainingSec !== null ? Math.max(0, Math.ceil(s.remainingSec / 60)) : null;
   const e = ears(layer);
   const minimal = prefs.liveActivityStyle === 'minimal';
+  const blind = s.blind;
+  // Only say "under your audio" when something is actually playing above.
+  const under = other.playing ? 'Playing under your audio' : 'Playing';
+  const startable = store.findLayer(prefs.pinnedLayerId) ?? layer;
+  const left = s.cycles ? null : leftMin;
   const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const date = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -60,7 +66,8 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
       </div>
 
       <div className="mt-auto px-3 flex flex-col gap-2 pb-4">
-        {/* The other app's player (simulated). It owns Now Playing. */}
+        {/* The other app's player (simulated). It owns Now Playing, so it only appears when it is playing. */}
+        {other.playing && (
         <div className="rounded-[24px] bg-[rgba(48,54,48,.82)] backdrop-blur px-4 py-3" data-testid="lock-other">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-[10px] bg-[#3B443A] flex items-center justify-center" aria-hidden>
@@ -72,7 +79,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[16px] font-bold">Your audio</p>
-              <p className="text-[16px] text-[#AEB2A0]">{other.playing ? 'Another app, playing above' : 'Paused'}</p>
+              <p className="text-[16px] text-[#AEB2A0]">Another app, playing above</p>
             </div>
             <button
               type="button"
@@ -84,13 +91,14 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
             </button>
           </div>
         </div>
+        )}
 
         {/* Tuck's Live Activity. */}
         {active ? (
           minimal ? (
             <div className="rounded-[24px] bg-[rgba(48,54,48,.82)] px-4 h-16 flex items-center justify-between" data-testid="live-activity">
               <p className="tnum text-[16px]">
-                {layer.name} · {binaural ? `${hz(s.beatNow ?? layer.beatHz)} Hz` : 'noise'} · {left !== null ? `${left} min` : 'no timer'}
+                {blind ? `Layer ${blind}` : layer.name} · {blind ? 'blind' : binaural ? `${hz(s.beatNow ?? layer.beatHz)} Hz` : 'noise'} · {left !== null ? `${left} min` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}` : 'no timer'}
               </p>
               <button type="button" onClick={() => void session.stop()} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[16px] font-bold">
                 Stop
@@ -100,12 +108,16 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
             <div className="rounded-[24px] bg-[rgba(39,46,39,.92)] px-4 pt-3 pb-4" data-testid="live-activity">
               <div className="flex items-center gap-2">
                 <Mark size={20} plain={prefs.appIcon === 'plain'} />
-                <span className="text-[16px] font-bold">{layer.name}</span>
+                <span className="text-[16px] font-bold">{blind ? `Blind comparison · layer ${blind}` : layer.name}</span>
               </div>
               <div className="mt-2 flex items-end justify-between">
                 <div>
-                  <p className="text-[16px] text-[#AEB2A0]">Playing under your audio, {left !== null ? `${left} min left` : 'no timer'}</p>
-                  {binaural ? (
+                  <p className="text-[16px] text-[#AEB2A0]" data-testid="live-status">
+                    {under}, {left !== null ? `${left} min left` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}${s.cycles.phase === 'break' ? ', break' : ''}` : layer.journey ? 'ends after 45 min' : 'no timer'}
+                  </p>
+                  {blind ? (
+                    <p className="tnum text-[34px] leading-[38px] font-medium mt-1">Layer {blind}</p>
+                  ) : binaural ? (
                     <>
                       <p className="tnum text-[34px] leading-[38px] font-medium mt-1">{hz(s.beatNow ?? layer.beatHz)} Hz</p>
                       <p className="tnum text-[16px]">
@@ -123,9 +135,13 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
             </div>
           )
         ) : (
-          <div className="rounded-[24px] bg-[rgba(39,46,39,.7)] px-4 h-16 flex items-center gap-3">
+          // The Lock Screen widget: start the pinned (or last) layer without unlocking.
+          <div className="rounded-[24px] bg-[rgba(39,46,39,.86)] px-4 h-16 flex items-center gap-3" data-testid="lock-widget">
             <Mark size={20} plain={prefs.appIcon === 'plain'} />
-            <p className="text-[16px] text-[#C9CCBD]">Start when you’re ready.</p>
+            <p className="flex-1 min-w-0 text-[16px] text-[#C9CCBD] truncate">{startable.name}{prefs.pinnedLayerId ? ', pinned' : ''}</p>
+            <button type="button" onClick={() => startSound(startable.id)} className="h-12 px-4 rounded-full bg-[#ECE7DA] text-[#1C211C] text-[16px] font-bold" data-testid="lock-start">
+              Start
+            </button>
           </div>
         )}
       </div>

@@ -16,6 +16,12 @@ export interface NoiseOptions {
   seed?: number;
   /** Peak amplitude after normalisation (0..1). */
   peak?: number;
+  /**
+   * Target RMS (0..1). When set, the buffer is scaled to this RMS instead of to `peak`, so every
+   * colour plays at the same average level (peak-normalised colours differ by about 5 dB). The peak
+   * is still capped at `peak`: if the RMS target would push it higher, the buffer is scaled down.
+   */
+  rms?: number;
   /** Samples used to cross-fade the tail into the head so the loop has no click. 0 disables. */
   loopCrossfadeSamples?: number;
 }
@@ -77,9 +83,17 @@ export function generateNoise(type: NoiseType, length: number, opts: NoiseOption
   }
 
   let max = 0;
-  for (let i = 0; i < length; i++) max = Math.max(max, Math.abs(out[i]!));
+  let sumSq = 0;
+  for (let i = 0; i < length; i++) {
+    max = Math.max(max, Math.abs(out[i]!));
+    sumSq += out[i]! * out[i]!;
+  }
   if (max > 0) {
-    const k = peak / max;
+    let k = peak / max;
+    if (opts.rms !== undefined && Number.isFinite(opts.rms) && opts.rms > 0) {
+      const r = Math.sqrt(sumSq / length);
+      k = Math.min(opts.rms / r, peak / max);
+    }
     for (let i = 0; i < length; i++) out[i] = out[i]! * k;
   }
   return out;

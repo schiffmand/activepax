@@ -37,6 +37,7 @@
   --color-surface: var(--c-surface);
   --color-surface2: var(--c-surface2);
   --color-line: var(--c-line);
+  --color-edge: var(--c-edge);
   --color-ink: var(--c-ink);
   --color-ink2: var(--c-ink2);
   --color-heather: var(--c-left);
@@ -53,6 +54,8 @@
   --c-surface: #272E27;
   --c-surface2: #323A31;
   --c-line: #3B443A;
+  /* Control edges (chip borders, segmented tracks): 3:1 or better on Loden and on Felt (WCAG 1.4.11). */
+  --c-edge: #767E6E;
   --c-ink: #ECE7DA;
   --c-ink2: #AEB2A0;
   --c-left: #9DB2D6;
@@ -72,6 +75,7 @@
   --c-surface: #F3F3EC;
   --c-surface2: #DCDED3;
   --c-line: #CCD0C3;
+  --c-edge: #7A8173;
   --c-ink: #212820;
   --c-ink2: #545C50;
   --c-left: #43618F;
@@ -86,19 +90,22 @@
   --sheet-shadow: 0 -8px 32px rgba(33, 40, 32, 0.10);
   color-scheme: light;
 }
+/* Dim wool, warmed (round 1): darker, no blue-white anywhere, amber-grey text that still reads at 6.9:1.
+   Ink2 is 4.8:1. Edges 3.1:1. The primary button is never a bright fill at night (see .btn-primary). */
 [data-theme='dim'] {
-  --c-bg: #141814;
-  --c-surface: #1C221C;
-  --c-surface2: #242B24;
-  --c-line: #2C342B;
-  --c-ink: #A3A897;
-  --c-ink2: #8A8F7E;
+  --c-bg: #15120F;
+  --c-surface: #1D1915;
+  --c-surface2: #262019;
+  --c-line: #2F2820;
+  --c-edge: #766857;
+  --c-ink: #B09A82;
+  --c-ink2: #958472;
   --c-left: #7E8B9E;
   --c-right: #9A976A;
   --c-lining: #8C6F60;
   --c-fold: #5E4B41;
-  --c-onink: #141814;
-  --c-focus: #8A8F7E;
+  --c-onink: #15120F;
+  --c-focus: #958472;
   --c-scrim: rgba(10, 12, 10, 0.80);
   --twill: 0;
   --lining-max: 0.4;
@@ -157,6 +164,33 @@ input[type='range'].tuck-range:focus-visible::-moz-range-thumb { outline: 2px so
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
+}
+
+/* At night the primary button is an outline in warm ink, never a bright filled block. */
+[data-theme='dim'] .btn-primary {
+  background: var(--c-surface2);
+  color: var(--c-ink);
+  box-shadow: inset 0 0 0 1.5px var(--c-edge);
+}
+
+/* The felt between the stitch and the controls: what fits depends on the layer's height (its level). */
+.felt { container-type: size; }
+.felt-compact { display: none; }
+@container (max-height: 112px) {
+  .felt-big { display: none; }
+  .felt-compact { display: block; }
+}
+@container (max-height: 84px) {
+  .felt-note { display: none; }
+}
+@container (max-height: 72px) {
+  .felt-chev { display: none; }
+}
+
+/* Reduce Transparency (system): no see-through scrims or blurred cards. */
+@media (prefers-reduced-transparency: reduce) {
+  .tuck-theme { --c-scrim: rgba(12, 14, 12, 0.94); }
+  .backdrop-blur { backdrop-filter: none !important; }
 }
 
 /* Breathing layer (optional, off by default): one rise and fall every 10 s. Never in Dim or Still screen. */

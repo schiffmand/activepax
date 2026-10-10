@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useDragControls } from 'motion/react';
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { IconBack, IconClose } from './icons';
 
 export const EASE = [0.22, 0.8, 0.3, 1] as const;
@@ -12,7 +12,7 @@ type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' 
 /** Buttons: 56 px primary (Fleece fill, Loden label); outline for Stop; quiet for secondary; text links. */
 export function Button({ variant = 'primary', full, className, children, ...p }: BtnProps) {
   const v = {
-    primary: 'bg-ink text-onink h-14 rounded-[18px] px-6 text-[17px] font-bold',
+    primary: 'btn-primary bg-ink text-onink h-14 rounded-[18px] px-6 text-[17px] font-bold',
     outline: 'border-[1.5px] border-ink/70 text-ink h-14 rounded-[18px] px-6 text-[17px] font-bold hover:bg-ink/5',
     quiet: 'bg-surface2 text-ink min-h-12 rounded-[14px] px-4 text-[16px] font-medium hover:bg-line/60',
     text: 'text-ink min-h-12 px-1 text-[16px] font-medium underline decoration-ink2/60 underline-offset-[5px] hover:decoration-ink',
@@ -35,6 +35,7 @@ export function Segmented<T extends string>({
   onChange,
   label,
   locked = [],
+  lockedNote = 'unavailable',
   testid,
 }: {
   value: T;
@@ -42,6 +43,8 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   label: string;
   locked?: T[];
+  /** Read out with a locked option, e.g. "unavailable, ceiling is Medium". */
+  lockedNote?: string;
   testid?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -60,7 +63,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       data-testid={testid}
-      className="flex h-12 w-full rounded-[14px] bg-bg/55 p-1 gap-1"
+      className="flex h-12 w-full rounded-[14px] bg-bg/55 p-1 gap-1 border border-edge"
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
           e.preventDefault();
@@ -91,7 +94,8 @@ export function Segmented<T extends string>({
             onClick={() => !isLocked && onChange(o.value)}
             className={cx(
               'relative flex-1 min-w-0 rounded-[10px] text-[16px] font-medium inline-flex items-center justify-center gap-1.5 transition-colors duration-200',
-              on ? 'bg-surface2 text-ink shadow-[0_1px_0_rgba(0,0,0,.18)]' : 'text-ink2 hover:text-ink',
+              // Selected: a 2 px Fleece outline, so the state reads at 3:1 or better (WCAG 1.4.11), not by fill alone.
+              on ? 'bg-surface2 text-ink font-bold shadow-[inset_0_0_0_2px_var(--c-ink)]' : 'text-ink2 hover:text-ink',
               isLocked && 'cursor-not-allowed text-ink2/70',
             )}
             style={
@@ -102,7 +106,7 @@ export function Segmented<T extends string>({
           >
             {o.icon}
             <span className="truncate">{o.label}</span>
-            {isLocked && <span className="sr-only">, above your ceiling</span>}
+            {isLocked && <span className="sr-only">, {lockedNote}</span>}
           </button>
         );
       })}
@@ -189,6 +193,9 @@ export function Stitch({
   meet = false,
   reduced = false,
   stroke = 3,
+  gap: gapProp,
+  meetAmount = 0,
+  glideMs,
 }: {
   width?: number;
   left?: 'on' | 'dim' | 'lit';
@@ -197,17 +204,26 @@ export function Stitch({
   meet?: boolean;
   reduced?: boolean;
   stroke?: number;
+  /** Gap between the halves, px (default 18). The layer uses it to show the beat as a distance. */
+  gap?: number;
+  /** 0..1: how far the halves have closed (the pull-up ritual). */
+  meetAmount?: number;
+  /** Transition for gap changes (Drift glides over 60 s). */
+  glideMs?: number;
 }) {
   const half = width / 2;
-  const gap = meet ? 4 : 18;
+  const base = gapProp ?? 18;
+  const gap = meet ? 4 : base - (base - 4) * Math.max(0, Math.min(1, meetAmount));
   const dash = Math.max(8, width / 18);
   const op = (s: 'on' | 'dim' | 'lit') => (s === 'dim' ? 0.28 : s === 'lit' ? 1 : 0.62);
   const lc = mono ? 'var(--c-ink2)' : 'var(--c-left)';
   const rc = mono ? 'var(--c-ink2)' : 'var(--c-right)';
-  const t = reduced ? '0ms' : '600ms';
+  const t = reduced ? '0ms' : meetAmount > 0 && !meet ? '0ms' : `${glideMs ?? 600}ms`;
+  // Each half moves by half the change in gap from the drawn 18 px.
+  const shift = (18 - gap) / 2;
   return (
     <svg width={width} height={stroke * 4} viewBox={`0 0 ${width} ${stroke * 4}`} aria-hidden className="block overflow-visible">
-      <g style={{ transform: `translateX(${meet ? gap / 2 - 9 : 0}px)`, transition: `transform ${t} cubic-bezier(.22,.8,.3,1)` }}>
+      <g style={{ transform: `translateX(${shift}px)`, transition: `transform ${t} cubic-bezier(.22,.8,.3,1)` }}>
         <line
           x1={stroke}
           x2={half - 9}
@@ -220,7 +236,7 @@ export function Stitch({
           style={{ opacity: op(left), transition: 'opacity 300ms linear' }}
         />
       </g>
-      <g style={{ transform: `translateX(${meet ? -(gap / 2 - 9) : 0}px)`, transition: `transform ${t} cubic-bezier(.22,.8,.3,1)` }}>
+      <g style={{ transform: `translateX(${-shift}px)`, transition: `transform ${t} cubic-bezier(.22,.8,.3,1)` }}>
         <line
           x1={half + 9}
           x2={width - stroke}
@@ -368,8 +384,29 @@ export function Sheet({
   );
 }
 
-/** A full page pushed over Home (Settings, What we know…). Slides in from the right, or cross-fades. */
-export function PageShell({ title, onBack, children, reduced, testid, backLabel = 'Back' }: { title: string; onBack: () => void; children: ReactNode; reduced: boolean; testid?: string; backLabel?: string }) {
+/**
+ * A full page pushed over Home (Settings, What we know…). Slides in from the right, or cross-fades.
+ * The header is opaque: once the page scrolls, the title moves into it with a hairline, so nothing
+ * scrolls visibly under Back. An optional footer (the editor's Save) stays put.
+ */
+export function PageShell({
+  title,
+  onBack,
+  children,
+  reduced,
+  testid,
+  backLabel = 'Back',
+  footer,
+}: {
+  title: string;
+  onBack: () => void;
+  children: ReactNode;
+  reduced: boolean;
+  testid?: string;
+  backLabel?: string;
+  footer?: ReactNode;
+}) {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -389,17 +426,25 @@ export function PageShell({ title, onBack, children, reduced, testid, backLabel 
       exit={reduced ? { opacity: 0 } : { x: '100%' }}
       transition={{ duration: reduced ? 0.6 : 0.32, ease: EASE }}
     >
-      <div className="h-[47px] shrink-0" />
-      <header className="h-14 shrink-0 flex items-center gap-1 px-2">
-        <button type="button" onClick={onBack} className="h-12 min-w-12 inline-flex items-center gap-1 pr-3 pl-1 rounded-full text-ink" data-testid="page-back">
+      <div className="h-[47px] shrink-0 bg-bg" />
+      <header className={cx('relative h-14 shrink-0 flex items-center gap-1 px-2 bg-bg z-[2] border-b transition-colors duration-200', scrolled ? 'border-line' : 'border-transparent')}>
+        <button type="button" onClick={onBack} className="h-12 min-w-12 inline-flex items-center gap-1 pr-3 pl-1 rounded-full text-ink relative z-[1]" data-testid="page-back">
           <IconBack />
           <span className="text-[16px] font-medium">{backLabel}</span>
         </button>
+        <p
+          className={cx('absolute inset-x-[110px] text-center text-[17px] font-bold text-ink truncate transition-opacity duration-200', scrolled ? 'opacity-100' : 'opacity-0')}
+          aria-hidden
+          data-testid="page-header-title"
+        >
+          {title}
+        </p>
         <h1 className="sr-only">{title}</h1>
       </header>
-      <div className="flex-1 overflow-y-auto scroll-soft px-5 pb-12" tabIndex={-1}>
+      <div className="flex-1 overflow-y-auto scroll-soft px-5 pb-12" tabIndex={-1} onScroll={(e) => setScrolled((e.target as HTMLElement).scrollTop > 36)} data-testid="page-scroll">
         {children}
       </div>
+      {footer && <div className="shrink-0 bg-surface border-t border-line px-5 pt-3 pb-[calc(34px+8px)]">{footer}</div>}
     </motion.div>
   );
 }

@@ -1,4 +1,4 @@
-# Tealight native engines (reference, not yet compiled)
+# Tuck native engines (reference, not yet compiled)
 
 > **Status: reference implementations, not yet compiled.** None of these files has been built,
 > linted or run on a device. They are a precise, reviewable spec written in Swift and Kotlin
@@ -14,7 +14,7 @@ and the rest of the code follows from it.
 | | iOS | Android |
 |---|---|---|
 | **The layer rule** | `AVAudioSession` category `.playback` with option `.mixWithOthers` (no `.duckOthers`) | Never call `requestAudioFocus()`. Play `USAGE_MEDIA` through an `AudioTrack` |
-| Keeps playing in the background | `UIBackgroundModes = audio` ([`Info.plist.additions.xml`](ios/Tealight/Info.plist.additions.xml)) | Foreground service, `foregroundServiceType="mediaPlayback"` ([`AndroidManifest.xml`](android/app/src/main/AndroidManifest.xml)) |
+| Keeps playing in the background | `UIBackgroundModes = audio` ([`Info.plist.additions.xml`](ios/Tuck/Info.plist.additions.xml)) | Foreground service, `foregroundServiceType="mediaPlayback"` ([`AndroidManifest.xml`](android/app/src/main/AndroidManifest.xml)) |
 | Doesn't steal the user's music controls | A mixable session is never "Now Playing". We don't touch `MPNowPlayingInfoCenter` or `MPRemoteCommandCenter`. Our lock-screen control is a Live Activity | No `MediaSession` and no `MediaStyle` notification. A plain ongoing notification with **Stop** |
 | Tone generator | `AVAudioEngine` + `AVAudioSourceNode` render block | `AudioTrack` (`MODE_STREAM`, float PCM) fed by a writer thread |
 | Calls | Interruption notifications, plus `CXCallObserver` to tell a call from other interruptions. Never auto-resume after a call | No focus callbacks, so we watch `AudioManager` mode (`IN_CALL` / `IN_COMMUNICATION`). Pause, never auto-resume |
@@ -26,7 +26,7 @@ and the rest of the code follows from it.
 
 ```
 native/
-├── ios/Tealight/
+├── ios/Tuck/
 │   ├── Model.swift                 Presets, programs, compileProgram: mirrors core/src/{types,presets,programs}.ts
 │   ├── NoiseGenerator.swift        mulberry32 + white / pink (Kellet) / brown, streaming, allocation-free
 │   ├── ToneRenderer.swift          Real-time DSP: per-ear sines, noise bed, smoothed ramps, command ring
@@ -36,7 +36,7 @@ native/
 │   └── Info.plist.additions.xml    UIBackgroundModes=audio (+ Live Activities)
 └── android/app/src/main/
     ├── AndroidManifest.xml         FGS mediaPlayback permissions + service
-    └── java/app/tealight/layer/
+    └── java/app/tuck/layer/
         ├── model/Model.kt          Same model, kotlinx.serialization with identical JSON names
         ├── audio/ToneRenderer.kt   Pure-Kotlin DSP (JVM-testable): ramps, mulberry32, noise, renderer
         ├── audio/BinauralEngine.kt AudioTrack + writer thread, no audio focus
@@ -129,7 +129,7 @@ as JSON and compares them with the native lists in unit tests.
    render a buffer and assert on it: fade-in from 0 with no click, ear frequencies after a glide,
    noise crossfade continuity, swap channels, and "noise off keeps volume".
 3. Test on devices with music playing in Spotify, Apple Music / YouTube Music and a podcast app.
-   Start Tealight first, then the other app, and the other way round. Neither may pause the other.
+   Start Tuck first, then the other app, and the other way round. Neither may pause the other.
 4. Test calls (cellular and VoIP), Siri / Assistant, alarms, unplugging headphones, Bluetooth
    reconnects, and the lock screen for 60+ minutes.
 5. Measure battery over an hour of playback at the default buffer sizes.

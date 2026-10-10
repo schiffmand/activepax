@@ -166,3 +166,34 @@ export const IconMix = ({ size, ...p }: P) => (
     <path d="M4 14q8-2 16 0v6H4z" />
   </svg>
 );
+export const IconSwap = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M7 8h12M15 4l4 4-4 4M17 16H5M9 12l-4 4 4 4" />
+  </svg>
+);
+export const IconUp = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M6 14l6-6 6 6" />
+  </svg>
+);
+export const IconShare = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M12 15V4M8 8l4-4 4 4M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+  </svg>
+);
+export const IconBolt = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <rect x="4" y="4" width="16" height="16" rx="5" />
+    <path d="M9 12h6M12 9v6" />
+  </svg>
+);
+export const IconAB = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M4 18l3.5-10L11 18M5.2 14.5h4.6M14 8h3.5a2.5 2.5 0 0 1 0 5H14zM14 13h4a2.5 2.5 0 0 1 0 5h-4z" />
+  </svg>
+);
+export const IconVary = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M3 9c3 0 3-3 6-3s3 3 6 3 3-3 6-3M3 17c3 0 3-3 6-3s3 3 6 3 3-3 6-3" />
+  </svg>
+);
