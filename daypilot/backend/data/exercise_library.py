@@ -58,7 +58,7 @@ EXERCISE_LIBRARY = [
     },
     {
         "id": "split_squat",
-        "name": "Dumbbell Split Squat",
+        "name": "Split Squat",
         "movement_pattern": "squat",
         "equipment": ["dumbbells", "bodyweight"],
         "day_types": ["strength", "circuit"],
@@ -1032,7 +1032,7 @@ EXERCISE_LIBRARY = [
         "equipment": ["bodyweight"],
         "day_types": ["hiit", "circuit", "cardio"],
         "primary_muscles": ["core", "shoulders"],
-        "contraindications": ["wrist_injury", "lower_back_injury"],
+        "contraindications": ["wrist_injury", "lower_back_injury", "knee_injury"],
         "default_work_sec": 30,
         "default_rest_sec": 30,
         "tempo_seconds": {"eccentric": 0, "pause": 0, "concentric": 0},

@@ -91,20 +91,31 @@ def render_workout_pdf(spec: WorkoutSpec, out_path: Path) -> Path:
     c.drawString(MARGIN, PAGE_H - 2.25 * inch, f"{spec.duration_min_target} minutes  ·  {spec.day_type.value.title()} day")
 
     main_blocks = [b for b in spec.blocks if b.round_index not in (0, 99)]
+    warmup_blocks = [b for b in spec.blocks if b.round_index == 0]
+    cooldown_blocks = [b for b in spec.blocks if b.round_index == 99]
     n_rounds = max((b.round_index for b in main_blocks), default=1)
-    unique = []
-    seen = set()
-    for b in main_blocks:
-        if b.exercise_id not in seen:
-            unique.append(b)
-            seen.add(b.exercise_id)
+
+    def _dedupe(blocks: list) -> list:
+        seen_ids: set[str] = set()
+        out = []
+        for b in blocks:
+            if b.exercise_id not in seen_ids:
+                out.append(b)
+                seen_ids.add(b.exercise_id)
+        return out
+
+    unique_main = _dedupe(main_blocks)
+    unique_warmup = _dedupe(warmup_blocks)
+    unique_cooldown = _dedupe(cooldown_blocks)
+    # Printed in session order: warm-up, then the main work, then cool-down.
+    unique = unique_warmup + unique_main + unique_cooldown
 
     ty = PAGE_H - 2.9 * inch
     c.setFillColor(HexColor("#716e68"))
     c.setFont("Helvetica", 9)
-    c.drawString(MARGIN, ty, f"{n_rounds} ROUND{'S' if n_rounds != 1 else ''}  ·  {len(unique)} MOVEMENTS")
+    c.drawString(MARGIN, ty, f"{n_rounds} ROUND{'S' if n_rounds != 1 else ''}  ·  {len(unique_main)} MOVEMENTS")
     ty -= 24
-    for b in unique:
+    for b in unique_main:
         c.setFillColor(CHALK)
         c.setFont("Helvetica", 12)
         c.drawString(MARGIN, ty, b.name)
@@ -120,13 +131,24 @@ def render_workout_pdf(spec: WorkoutSpec, out_path: Path) -> Path:
     c.showPage()
 
     # One section per unique exercise, written once -- reused across rounds.
+    # Warm-up and cool-down movements are included too (they're really
+    # spoken in the session) but labeled as such rather than numbered
+    # alongside the main work.
+    main_count = len(unique_main)
     for i, b in enumerate(unique, start=1):
+        if b in unique_warmup:
+            eyebrow = "WARM-UP"
+        elif b in unique_cooldown:
+            eyebrow = "COOL-DOWN"
+        else:
+            main_i = unique_main.index(b) + 1
+            eyebrow = f"EXERCISE {main_i} / {main_count}"
         _draw_header(c, spec, f"{i:02d} / {len(unique):02d}")
         y = PAGE_H - 1.25 * inch
 
         c.setFillColor(DIM)
         c.setFont("Helvetica", 9)
-        c.drawString(MARGIN, y, f"EXERCISE {i}")
+        c.drawString(MARGIN, y, eyebrow)
         y -= 26
 
         c.setFillColor(GRAPHITE)
@@ -134,7 +156,11 @@ def render_workout_pdf(spec: WorkoutSpec, out_path: Path) -> Path:
         c.drawString(MARGIN, y, b.name)
         y -= 20
 
-        meta = f"{b.sets} sets × {b.reps}" if b.reps else f"{b.work_sec}s work / {b.rest_sec}s rest"
+        if b.reps:
+            unit = "set" if b.sets == 1 else "sets"
+            meta = f"{b.sets} {unit} × {b.reps}"
+        else:
+            meta = f"{b.work_sec}s work / {b.rest_sec}s rest"
         c.setFillColor(EMBER)
         c.setFont("Helvetica-Bold", 11)
         c.drawString(MARGIN, y, meta.upper())

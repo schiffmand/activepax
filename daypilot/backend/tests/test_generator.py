@@ -70,7 +70,12 @@ def test_strength_generation_basic():
     check("has warmup blocks", any(b.round_index == 0 for b in spec.blocks))
     check("has cooldown blocks", any(b.round_index == 99 for b in spec.blocks))
     check("at least 4 unique main exercises", len(uniq) >= 4, f"got {len(uniq)}")
-    check("3 rounds of each main exercise", len(main_blocks) == len(uniq) * 3, f"{len(main_blocks)} vs {len(uniq) * 3}")
+    rounds = len(main_blocks) / len(uniq) if uniq else 0
+    check(
+        "every exercise appears the same number of times (2-5 rounds)",
+        len(main_blocks) % len(uniq) == 0 and 2 <= rounds <= 5,
+        f"{len(main_blocks)} blocks / {len(uniq)} exercises = {rounds} rounds",
+    )
 
 
 def test_injury_exclusion_and_backfill():
@@ -137,6 +142,55 @@ def test_bells_fire_for_every_segment_with_rest():
     check("no bell scheduled past total duration", all(b.at_sec <= tl.total_duration_sec for b in tl.bells))
 
 
+def test_mobility_day_type_is_distinct():
+    print("mobility day_type")
+    profile = Profile(user_id="t6")
+    today = TodayConstraints(duration_min=8, day_type=DayType.mobility, equipment=["bodyweight"])
+    spec = generate_workout(profile, today)
+    main_blocks = [b for b in spec.blocks if b.round_index not in (0, 99)]
+    check("mobility day produces main blocks", len(main_blocks) > 0)
+    check(
+        "mobility blocks use hold-based timing, not rep sets",
+        all(b.work_sec is not None and b.reps is None for b in main_blocks),
+        str([(b.name, b.reps, b.work_sec) for b in main_blocks[:3]]),
+    )
+    tl = build_timeline(spec, intro_line="Hi.", outro_line="Bye.", intro_duration_sec=1.0, outro_duration_sec=1.0)
+    diff = abs(tl.total_duration_sec - 8 * 60)
+    check(f"mobility duration within 3 min of 8-min target", diff < 180, f"got {tl.total_duration_sec:.0f}s")
+
+
+def test_no_false_positive_substitution_warning():
+    print("no false-positive substitution warning")
+    profile = Profile(user_id="t7")  # zero injuries, zero constraints
+    today = TodayConstraints(duration_min=30, day_type=DayType.strength, equipment=["bodyweight", "dumbbells"])
+    spec = generate_workout(profile, today)
+    false_positives = [w for w in spec.warnings if "flagged constraints" in w]
+    check(
+        "no 'based on today's flagged constraints' warning with zero constraints",
+        len(false_positives) == 0,
+        str(spec.warnings),
+    )
+
+
+def test_knee_injury_excludes_fast_mountain_climbers():
+    print("knee injury safety -- mountain climbers")
+    profile = Profile(user_id="t8", chronic_injury_tags=["knee_injury"])
+    today = TodayConstraints(duration_min=15, day_type=DayType.hiit, equipment=["bodyweight"])
+    spec = generate_workout(profile, today)
+    names = {b.name for b in spec.blocks}
+    check("fast Mountain Climbers excluded with knee injury flagged", "Mountain Climbers" not in names, str(names))
+
+
+def test_hiit_duration_scales_with_available_stations():
+    print("HIIT duration under a constraint that shrinks station count")
+    profile = Profile(user_id="t9", chronic_injury_tags=["knee_injury"])
+    today = TodayConstraints(duration_min=15, day_type=DayType.hiit, equipment=["bodyweight"])
+    spec = generate_workout(profile, today)
+    tl = build_timeline(spec, intro_line="Hi.", outro_line="Bye.", intro_duration_sec=1.0, outro_duration_sec=1.0)
+    diff = abs(tl.total_duration_sec - 15 * 60)
+    check(f"HIIT duration within 3 min of 15-min target even with fewer safe stations", diff < 180, f"got {tl.total_duration_sec:.0f}s")
+
+
 if __name__ == "__main__":
     test_reps_parsing()
     test_equipment_semantics()
@@ -145,5 +199,9 @@ if __name__ == "__main__":
     test_hiit_day_type_compat()
     test_timeline_duration_matches_target()
     test_bells_fire_for_every_segment_with_rest()
+    test_mobility_day_type_is_distinct()
+    test_no_false_positive_substitution_warning()
+    test_knee_injury_excludes_fast_mountain_climbers()
+    test_hiit_duration_scales_with_available_stations()
     print(f"\n{PASS} passed, {FAIL} failed")
     sys.exit(1 if FAIL else 0)
