@@ -3,14 +3,15 @@
  * no personal data. Format: ?layer=<beat>,<carrier>,<noise>,<noise %>,<motion>,<beat on 1|0>,<name>[&note=<a word from the sharer>]
  */
 import { validateTone } from '@core';
-import { ears, hz, type Layer, type Motion } from './layers';
+import { ears, hz, journeyOf, type Layer, type Motion } from './layers';
 
 const NOISES = ['off', 'white', 'pink', 'brown'] as const;
 
 export function shareText(l: Layer): string {
   const noise = l.noise.type === 'off' ? 'no noise' : `${l.noise.type} noise`;
   if (!l.binaural) return `${l.name}: ${noise}, no beat.`;
-  if (l.journey) return `${l.name}: 8 Hz easing to 2 Hz over 30 minutes, over ${noise}.`;
+  const j = journeyOf(l);
+  if (j) return `${j.plain} Over ${noise}.`;
   const e = ears(l);
   return `${l.name}: ${hz(l.beatHz)} Hz over ${noise}, L ${hz(e.left)} / R ${hz(e.right)}.`;
 }

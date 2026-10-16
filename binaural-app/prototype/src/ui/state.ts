@@ -7,7 +7,7 @@ import type { ChipId } from '../tuck/copy';
 import type { Layer, Motion } from '../tuck/layers';
 
 export type Page = 'home' | 'settings' | 'science' | 'studies' | 'mixing' | 'week' | 'plus' | 'editor' | 'lock' | 'blind';
-export type Sheet = null | 'picker' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete' | 'share' | 'anywhere' | 'export';
+export type Sheet = null | 'picker' | 'goals' | 'timer' | 'menu' | 'save' | 'headphones' | 'demo' | 'delete' | 'share' | 'anywhere' | 'export';
 export type Headphone = 'stereoOk' | 'speaker' | 'oneEar' | 'callMode' | 'mono' | 'spatial' | 'swapped' | 'disconnected' | 'unknown';
 
 export interface UiState {

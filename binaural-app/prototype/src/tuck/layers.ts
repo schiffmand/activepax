@@ -6,10 +6,16 @@
  * data and hands them to the real core engine via presetToProgram / ProgramPlayer. Nothing here touches audio.
  */
 import {
+  GOAL_TRACKS,
   SHAM_BEAT_HZ,
   bandFor,
+  compileProgram,
   earFrequencies,
+  getGoalTrack,
   presetToProgram,
+  sampleProgram,
+  type GoalTrack,
+  type GoalTrackId,
   type NoiseSetting,
   type NoiseType,
   type Preset,
@@ -35,7 +41,7 @@ export interface Layer {
   id: string;
   name: string;
   kind: 'builtin' | 'saved';
-  intent: IntentId | 'long-focus' | 'custom';
+  intent: IntentId | 'long-focus' | 'custom' | 'goal';
   beatHz: number;
   carrierHz: number;
   noise: NoiseSetting;
@@ -48,8 +54,10 @@ export interface Layer {
   fadeOutSec: number;
   /** Plays the beat (false = noise only). */
   binaural: boolean;
-  /** Evening descent is a journey (core Program) rather than a held preset. */
-  journey?: 'evening-descent';
+  /** Evening descent and the goal tracks are journeys (core Programs) rather than held presets. */
+  journey?: 'evening-descent' | 'goal';
+  /** For goal tracks: which core GoalTrack this layer plays. */
+  goal?: GoalTrackId;
   version: string;
   /** For saved layers: which layer it was copied from, and when it was saved. */
   basedOn?: string;
@@ -104,11 +112,85 @@ export const BUILT_IN_LAYERS: readonly Layer[] = Object.freeze([
   }),
 ]);
 
+/** The goal tracks (core GOAL_TRACKS) as layers: pick a goal, no frequency to choose. */
+export const GOAL_LAYERS: readonly Layer[] = Object.freeze(
+  GOAL_TRACKS.map((t: GoalTrack) =>
+    builtin({
+      id: `goal-${t.id}`,
+      name: t.goal,
+      intent: 'goal',
+      beatHz: t.program.start.beatHz,
+      carrierHz: t.program.start.carrierHz,
+      noise: t.program.start.noise ?? { type: 'off', volume: 0 },
+      motion: 'hold',
+      fadeInSec: 8,
+      fadeOutSec: t.program.endFadeSec ?? 20,
+      journey: 'goal',
+      goal: t.id,
+    }),
+  ),
+);
+
 export const INTENT_ORDER: readonly IntentId[] = ['focus', 'calm', 'unwind', 'sleep', 'steady'];
 export const INTENT_SHORT: Record<IntentId, string> = { focus: 'Focus', calm: 'Calm', unwind: 'Unwind', sleep: 'Evening descent', steady: 'Steady' };
 
 export function builtInLayer(id: string): Layer | undefined {
-  return BUILT_IN_LAYERS.find((l) => l.id === id);
+  return BUILT_IN_LAYERS.find((l) => l.id === id) ?? GOAL_LAYERS.find((l) => l.id === id);
+}
+
+export interface JourneyInfo {
+  program: Program;
+  /** Minutes until it ends on its own; null when it plays until stopped. */
+  minutes: number | null;
+  endFadeSec: number;
+  /** The beat's turning points, e.g. "10 → 6 → 8 Hz". */
+  range: string;
+  plain: string;
+  warm: string;
+  goodFor?: string;
+}
+
+/** The beat values a program turns at (start, every change of direction, end). */
+function turningPoints(p: Program): number[] {
+  const beats = [p.start.beatHz];
+  let b = p.start.beatHz;
+  for (const s of p.segments) {
+    b = s.beatHz ?? b;
+    beats.push(b);
+  }
+  const dedup = beats.filter((v, i) => i === 0 || Math.abs(v - beats[i - 1]!) > 1e-9);
+  return dedup.filter((v, i) => i === 0 || i === dedup.length - 1 || Math.sign(v - dedup[i - 1]!) !== Math.sign(dedup[i + 1]! - v));
+}
+
+/** Everything the UI says about a journey layer, from its program. Null for held layers. */
+export function journeyOf(l: Layer): JourneyInfo | null {
+  if (l.journey === 'evening-descent') {
+    return {
+      program: eveningDescentProgram(l),
+      minutes: 45,
+      endFadeSec: 60,
+      range: '8 → 2 Hz',
+      plain: 'Evening descent: 8 Hz to 2 Hz over 30 min, then 15 min low, then silence.',
+      warm: 'That’s Evening descent: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes and silence.',
+    };
+  }
+  const t = l.journey === 'goal' && l.goal ? getGoalTrack(l.goal) : undefined;
+  if (!t) return null;
+  const c = compileProgram(t.program);
+  return {
+    program: { ...t.program, start: { ...t.program.start, noise: l.noise } },
+    minutes: c.totalSec === null ? null : Math.round(c.totalSec / 60),
+    endFadeSec: c.endFadeSec,
+    range: `${turningPoints(t.program).map(hz).join(' → ')} Hz`,
+    plain: `${t.goal}: ${t.plays}`,
+    warm: `That’s ${t.goal}. ${t.plays}`,
+    goodFor: t.goodFor,
+  };
+}
+
+/** "Ends after 20 min" / "Plays until you stop it". */
+export function journeyEndText(j: JourneyInfo): string {
+  return j.minutes === null ? 'Plays until you stop it' : `Ends after ${j.minutes} min`;
 }
 
 /** A noise-only twin of a layer ("More layers" and the headphone fallbacks). */
@@ -146,7 +228,8 @@ export function eveningDescentProgram(l: Layer): Program {
 
 /** Turn a layer into the core Program the ProgramPlayer plays. */
 export function programFor(l: Layer, level: LevelName): Program {
-  if (l.journey === 'evening-descent') return { ...eveningDescentProgram(l), volume: LEVEL_VOLUME[level] };
+  const j = journeyOf(l);
+  if (j) return { ...j.program, volume: LEVEL_VOLUME[level], presetId: l.id };
   return { ...presetToProgram(layerToPreset(l)), id: `layer:${l.id}`, name: l.name, volume: LEVEL_VOLUME[level], endFadeSec: l.fadeOutSec };
 }
 
@@ -231,7 +314,8 @@ export const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** "A 14 Hz beat over soft brown noise." Describes the design, never an outcome. */
 export function describeLayer(l: Layer, labels: 'warm' | 'plain'): string {
   if (!l.binaural) return labels === 'plain' ? `Noise only, ${l.noise.type}.` : `soft ${l.noise.type} noise, no beat`;
-  if (l.journey === 'evening-descent') return '8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes and silence.';
+  const j = journeyOf(l);
+  if (j) return j.plain.slice(j.plain.indexOf(': ') + 2);
   const noise = l.noise.type === 'off' ? 'no noise' : `${labels === 'plain' ? '' : 'soft '}${l.noise.type} noise`;
   return labels === 'plain' ? `${hz(l.beatHz)} Hz beat, ${noise}.` : `a ${hz(l.beatHz)} Hz beat over ${noise}`;
 }
@@ -239,9 +323,11 @@ export function describeLayer(l: Layer, labels: 'warm' | 'plain'): string {
 /** Engraved line for pickers: "14 Hz · brown noise · Drift". */
 export function engravedLine(l: Layer): string {
   const parts = [] as string[];
-  if (l.binaural) parts.push(l.journey ? '8 → 2 Hz' : `${hz(l.beatHz)} Hz`);
+  if (l.binaural) parts.push(journeyOf(l)?.range ?? `${hz(l.beatHz)} Hz`);
   parts.push(l.noise.type === 'off' ? 'no noise' : `${l.noise.type} noise`);
-  parts.push(l.motion === 'drift' ? 'Drift' : l.motion === 'vary' ? 'Vary' : 'Hold');
+  const j = journeyOf(l);
+  if (j && l.journey === 'goal') parts.push(j.minutes === null ? 'all night' : `${j.minutes} min`);
+  else parts.push(l.motion === 'drift' ? 'Drift' : l.motion === 'vary' ? 'Vary' : 'Hold');
   return parts.join(' · ');
 }
 
@@ -277,6 +363,7 @@ export function envelopeFor(
   timerMin: number | null,
 ): { points: EnvelopePoint[]; totalSec: number; open: boolean; plateauFrom: number; plateauTo: number; beat?: EnvelopePoint[] } {
   const fadeIn = l.fadeInSec;
+  if (l.journey === 'goal') return goalEnvelope(l, fadeIn);
   if (l.journey === 'evening-descent') {
     const total = 45 * 60 + 60;
     return {
@@ -318,4 +405,25 @@ export function envelopeFor(
     plateauFrom: fadeIn,
     plateauTo: end,
   };
+}
+
+/** A goal track's envelope (level) and beat for the spec-card plot, sampled from its compiled program. */
+function goalEnvelope(l: Layer, fadeIn: number) {
+  const j = journeyOf(l)!;
+  const c = compileProgram(j.program);
+  const open = c.totalSec === null;
+  const timed = c.timedSec;
+  const totalSec = open ? timed + 30 * 60 : timed;
+  const n = 120;
+  const points: EnvelopePoint[] = [{ t: 0, v: 0 }];
+  const beat: EnvelopePoint[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = (totalSec * i) / n;
+    const smp = sampleProgram(c, t);
+    beat.push({ t, v: smp.beatHz });
+    if (t < fadeIn) continue;
+    const fadeLeft = open ? 1 : Math.min(1, Math.max(0, (totalSec - t) / Math.max(1, c.endFadeSec)));
+    points.push({ t, v: smp.level * fadeLeft });
+  }
+  return { points, totalSec, open, plateauFrom: fadeIn, plateauTo: open ? totalSec : totalSec - c.endFadeSec, beat };
 }

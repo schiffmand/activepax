@@ -2,7 +2,7 @@
  * Arrival mapping and the copy bank (docs/brand.md §6). Warm is the default; Plain is what Plain labels and
  * Sensory mode show. The arrival mapping only ever says what will play, never why.
  */
-import { builtInLayer, hz, type Layer, type LevelName } from './layers';
+import { builtInLayer, hz, journeyOf, type Layer, type LevelName } from './layers';
 
 export type Labels = 'warm' | 'plain';
 export type ChipId = 'scattered' | 'wound-up' | 'too-much' | 'heavy-eyed' | 'just-working';
@@ -138,7 +138,8 @@ export function playsLine(l0: Layer, binaural: boolean, labels: Labels): string 
   const l = { ...l0, name: l0.name.replace(/, noise only$/, '') };
   const noise = l.noise.type === 'off' ? 'no noise' : `${labels === 'plain' ? '' : 'soft '}${l.noise.type} noise`;
   if (!binaural) return labels === 'plain' ? `${l.name}, noise only: ${l.noise.type} noise, no beat.` : `That’s ${l.name}, as noise only: ${noise}, no beat.`;
-  if (l.journey) return labels === 'plain' ? 'Evening descent: 8 Hz to 2 Hz over 30 min, then 15 min low, then silence.' : 'That’s Evening descent: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes and silence.';
+  const j = journeyOf(l);
+  if (j) return labels === 'plain' ? j.plain : j.warm;
   return labels === 'plain' ? `${l.name}: ${hz(l.beatHz)} Hz beat, ${noise}.` : `That’s ${l.name}: a ${hz(l.beatHz)} Hz beat over ${noise}.`;
 }
 

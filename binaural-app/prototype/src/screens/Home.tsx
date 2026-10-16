@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { summarizeWeek } from '@core';
 import { CYCLE, localDate, session, fadesFor } from '../audio/session';
 import { CHIPS, HP_DISCONNECTED_MID, chipForLayer, copy, durationWords, elapsedWords, greetingFor, playsLine, type ChipId } from '../tuck/copy';
-import { hz, INTENT_ORDER, readoutNumbers, LAYER_HEIGHT, LEVEL_LABEL, LEVELS, builtInLayer, wanders, type Layer, type LevelName } from '../tuck/layers';
+import { hz, INTENT_ORDER, readoutNumbers, LAYER_HEIGHT, LEVEL_LABEL, LEVELS, builtInLayer, journeyEndText, journeyOf, wanders, type Layer, type LevelName } from '../tuck/layers';
 import { store, type TimerChoice } from '../tuck/store';
 import { binauralFor, pickChip, selectLayer, startSound, stopSound, useTuck } from '../ui/derived';
 import { ui, type Headphone } from '../ui/state';
@@ -200,7 +200,8 @@ function NoticeBanner() {
 
 export function timerText(choice: TimerChoice, l: Layer, takeFive = false): string {
   if (takeFive) return 'Break, 5 min';
-  if (l.journey) return 'Ends after 45 min';
+  const j = journeyOf(l);
+  if (j) return journeyEndText(j);
   if (choice === 'cycles') return `Cycles ${CYCLE.workMin} + ${CYCLE.breakMin}`;
   return choice === null ? 'No timer' : `${choice} min`;
 }
@@ -332,6 +333,11 @@ function HomeTop({ top }: { top: React.ReactNode }) {
           ))}
         </div>
         <ChipLines line={blindOn ? blindLine : u.chip && u.chipLine && binaural ? u.chipLine : playsLine(layer, binaural, labels)} first={u.chipFirst} />
+        <div className="-ml-1">
+          <Button variant="text" onClick={() => ui.set({ sheet: 'goals' })} data-testid="goals-open">
+            Or pick a goal
+          </Button>
+        </div>
       </motion.div>
     );
   } else if (prefs.askArrival) {
@@ -348,6 +354,9 @@ function HomeTop({ top }: { top: React.ReactNode }) {
         <div className="-ml-1">
           <Button variant="text" onClick={() => ui.set({ chipsOpen: true })} data-testid="arriving-differently">
             Arriving differently?
+          </Button>
+          <Button variant="text" onClick={() => ui.set({ sheet: 'goals' })} className="ml-4" data-testid="goals-open">
+            Pick a goal
           </Button>
         </div>
       </motion.div>
@@ -368,7 +377,10 @@ function HomeTop({ top }: { top: React.ReactNode }) {
           })}
         </div>
         <div className="-ml-1 mt-1">
-          <Button variant="text" onClick={() => ui.set({ sheet: 'picker' })} data-testid="more-layers">
+          <Button variant="text" onClick={() => ui.set({ sheet: 'goals' })} data-testid="goals-open">
+            Goals
+          </Button>
+          <Button variant="text" onClick={() => ui.set({ sheet: 'picker' })} className="ml-4" data-testid="more-layers">
             More layers
           </Button>
         </div>
@@ -515,7 +527,8 @@ function useOverflowBelow(ref: React.RefObject<HTMLElement | null>): boolean {
 /** When this session ends on its own (wall-clock ms), or null when it plays until you stop it. */
 function sessionEndsAt(s: ReturnType<typeof session.get>): number | null {
   if (s.takeFive) return s.startedAt + s.takeFive.endsAtSec * 1000;
-  if (s.layer?.journey) return s.startedAt + 45 * 60_000;
+  const j = s.layer ? journeyOf(s.layer) : null;
+  if (j) return j.minutes === null ? null : s.startedAt + j.minutes * 60_000;
   if (s.cycles) {
     const c = s.cycles;
     const round = (CYCLE.workMin + CYCLE.breakMin) * 60;
@@ -655,7 +668,7 @@ function SessionEnd({ fade }: { fade: object }) {
 
 function layerHzLabel(l: Layer, beatNow: number | null, binaural: boolean) {
   if (!binaural || !l.binaural) return `Noise only`;
-  if (l.journey) return beatNow ? `${hz(beatNow)} Hz` : '8 → 2 Hz';
+  if (l.journey) return beatNow ? `${hz(beatNow)} Hz` : journeyOf(l)?.range ?? `${hz(l.beatHz)} Hz`;
   return `${hz(l.beatHz)} Hz`;
 }
 
@@ -973,7 +986,7 @@ function LayerPanel() {
                         testid="motion"
                         value={t.motion}
                         locked={blindLock ? (['drift', 'vary', 'hold'] as const).filter((m) => m !== t.motion) : layer.motionLocked || layer.journey ? ['drift', 'vary'] : []}
-                        lockedNote={blindLock ? 'unavailable, fixed during the blind comparison' : layer.journey ? 'unavailable, Evening descent follows its own arc' : 'unavailable, Steady never changes'}
+                        lockedNote={blindLock ? 'unavailable, fixed during the blind comparison' : layer.journey ? `unavailable, ${layer.name} follows its own arc` : 'unavailable, Steady never changes'}
                         onChange={(v) => {
                           const was = t.motion;
                           session.setMotion(v);

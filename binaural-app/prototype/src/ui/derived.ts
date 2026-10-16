@@ -41,7 +41,7 @@ export function useTuck() {
   const late = hour >= 21 || hour < 6;
   const base: ThemeName = core.settings.theme === 'light' ? 'day' : core.settings.theme === 'system' ? (systemLight ? 'day' : 'night') : 'night';
   // Auto: dim and warm after 21:00 for every layer, and from 18:00 for Sleep. Always: from 18:00.
-  const sleepy = layer.journey === 'evening-descent' || layer.intent === 'sleep';
+  const sleepy = layer.journey === 'evening-descent' || layer.intent === 'sleep' || layer.goal === 'ready-for-sleep' || layer.goal === 'deep-sleep';
   const dim = prefs.dimAtNight !== 'off' && evening && (prefs.dimAtNight === 'always' || late || sleepy);
   const theme: ThemeName = dim ? 'dim' : base;
   const texture = prefs.texture && !prefs.plainLabels && !core.settings.sensoryMode && theme !== 'dim' && !systemTransparencyReduced;
@@ -97,8 +97,8 @@ export function preselectForHour() {
     return;
   }
   const last = core.lastPlayed?.id;
-  const day = last && store.findLayer(last) && !store.findLayer(last)!.journey ? last : 'focus';
-  if (u.selectedId !== day && (store.findLayer(u.selectedId)?.journey || u.selectedId === 'sleep')) ui.set({ selectedId: day, motionOverride: null });
+  const day = last && store.findLayer(last) && store.findLayer(last)!.journey !== 'evening-descent' ? last : 'focus';
+  if (u.selectedId !== day && (store.findLayer(u.selectedId)?.journey === 'evening-descent' || u.selectedId === 'sleep')) ui.set({ selectedId: day, motionOverride: null });
 }
 
 export function startSound(layerId?: string) {

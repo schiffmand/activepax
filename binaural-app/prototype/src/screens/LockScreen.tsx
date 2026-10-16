@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { otherApp } from '../audio/otherApp';
 import { session } from '../audio/session';
-import { hz, readoutNumbers } from '../tuck/layers';
+import { hz, journeyEndText, journeyOf, readoutNumbers } from '../tuck/layers';
 import { startSound, useTuck } from '../ui/derived';
 import { store } from '../tuck/store';
 import { ui, useOther } from '../ui/state';
@@ -115,7 +115,7 @@ export function LockScreen({ onBack, reduced }: { onBack: () => void; reduced: b
               <div className="mt-2 flex items-end justify-between">
                 <div>
                   <p className="text-[1rem] text-[#AEB2A0]" data-testid="live-status">
-                    {under}, {left !== null ? `${left} min left` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}${s.cycles.phase === 'break' ? ', break' : ''}` : layer.journey ? 'ends after 45 min' : 'no timer'}
+                    {under}, {left !== null ? `${left} min left` : s.cycles ? `round ${s.cycles.round} of ${s.cycles.of}${s.cycles.phase === 'break' ? ', break' : ''}` : layer.journey ? journeyEndText(journeyOf(layer)!).toLowerCase() : 'no timer'}
                   </p>
                   {blind ? (
                     <p className="tnum text-[2.125rem] leading-[2.375rem] font-medium mt-1">Layer {blind}</p>

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createCustomPreset } from '@core';
 import { session } from '../audio/session';
 import { CYCLE } from '../audio/session';
-import { BUILT_IN_LAYERS, INTENT_ORDER, builtInLayer, ears, engravedLine, hz, noiseOnlyOf, type Layer, type TuckPresetExtras } from '../tuck/layers';
+import { BUILT_IN_LAYERS, GOAL_LAYERS, INTENT_ORDER, journeyEndText, journeyOf, builtInLayer, ears, engravedLine, hz, noiseOnlyOf, type Layer, type TuckPresetExtras } from '../tuck/layers';
 import { store, type TimerChoice } from '../tuck/store';
 import { selectLayer, useTuck } from '../ui/derived';
 import { FORCES_NOISE, ui, type Headphone } from '../ui/state';
@@ -22,6 +22,9 @@ export function Sheets() {
     <>
       <Sheet open={u.sheet === 'picker'} onClose={close} title="Pick a layer" reduced={reduced} testid="sheet-picker" tall>
         <Picker />
+      </Sheet>
+      <Sheet open={u.sheet === 'goals'} onClose={close} title="Pick a goal" reduced={reduced} testid="sheet-goals" tall>
+        <GoalsSheet />
       </Sheet>
       <Sheet open={u.sheet === 'timer'} onClose={close} title="Timer" reduced={reduced} testid="sheet-timer">
         <TimerSheet />
@@ -77,6 +80,27 @@ function LayerRow({ l, on, sub, onPick, extra }: { l: Layer; on: boolean; sub?: 
   );
 }
 
+/** Goals: named by what you want to do. Each plays its own arc, so there's no frequency to choose. */
+function GoalsSheet() {
+  const t = useTuck();
+  const pick = (id: string) => {
+    selectLayer(id);
+    ui.set({ sheet: null, chip: null, chipLine: null, chipsOpen: false });
+  };
+  return (
+    <div>
+      <p className="text-[1rem] leading-6 text-ink2 mb-2">Pick what you’re about to do. Each one changes on its own as it plays, so there’s nothing to set.</p>
+      <div role="radiogroup" aria-label="Goals" className="divide-y divide-line">
+        {GOAL_LAYERS.map((l) => {
+          const j = journeyOf(l)!;
+          return <LayerRow key={l.id} l={l} on={t.layer.id === l.id} sub={j.goodFor} onPick={() => pick(l.id)} />;
+        })}
+      </div>
+      <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-3">The goals describe what you want to do, not what the sound does to you. Tap a goal’s numbers on the layer to see exactly what plays.</p>
+    </div>
+  );
+}
+
 function Picker() {
   const t = useTuck();
   const saved = store.savedLayers();
@@ -95,6 +119,12 @@ function Picker() {
         })}
         {/* Long focus sits with the five, with its honest line: students search for 40 Hz by name. */}
         <LayerRow l={builtInLayer('long-focus')!} on={current === 'long-focus'} sub={builtInLayer('long-focus')!.note} onPick={() => pick('long-focus')} />
+      </div>
+      <h3 className="text-[1rem] font-bold text-ink2 mt-6 mb-1">Goals</h3>
+      <div className="divide-y divide-line">
+        {GOAL_LAYERS.map((l) => (
+          <LayerRow key={l.id} l={l} on={current === l.id} sub={journeyOf(l)!.goodFor} onPick={() => pick(l.id)} />
+        ))}
       </div>
       <h3 className="text-[1rem] font-bold text-ink2 mt-6 mb-1">Your layers</h3>
       {saved.length === 0 ? (
@@ -136,12 +166,15 @@ function TimerSheet() {
     if (active) session.setTimer(m);
     ui.set({ sheet: null });
   };
-  if (t.layer.journey) {
+  const journey = journeyOf(t.layer);
+  if (journey) {
     return (
       <div data-testid="timer-journey">
-        <p className="text-[1.25rem] leading-7 text-ink tnum">Ends after 45 min</p>
+        <p className="text-[1.25rem] leading-7 text-ink tnum">{journeyEndText(journey)}</p>
         <p className="text-[1rem] leading-6 text-ink2 mt-2">
-          Evening descent has its own arc: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes, then a 60 second fade to silence. It doesn’t need a timer.
+          {t.layer.journey === 'evening-descent'
+            ? 'Evening descent has its own arc: 8 Hz easing to 2 Hz over 30 minutes, then 15 quiet minutes, then a 60 second fade to silence. It doesn’t need a timer.'
+            : `${t.layer.name} has its own arc. ${journey.plain.slice(journey.plain.indexOf(': ') + 2)} ${journey.minutes === null ? 'Stop it when you wake.' : 'It doesn’t need a timer.'}`}
         </p>
       </div>
     );

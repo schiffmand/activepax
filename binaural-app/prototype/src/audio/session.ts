@@ -8,7 +8,7 @@ import { getContext, ensureRunning, playChime } from './hub';
 import { otherApp } from './otherApp';
 import { LayerEngine } from './layerEngine';
 import { createWarpClock } from './warpClock';
-import { LEVEL_VOLUME, LEVELS, programFor, wanders, type Layer, type LevelName, type Motion } from '../tuck/layers';
+import { LEVEL_VOLUME, LEVELS, journeyOf, programFor, wanders, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import { store } from '../tuck/store';
 
 /** Work/break cycles: 25 min at your level, 5 min at Quiet, one chime, back up. Four rounds. */
@@ -108,7 +108,7 @@ export function fadesFor(layer: Layer): { fadeIn: number; fadeOut: number } {
   const p = store.get().prefs;
   if (layer.kind === 'saved') return { fadeIn: layer.fadeInSec, fadeOut: layer.fadeOutSec };
   const fadeIn = layer.id.startsWith('steady') ? Math.max(15, p.fadeInSec) : p.fadeInSec;
-  const fadeOut = layer.journey ? 60 : p.fadeOutSec;
+  const fadeOut = layer.journey ? journeyOf(layer)?.endFadeSec ?? 60 : p.fadeOutSec;
   return { fadeIn, fadeOut };
 }
 

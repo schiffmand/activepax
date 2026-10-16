@@ -1,4 +1,4 @@
-import { capital, ears, envelopeFor, hz, LEVEL_LABEL, LEVEL_VOLUME, type Layer, type LevelName, type Motion } from '../tuck/layers';
+import { capital, ears, envelopeFor, hz, journeyOf, LEVEL_LABEL, LEVEL_VOLUME, type Layer, type LevelName, type Motion } from '../tuck/layers';
 import type { TimerChoice } from '../tuck/store';
 import { Button, Segmented } from '../ui/kit';
 import { ui } from '../ui/state';
@@ -74,7 +74,7 @@ export function SpecCard({
     ? `${LEVEL_LABEL[level]} · beat ${formatDb(toneDbfs(v), 'dBFS')}${layer.noise.type === 'off' ? '' : `, noise ${formatDb(noiseDbfs(v, layer.noise.volume), 'dBFS')}`} · ceiling ${LEVEL_LABEL[ceiling]}`
     : `${LEVEL_LABEL[level]} · noise ${formatDb(noiseDbfs(v, layer.noise.volume, { noiseOnly: true }), 'dBFS')} · ceiling ${LEVEL_LABEL[ceiling]}`;
   const motionRow = layer.journey
-    ? 'A journey: 8 → 4 → 2 Hz'
+    ? `A journey: ${layer.journey === 'evening-descent' ? '8 → 4 → 2 Hz' : journeyOf(layer)!.range}`
     : motion === 'hold'
       ? 'Hold · no variation'
       : beat
@@ -106,7 +106,7 @@ export function SpecCard({
         {beat ? (
           <>
             <p className="tnum whitespace-nowrap text-[min(3.8125rem,80px)] leading-[min(4rem,84px)] tracking-[-0.01em] text-ink" aria-label={`${hz(layer.beatHz)} hertz beat`}>
-              {layer.journey ? '8 → 2 Hz' : `${hz(layer.beatHz)} Hz`}
+              {layer.journey ? journeyOf(layer)!.range : `${hz(layer.beatHz)} Hz`}
             </p>
             <p className="tnum text-[1.25rem] leading-7 font-medium mt-2 flex flex-wrap justify-center">
               {/* Each ear keeps its label with its value; the line may wrap only at the dot (round 4, N3). */}
@@ -231,14 +231,16 @@ function Envelope({ layer, timer, motion }: { layer: Layer; timer: TimerChoice; 
     pts = p;
   }
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${xOf(p.t).toFixed(1)} ${yOf(p.v).toFixed(1)}`).join(' ');
-  // The descent's beat, on its own scale (8 Hz at the top, 0 at the baseline), dashed.
-  const beatPath = env.beat?.map((p, i) => `${i ? 'L' : 'M'}${xOf(p.t).toFixed(1)} ${yOf(p.v / 8).toFixed(1)}`).join(' ');
+  // A journey's beat, on its own scale (its highest beat, at least 8 Hz, at the top; 0 at the baseline), dashed.
+  const beatTop = Math.max(8, ...(env.beat ?? []).map((p) => p.v));
+  const beatPath = env.beat?.map((p, i) => `${i ? 'L' : 'M'}${xOf(p.t).toFixed(1)} ${yOf(p.v / beatTop).toFixed(1)}`).join(' ');
   const drift = motion !== 'hold' && !layer.journey;
-  const endLabel = env.open ? '…' : layer.journey ? '45 min' : `${timerMin} min`;
+  // Goal tracks fade out inside their length, so the label marks where the fade starts.
+  const endLabel = env.open ? '…' : layer.journey === 'goal' ? `${hz((env.totalSec - layer.fadeOutSec) / 60)} min` : layer.journey ? `${Math.round(env.totalSec / 60)} min` : `${timerMin} min`;
   return (
     <figure
       className="mt-3"
-      aria-label={`Session envelope: fades in over ${layer.fadeInSec} seconds, ${env.open ? 'plays until you stop' : layer.journey ? 'the beat eases from 8 to 2 Hz over 30 minutes, then 15 quiet minutes, ending after 45 minutes' : cycles ? `${CYCLE.rounds} rounds of ${CYCLE.workMin} minutes with ${CYCLE.breakMin} minute breaks at Quiet` : `fades out at ${endLabel}`}.`}
+      aria-label={`Session envelope: fades in over ${layer.fadeInSec} seconds, ${env.open ? 'plays until you stop' : layer.journey ? journeyOf(layer)!.plain : cycles ? `${CYCLE.rounds} rounds of ${CYCLE.workMin} minutes with ${CYCLE.breakMin} minute breaks at Quiet` : `fades out at ${endLabel}`}.`}
       data-testid="envelope"
     >
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-hidden className="block overflow-visible">
@@ -260,7 +262,7 @@ function Envelope({ layer, timer, motion }: { layer: Layer; timer: TimerChoice; 
           {fmtT(layer.fadeInSec)}
         </span>
         {env.open ? (
-          <span className="absolute right-0">no timer</span>
+          <span className="absolute right-0">{layer.journey === 'goal' ? 'all night' : 'no timer'}</span>
         ) : (
           <>
             <span className="absolute -translate-x-full" style={{ left: `${((W - fadeW) / W) * 100}%`, marginLeft: -12 }}>
@@ -272,7 +274,7 @@ function Envelope({ layer, timer, motion }: { layer: Layer; timer: TimerChoice; 
       </figcaption>
       {layer.journey && (
         <p className="text-[1rem] leading-[1.375rem] text-ink2 mt-1">
-          <span style={{ color: 'var(--c-left)' }}>Dashed</span>: the beat, 8 → 4 → 2 Hz. Solid: the level.
+          <span style={{ color: 'var(--c-left)' }}>Dashed</span>: the beat, {layer.journey === 'evening-descent' ? '8 → 4 → 2 Hz' : journeyOf(layer)!.range}. Solid: the level.
         </p>
       )}
     </figure>
