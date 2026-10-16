@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DayPilot</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#17181a; --bg-raised:#1f2023; --bg-raised-2:#26282c;
+    --fg:#f3efe8; --fg-dim:#a9a69f; --fg-faint:#716e68;
+    --ember:#e8703f; --slate:#7c8aa6; --line:#333335; --good:#8fae7a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%; margin:0}
+  body{
+    background:var(--bg); color:var(--fg); font-family:'Work Sans',system-ui,sans-serif;
+    display:flex; flex-direction:column; overscroll-behavior:none;
+  }
+  h1,h2,h3{font-family:'Bricolage Grotesque',system-ui,sans-serif; margin:0}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums}
+  button{font-family:inherit; cursor:pointer}
+  #app{flex:1; display:flex; flex-direction:column; max-width:480px; margin-inline:auto; width:100%; min-height:100vh; position:relative}
+  .screen{flex:1; display:flex; flex-direction:column; padding:20px; padding-bottom:28px}
+  [hidden]{display:none !important}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:16px 20px 4px}
+  .brand{font-weight:800; font-size:15px; letter-spacing:.02em}
+  .brand .dot{color:var(--ember)}
+
+  /* ---- intake chat ---- */
+  .chat-log{flex:1; display:flex; flex-direction:column; gap:10px; overflow-y:auto; padding-block:10px}
+  .bubble{max-width:82%; padding:11px 14px; border-radius:14px; font-size:14.5px; line-height:1.45}
+  .bubble.bot{background:var(--bg-raised); align-self:flex-start; border-bottom-left-radius:4px}
+  .bubble.user{background:var(--ember); color:#19120c; align-self:flex-end; border-bottom-right-radius:4px; font-weight:500}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; padding-top:6px}
+  .chip{
+    background:var(--bg-raised-2); border:1px solid var(--line); color:var(--fg);
+    padding:9px 14px; border-radius:999px; font-size:13.5px;
+  }
+  .chip:active{background:var(--ember); color:#19120c}
+  .composer{display:flex; gap:8px; padding-top:10px}
+  .composer input{
+    flex:1; background:var(--bg-raised); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; color:var(--fg); font-size:14.5px;
+  }
+  .composer button{
+    background:var(--ember); border:none; color:#19120c; border-radius:10px; padding:0 18px; font-weight:600;
+  }
+
+  /* ---- generating ---- */
+  .gen-screen{align-items:center; justify-content:center; text-align:center; gap:18px}
+  .pulse{width:14px; height:14px; border-radius:50%; background:var(--ember); animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35; transform:scale(.8)} 50%{opacity:1; transform:scale(1.15)}}
+  .gen-status{color:var(--fg-dim); font-size:14px; min-height:20px}
+  @media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+
+  /* ---- review ---- */
+  .review-head{margin-bottom:18px}
+  .review-head .sub{color:var(--fg-dim); font-size:14px; margin-top:4px}
+  .seg-row{display:flex; gap:12px; padding-block:10px; border-bottom:1px solid var(--line); align-items:flex-start}
+  .seg-row .bar{width:4px; border-radius:2px; align-self:stretch; min-height:28px}
+  .seg-row.work .bar{background:var(--ember)}
+  .seg-row.rest .bar,.seg-row.round_rest .bar{background:var(--slate)}
+  .seg-row.warmup .bar,.seg-row.cooldown .bar{background:var(--fg-faint)}
+  .seg-row .meta{flex:1}
+  .seg-row .name{font-size:14.5px; font-weight:600}
+  .seg-row .dur{font-size:12px; color:var(--fg-faint)}
+  .warn-box{background:#2a2420; border-left:3px solid var(--slate); border-radius:6px; padding:12px 14px; margin-top:16px; font-size:13px; color:var(--fg-dim)}
+  .actions{display:flex; gap:10px; margin-top:20px}
+  .btn{border:none; border-radius:10px; padding:14px; font-weight:600; font-size:15px; text-align:center}
+  .btn.primary{background:var(--ember); color:#19120c; flex:1}
+  .btn.ghost{background:var(--bg-raised); color:var(--fg); border:1px solid var(--line)}
+
+  /* ---- now playing ---- */
+  .np-screen{align-items:center; justify-content:space-between; padding-top:40px}
+  .np-state{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ember); text-align:center}
+  .np-exname{font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:22px; text-align:center; margin-top:8px; min-height:30px}
+  .ring-wrap{position:relative; width:220px; height:220px; margin-top:20px}
+  .ring-num{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:48px}
+  .np-cue{font-size:13.5px; color:var(--fg-dim); text-align:center; margin-top:16px; min-height:40px; padding-inline:10px}
+  .np-controls{display:flex; align-items:center; justify-content:center; gap:28px; margin-top:20px}
+  .np-dot{width:64px; height:64px; border-radius:50%; background:var(--bg-raised-2); display:flex; align-items:center; justify-content:center; border:none}
+  .np-small{width:44px; height:44px; border-radius:50%; background:var(--bg-raised); display:flex; align-items:center; justify-content:center; border:none; color:var(--fg)}
+  .np-up-next{width:100%; background:var(--bg-raised); border-radius:10px; padding:10px 14px; margin-top:22px; font-size:12.5px; color:var(--fg-dim); display:flex; justify-content:space-between}
+
+  /* ---- completion ---- */
+  .done-screen{align-items:center; justify-content:center; text-align:center; gap:14px}
+  .done-screen .big{font-size:30px}
+  .stat-row{display:flex; gap:24px; margin-top:10px}
+  .stat{text-align:center}
+  .stat .n{font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:22px}
+  .stat .l{font-size:11px; color:var(--fg-faint); text-transform:uppercase; letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="brand">day<span class="dot">pilot</span>.</div>
+    <div class="mono" style="font-size:11px; color:var(--fg-faint)" id="api-indicator">●</div>
+  </div>
+
+  <!-- INTAKE -->
+  <section id="screen-intake" class="screen">
+    <div class="chat-log" id="chat-log"></div>
+    <div class="chips" id="chat-chips"></div>
+    <div class="composer" id="chat-composer" hidden>
+      <input id="chat-input" type="text" placeholder="Type here…" autocomplete="off">
+      <button id="chat-send">Send</button>
+    </div>
+  </section>
+
+  <!-- GENERATING -->
+  <section id="screen-generating" class="screen gen-screen" hidden>
+    <div class="pulse"></div>
+    <div class="gen-status" id="gen-status">Building around what you told me…</div>
+  </section>
+
+  <!-- REVIEW -->
+  <section id="screen-review" class="screen" hidden>
+    <div class="review-head">
+      <h2 id="review-title">Today's session</h2>
+      <div class="sub" id="review-sub"></div>
+    </div>
+    <div id="seg-list" style="overflow-y:auto; flex:1"></div>
+    <div class="warn-box" id="warn-box" hidden></div>
+    <div class="actions">
+      <button class="btn ghost" id="btn-pdf">PDF</button>
+      <button class="btn primary" id="btn-start">Start</button>
+    </div>
+  </section>
+
+  <!-- NOW PLAYING -->
+  <section id="screen-playing" class="screen np-screen" hidden>
+    <div>
+      <div class="np-state" id="np-state">Work</div>
+      <div class="np-exname" id="np-exname">—</div>
+    </div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 220 220" width="220" height="220">
+        <circle cx="110" cy="110" r="92" fill="none" stroke="#2a2a2d" stroke-width="12"/>
+        <circle id="np-ring" cx="110" cy="110" r="92" fill="none" stroke="var(--ember)" stroke-width="12"
+          stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="0" transform="rotate(-90 110 110)"/>
+      </svg>
+      <div class="ring-num mono" id="np-ring-num">0:00</div>
+    </div>
+    <div class="np-cue" id="np-cue">—</div>
+    <div class="np-controls">
+      <button class="np-small" id="np-back" aria-label="Back 10s">«</button>
+      <button class="np-dot" id="np-playpause" aria-label="Play/Pause">
+        <svg id="icon-play" width="22" height="22" viewBox="0 0 16 16" fill="#f3efe8"><path d="M4 2v12l10-6z"/></svg>
+        <svg id="icon-pause" width="18" height="18" viewBox="0 0 16 16" fill="#f3efe8" hidden><rect x="3" y="2" width="3" height="12"/><rect x="10" y="2" width="3" height="12"/></svg>
+      </button>
+      <button class="np-small" id="np-fwd" aria-label="Skip">»</button>
+    </div>
+    <div class="np-up-next"><span>Up next</span><span id="np-next" class="mono">—</span></div>
+    <audio id="audio-el" preload="auto"></audio>
+  </section>
+
+  <!-- DONE -->
+  <section id="screen-done" class="screen done-screen" hidden>
+    <div class="big">Session complete.</div>
+    <div class="stat-row">
+      <div class="stat"><div class="n mono" id="done-min">--</div><div class="l">Minutes</div></div>
+      <div class="stat"><div class="n mono" id="done-ex">--</div><div class="l">Exercises</div></div>
+    </div>
+    <button class="btn primary" style="margin-top:20px; width:200px" id="btn-restart">New session</button>
+  </section>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

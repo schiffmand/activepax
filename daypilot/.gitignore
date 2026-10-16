@@ -1,0 +1,9 @@
+# Regenerable render output and TTS cache -- not source, often large.
+backend/generated/
+backend/voice_cache/
+
+__pycache__/
+*.pyc
+
+# Demo recordings are large binaries; keep out of git, deliver directly.
+demo_output/
