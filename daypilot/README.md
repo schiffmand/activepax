@@ -66,12 +66,16 @@ lines shift later rather than ever stepping on a bell. See
 
 ## Known limitations (read before judging the prototype)
 
-- **Render latency is real** -- roughly 1.5-3 minutes per workout right
-  now, dominated by sequential TTS synthesis calls to espeak-ng (not
-  parallelized yet) and a two-pass ffmpeg loudnorm over the full file.
-  The production plan's mitigations (parallel TTS, caching common cue
-  audio, progressive delivery) aren't implemented here -- this prototype
-  optimizes for proving correctness first.
+- **Render latency is real** -- roughly 1.5-4 minutes per workout
+  (scales with requested duration), dominated by sequential TTS
+  synthesis calls to espeak-ng (not parallelized yet) and a two-pass
+  ffmpeg loudnorm over the full file. The production plan's mitigations
+  (parallel TTS, caching common cue audio, progressive delivery) aren't
+  implemented here -- this prototype optimizes for proving correctness
+  first. Rendering several workouts concurrently also contends hard for
+  CPU on a small box (this is a numpy/ffmpeg-heavy synchronous
+  pipeline) -- don't read too much into latency measured under
+  concurrent load.
 - **TTS voice is espeak-ng/mbrola**, the same offline fallback used in
   the original workout_audio prototype -- robotic compared to
   ElevenLabs/OpenAI. No API keys are configured in this environment; the
@@ -86,13 +90,40 @@ lines shift later rather than ever stepping on a bell. See
   available in the environment this was built in. It's mobile-responsive
   and fully functional in an iPhone browser today; a native SwiftUI
   client is the next phase once the UX here is validated.
+- **Shoulder-injury strength days skew lower-body.** When an injury
+  excludes every push/pull exercise, backfill currently reaches for
+  other safe patterns (lunge, core) rather than a shoulder-safe
+  upper-body substitute, because the library doesn't yet have an
+  explicitly shoulder-safe row/press variant. The session stays full and
+  100% safe, just not upper-body-balanced on that specific flag. Would
+  need new library content, not a generator logic change.
+- **No progressive-overload / load prescription.** Cues cover
+  position/breath/tempo/posture but never suggest how heavy to go or
+  when to add weight -- a real gap for an "advanced" user trying to
+  break a plateau, flagged by synthetic testing, not yet addressed.
 
 ## Testing
 
-- `backend/tests/` has no automated test suite yet in this prototype pass
-  -- validation so far has been real end-to-end runs (see
-  `backend/generated/<workout_id>/` for actual rendered output) plus
-  synthetic persona testing via agents exercising the live API. See the
-  project status doc for what was found and fixed.
+- `backend/tests/test_generator.py` is a fast (~1s), render-free
+  regression suite -- 25 checks covering reps-string parsing, equipment
+  semantics, injury-based exclusion and safe backfill, HIIT/circuit
+  day_type compatibility, duration-vs-target accuracy for every
+  day_type, bell/segment coverage, and the specific false-positive
+  warning and safety-tagging bugs found below. Run with
+  `python3 backend/tests/test_generator.py`.
+- Beyond unit tests, this was validated with real end-to-end runs
+  against the live server -- generated workouts, rendered PDFs, and
+  rendered audio were directly inspected, not just checked for HTTP 200.
+  Three synthetic-user-testing passes (via agents exercising the live
+  API as different personas: a plateaued lifter, an injury-wary
+  returner, a busy short-session user) found and led to fixing: duration
+  targets missed by up to 36%, "mobility" day_type silently falling
+  through to the strength template, a misleading warning that fired with
+  zero flagged constraints, a missing knee_injury safety tag on a
+  repeated-impact movement, and the PDF omitting warm-up/cool-down
+  content. See the git log on this branch for the full writeup of each
+  fix.
 - `scripts/record_demo.py` drives the real running app in a real browser
-  via Playwright and records video -- not a mockup.
+  via Playwright and records video -- not a mockup. Run it against the
+  live server with `python3 scripts/record_demo.py <duration_min>
+  <day_type> <out_dir>`.
