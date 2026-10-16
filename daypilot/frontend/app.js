@@ -192,6 +192,18 @@ function startPlayback() {
   tick();
 }
 
+// Keep the play/pause icon in sync with real playback state regardless of
+// how it changed (button tap, autoplay, media-key, browser policy block)
+// instead of only toggling it inside the button's own click handler.
+audioEl().addEventListener("play", () => {
+  $("icon-play").hidden = true;
+  $("icon-pause").hidden = false;
+});
+audioEl().addEventListener("pause", () => {
+  $("icon-play").hidden = false;
+  $("icon-pause").hidden = true;
+});
+
 function currentSegment(t) {
   const segs = state.schedule.segments;
   for (const s of segs) if (t >= s.start_sec && t < s.end_sec) return s;
@@ -264,14 +276,12 @@ $("btn-restart").onclick = () => {
 };
 $("np-playpause").onclick = () => {
   const a = audioEl();
+  // Icon state follows the element's own play/pause events (registered
+  // above), so this just drives playback.
   if (a.paused) {
     a.play();
-    $("icon-play").hidden = true;
-    $("icon-pause").hidden = false;
   } else {
     a.pause();
-    $("icon-play").hidden = false;
-    $("icon-pause").hidden = true;
   }
 };
 $("np-back").onclick = () => (audioEl().currentTime = Math.max(0, audioEl().currentTime - 10));
